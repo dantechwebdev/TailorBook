@@ -1,0 +1,58 @@
+{
+  "expo": {
+    "name": "TailorBook",
+    "slug": "tailorbook",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#4B3FA0"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#4B3FA0"
+      },
+      "package": "com.tailorbook.app",
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
+      ]
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.tailorbook.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "TailorBook needs camera access to photograph outfit samples.",
+        "NSPhotoLibraryUsageDescription": "TailorBook needs photo library access to select outfit sample images."
+      }
+    },
+    "plugins": [
+      "expo-sqlite",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#4B3FA0"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "TailorBook needs access to your photos to add outfit samples."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "tailorbook-mvp"
+      }
+    }
+  }
+}
