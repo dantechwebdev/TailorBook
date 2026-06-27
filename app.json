@@ -52,10 +52,6 @@
         }
       ]
     ],
-    "extra": {
-      "eas": {
-        "projectId": "tailorbook-mvp"
-      }
-    }
+    "extra": {}
   }
 }
