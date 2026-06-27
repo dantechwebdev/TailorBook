@@ -15,8 +15,8 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useStore } from '../../context/store';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../constants/theme';
 import { MEASUREMENT_FIELDS, TEMPLATE_LABELS } from '../../constants/theme';
-import { BackIcon, CheckIcon } from '../common/Icons';
-import { Button, Chip } from '../common/UI';
+import { BackIcon, CheckIcon } from '../../components/common/Icons';
+import { Button, Chip } from '../../components/common/UI';
 import { MeasurementTemplate } from '../../types';
 import { format } from 'date-fns';
 

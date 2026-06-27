@@ -10,8 +10,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../constants/theme';
-import { AccountIcon, NotificationsIcon, HelpIcon, LogoutIcon, SubscriptionIcon } from '../common/Icons';
-import { Avatar, Card, Divider } from '../common/UI';
+import { AccountIcon, NotificationsIcon, HelpIcon, LogoutIcon, SubscriptionIcon } from '../../components/common/Icons';
+import { Avatar, Card, Divider } from '../../components/common/UI';
 import { useStore } from '../../context/store';
 
 const AccountScreen: React.FC = () => {

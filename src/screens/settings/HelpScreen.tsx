@@ -9,8 +9,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../constants/theme';
-import { ChevronRightIcon, HelpIcon } from '../common/Icons';
-import { Card, Divider } from '../common/UI';
+import { ChevronRightIcon, HelpIcon } from '../../components/common/Icons';
+import { Card, Divider } from '../../components/common/UI';
 
 const FAQ_ITEMS = [
   {

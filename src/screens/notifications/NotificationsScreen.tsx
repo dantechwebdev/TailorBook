@@ -10,8 +10,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useStore } from '../../context/store';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../constants/theme';
-import { NotificationsIcon, CheckIcon, AlertCircleIcon, JobsIcon, ClockIcon } from '../common/Icons';
-import { EmptyState } from '../common/UI';
+import { NotificationsIcon, CheckIcon, AlertCircleIcon, JobsIcon, ClockIcon } from '../../components/common/Icons';
+import { EmptyState } from '../../components/common/UI';
 import { AppNotification, NotificationType } from '../../types';
 import { formatDateTime } from '../../utils/helpers';
 

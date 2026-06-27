@@ -9,8 +9,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../constants/theme';
-import { CheckIcon, SubscriptionIcon } from '../common/Icons';
-import { Button } from '../common/UI';
+import { CheckIcon, SubscriptionIcon } from '../../components/common/Icons';
+import { Button } from '../../components/common/UI';
 
 const FREE_FEATURES = [
   'Up to 50 customers',

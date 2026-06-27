@@ -13,8 +13,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useStore } from '../../context/store';
 import { Colors, Typography, Spacing, Radius, Shadow, JOB_STATUS_CONFIG, JOB_STATUSES } from '../../constants/theme';
-import { BackIcon, EditIcon, TrashIcon, CheckIcon, CustomersIcon, MeasurementsIcon, ScissorsIcon } from '../common/Icons';
-import { Avatar, StatusBadge, Card, Button } from '../common/UI';
+import { BackIcon, EditIcon, TrashIcon, CheckIcon, CustomersIcon, MeasurementsIcon, ScissorsIcon } from '../../components/common/Icons';
+import { Avatar, StatusBadge, Card, Button } from '../../components/common/UI';
 import { formatDeliveryDate, formatDate, formatNaira, getDeliveryUrgency } from '../../utils/helpers';
 import { JobStatus } from '../../types';
 

@@ -11,6 +11,10 @@
       "resizeMode": "contain",
       "backgroundColor": "#4B3FA0"
     },
+    "web": {
+      "bundler": "webpack",
+      "output": "single"
+    },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -34,7 +38,6 @@
       }
     },
     "plugins": [
-      "expo-sqlite",
       [
         "expo-notifications",
         {

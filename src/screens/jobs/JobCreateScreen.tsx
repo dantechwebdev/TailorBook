@@ -26,8 +26,8 @@ import {
   MeasurementsIcon,
   CustomersIcon,
   CheckIcon,
-} from '../common/Icons';
-import { Button, InputField, Chip, Avatar, Card } from '../common/UI';
+} from '../../components/common/Icons';
+import { Button, InputField, Chip, Avatar, Card } from '../../components/common/UI';
 import {
   addDaysISO,
   getTodayISO,

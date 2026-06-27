@@ -20,8 +20,8 @@ import {
   ClockIcon,
   JobsIcon,
   ChevronRightIcon,
-} from '../common/Icons';
-import { Avatar, StatusBadge, SectionHeader, EmptyState } from '../common/UI';
+} from '../../components/common/Icons';
+import { Avatar, StatusBadge, SectionHeader, EmptyState } from '../../components/common/UI';
 import {
   getGreeting,
   formatDeliveryDate,

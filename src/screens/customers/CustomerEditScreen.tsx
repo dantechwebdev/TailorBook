@@ -13,8 +13,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useStore } from '../../context/store';
 import { Colors, Typography, Spacing, Radius } from '../../constants/theme';
-import { BackIcon } from '../common/Icons';
-import { Button, InputField, Avatar } from '../common/UI';
+import { BackIcon } from '../../components/common/Icons';
+import { Button, InputField, Avatar } from '../../components/common/UI';
 import { isValidName, isValidPhone } from '../../utils/helpers';
 
 const CustomerEditScreen: React.FC = () => {

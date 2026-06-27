@@ -24,8 +24,8 @@ import {
   ChevronDownIcon,
   MeasurementsIcon,
   CheckIcon,
-} from '../common/Icons';
-import { Button, InputField, Chip, Avatar } from '../common/UI';
+} from '../../components/common/Icons';
+import { Button, InputField, Chip, Avatar } from '../../components/common/UI';
 import {
   addDaysISO,
   formatDeliveryDate,
