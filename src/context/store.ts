@@ -65,6 +65,7 @@ const DEFAULT_SETTINGS: TailorSettings = {
   workDays: '["Mon","Tue","Wed","Thu","Fri","Sat"]',
   defaultApparel: '',
   onboardingComplete: '0',
+  profilePhotoUri: '',
 };
 
 // ─── Store Implementation ─────────────────────────────────────────────────────

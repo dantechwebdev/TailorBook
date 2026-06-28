@@ -31,6 +31,7 @@ const DEFAULT_SETTINGS: TailorSettings = {
   workDays: '["Mon","Tue","Wed","Thu","Fri","Sat"]',
   defaultApparel: '',
   onboardingComplete: '0',
+  profilePhotoUri: '',
 };
 
 export async function getSettings(): Promise<TailorSettings> {
@@ -45,6 +46,7 @@ export async function getSettings(): Promise<TailorSettings> {
     workDays: s['workDays'] ?? DEFAULT_SETTINGS.workDays,
     defaultApparel: s['defaultApparel'] ?? DEFAULT_SETTINGS.defaultApparel,
     onboardingComplete: s['onboardingComplete'] ?? DEFAULT_SETTINGS.onboardingComplete,
+    profilePhotoUri: s['profilePhotoUri'] ?? '',
   };
 }
 

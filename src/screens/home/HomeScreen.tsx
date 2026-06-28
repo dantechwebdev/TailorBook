@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { useStore } from '../../context/store';
 import { Colors, Typography, Spacing, Radius, Shadow, JOB_STATUS_CONFIG } from '../../constants/theme';
 import {
@@ -149,7 +150,8 @@ const HomeScreen: React.FC = () => {
     [overdueJobs, dueToday, readyJobs]
   );
 
-  const tailorName = settings?.tailorName || 'Tailor';
+  const tailorFirstName = (settings?.tailorName || 'Tailor').split(' ')[0];
+  const photoUri = settings?.profilePhotoUri || '';
   const today = new Date().toLocaleDateString('en-NG', {
     weekday: 'long',
     day: 'numeric',
@@ -207,14 +209,38 @@ const HomeScreen: React.FC = () => {
       >
         {/* ─── Greeting ─── */}
         <View style={styles.greetingBlock}>
-          <Text style={styles.greetingName}>
-            {tailorName.split(' ')[0]} 👋
-          </Text>
-          <Text style={styles.greetingSubtext}>
-            {tasks.length === 0
-              ? "You're all caught up. Great work!"
-              : `You have ${tasks.length} thing${tasks.length === 1 ? '' : 's'} to handle today.`}
-          </Text>
+          <View style={styles.greetingRow}>
+            <View style={styles.greetingText}>
+              <Text style={styles.greetingName}>
+                Hi, {tailorFirstName}
+              </Text>
+              <Text style={styles.greetingSubtext}>
+                {tasks.length === 0
+                  ? "You're all caught up. Great work!"
+                  : `${tasks.length} thing${tasks.length === 1 ? '' : 's'} to handle today.`}
+              </Text>
+            </View>
+            {photoUri ? (
+              <TouchableOpacity
+                onPress={() => navigation.navigate('AccountScreen')}
+                activeOpacity={0.85}
+              >
+                <Image
+                  source={{ uri: photoUri }}
+                  style={styles.greetingPhoto}
+                  resizeMode="cover"
+                />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                onPress={() => navigation.navigate('AccountScreen')}
+                style={styles.greetingAvatarPlaceholder}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="person-circle-outline" size={44} color={Colors.textTertiary} />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         {/* ─── Primary CTA ─── */}
@@ -240,7 +266,7 @@ const HomeScreen: React.FC = () => {
 
           {tasks.length === 0 ? (
             <View style={styles.emptyTaskCard}>
-              <Text style={styles.emptyTaskEmoji}>🎉</Text>
+              <Ionicons name="checkmark-circle-outline" size={36} color={Colors.primary} style={{ marginBottom: Spacing.md }} />
               <Text style={styles.emptyTaskTitle}>Nothing urgent today</Text>
               <Text style={styles.emptyTaskSubtext}>
                 All jobs are on track. Start a new order when ready.
@@ -294,7 +320,10 @@ const HomeScreen: React.FC = () => {
         {pendingWaybills.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>📦 Awaiting Dispatch</Text>
+              <View style={styles.sectionTitleRow}>
+                <Ionicons name="cube-outline" size={18} color={Colors.textPrimary} />
+                <Text style={styles.sectionTitle}>Awaiting Dispatch</Text>
+              </View>
               <View style={styles.taskCountBadge}>
                 <Text style={styles.taskCountText}>{pendingWaybills.length}</Text>
               </View>
@@ -330,7 +359,10 @@ const HomeScreen: React.FC = () => {
         {outstandingBalances.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>💰 Outstanding Balances</Text>
+              <View style={styles.sectionTitleRow}>
+                <Ionicons name="wallet-outline" size={18} color={Colors.textPrimary} />
+                <Text style={styles.sectionTitle}>Outstanding Balances</Text>
+              </View>
               <Text style={styles.balanceTotalText}>
                 {formatNaira(
                   outstandingBalances.reduce((sum, j) => sum + j.balance, 0)
@@ -398,10 +430,11 @@ const HomeScreen: React.FC = () => {
 
 // ─── RecentJobCard ─────────────────────────────────────────────────────────────
 
-const OUTFIT_EMOJI: Record<string, string> = {
-  Agbada: '🥻', Senator: '👘', Suit: '🤵', Gown: '👗',
-  Kaftan: '🧥', Shirt: '👔', Trouser: '👖', Blouse: '👚',
-  Skirt: '🪡', Other: '✂️',
+const OUTFIT_ICON: Record<string, string> = {
+  Agbada: 'shirt-outline', Senator: 'man-outline', Suit: 'briefcase-outline',
+  Gown: 'body-outline', Kaftan: 'layers-outline', Shirt: 'shirt-outline',
+  Trouser: 'reorder-two-outline', Blouse: 'contrast-outline', Skirt: 'triangle-outline',
+  Other: 'cut-outline',
 };
 
 const STATUS_BG: Record<string, string> = {
@@ -433,6 +466,7 @@ const RecentJobCard: React.FC<{ job: Job; onPress: () => void }> = ({ job, onPre
 
   const cfg = JOB_STATUS_CONFIG[job.status as keyof typeof JOB_STATUS_CONFIG];
   const bgColor = STATUS_BG[job.status] || Colors.surface;
+  const outfitIcon = (OUTFIT_ICON[job.outfitType] || 'cut-outline') as any;
 
   return (
     <TouchableOpacity
@@ -449,9 +483,7 @@ const RecentJobCard: React.FC<{ job: Job; onPress: () => void }> = ({ job, onPre
             resizeMode="cover"
           />
         ) : (
-          <Text style={styles.recentCardEmoji}>
-            {OUTFIT_EMOJI[job.outfitType] || '✂️'}
-          </Text>
+          <Ionicons name={outfitIcon} size={48} color={Colors.textTertiary} />
         )}
         {/* Status badge */}
         <View style={[styles.recentStatusBadge, { backgroundColor: cfg?.color || Colors.primary }]}>
@@ -460,7 +492,8 @@ const RecentJobCard: React.FC<{ job: Job; onPress: () => void }> = ({ job, onPre
         {/* Photo count */}
         {photos.length > 1 && (
           <View style={styles.photoCountBadge}>
-            <Text style={styles.photoCountText}>📷 {photos.length}</Text>
+            <Ionicons name="camera" size={11} color={Colors.white} />
+            <Text style={styles.photoCountText}>{photos.length}</Text>
           </View>
         )}
       </View>
@@ -554,6 +587,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.base,
     marginBottom: Spacing.xl,
   },
+  greetingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  greetingText: { flex: 1, marginRight: Spacing.md },
   greetingName: {
     fontSize: Typography.xxl,
     fontWeight: Typography.extrabold,
@@ -564,6 +603,15 @@ const styles = StyleSheet.create({
     fontSize: Typography.base,
     color: Colors.textSecondary,
     lineHeight: 22,
+  },
+  greetingPhoto: {
+    width: 52, height: 52, borderRadius: 26,
+    borderWidth: 2,
+    borderColor: Colors.primary + '30',
+  },
+  greetingAvatarPlaceholder: {
+    width: 52, height: 52,
+    alignItems: 'center', justifyContent: 'center',
   },
 
   newOrderBtn: {
@@ -599,6 +647,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: Spacing.md,
     paddingHorizontal: Spacing.base,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
   },
   sectionTitle: {
     fontSize: Typography.md,
@@ -661,7 +714,6 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.base,
     ...Shadow.sm,
   },
-  emptyTaskEmoji: { fontSize: 32, marginBottom: Spacing.md },
   emptyTaskTitle: {
     fontSize: Typography.md,
     fontWeight: Typography.bold,
@@ -672,118 +724,71 @@ const styles = StyleSheet.create({
     fontSize: Typography.sm,
     color: Colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 20,
   },
 
-  // Recent Jobs
   recentJobsScroll: {
-    paddingHorizontal: Spacing.base,
+    paddingLeft: Spacing.base,
+    paddingRight: Spacing.sm,
     gap: Spacing.md,
-    paddingRight: Spacing.base + CARD_WIDTH * 0.3,
   },
   recentCard: {
-    borderRadius: Radius.xl,
     backgroundColor: Colors.surface,
+    borderRadius: Radius.xl,
     overflow: 'hidden',
     ...Shadow.md,
   },
   recentCardMedia: {
-    width: '100%',
-    height: CARD_HEIGHT * 0.7,
+    height: CARD_WIDTH * 0.72,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
   },
   recentCardImage: {
-    width: '100%',
-    height: '100%',
-    position: 'absolute',
-    top: 0, left: 0,
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
   },
-  recentCardEmoji: { fontSize: 64 },
   recentStatusBadge: {
-    position: 'absolute',
-    top: 10, left: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    position: 'absolute', top: Spacing.sm, right: Spacing.sm,
+    paddingHorizontal: 8, paddingVertical: 3,
     borderRadius: Radius.full,
   },
-  recentStatusText: {
-    fontSize: Typography.xs,
-    fontWeight: Typography.bold,
-    color: Colors.white,
-    letterSpacing: 0.3,
-  },
+  recentStatusText: { color: Colors.white, fontSize: 11, fontWeight: Typography.bold },
   photoCountBadge: {
-    position: 'absolute',
-    bottom: 8, right: 8,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: Radius.full,
+    position: 'absolute', bottom: Spacing.sm, right: Spacing.sm,
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: Radius.full,
+    paddingHorizontal: 7, paddingVertical: 3,
   },
-  photoCountText: { fontSize: Typography.xs, color: Colors.white },
-  recentCardInfo: {
-    padding: Spacing.md,
-  },
+  photoCountText: { color: Colors.white, fontSize: 11, fontWeight: Typography.bold },
+  recentCardInfo: { padding: Spacing.md },
   recentCardName: {
-    fontSize: Typography.base,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-    marginBottom: 2,
+    fontSize: Typography.base, fontWeight: Typography.bold, color: Colors.textPrimary,
   },
-  recentCardType: {
-    fontSize: Typography.sm,
-    color: Colors.textSecondary,
-  },
+  recentCardType: { fontSize: Typography.sm, color: Colors.textSecondary, marginTop: 2 },
   recentCardBalance: {
-    fontSize: Typography.xs,
-    color: Colors.overdue,
-    fontWeight: Typography.semibold,
-    marginTop: 4,
+    fontSize: Typography.xs, color: Colors.overdue, fontWeight: Typography.semibold, marginTop: 4,
   },
 
-  // Compact rows (dispatch, balances)
   compactRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.md,
-    backgroundColor: Colors.surface,
-    gap: Spacing.md,
+    flexDirection: 'row', alignItems: 'center',
+    padding: Spacing.md, gap: Spacing.md,
   },
-  compactRowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.borderLight,
-  },
+  compactRowBorder: { borderBottomWidth: 1, borderBottomColor: Colors.borderLight },
   compactDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
   compactInfo: { flex: 1 },
-  compactLabel: {
-    fontSize: Typography.base,
-    fontWeight: Typography.semibold,
-    color: Colors.textPrimary,
-  },
-  compactSub: {
-    fontSize: Typography.sm,
-    color: Colors.textSecondary,
-    marginTop: 1,
+  compactLabel: { fontSize: Typography.base, fontWeight: Typography.medium, color: Colors.textPrimary },
+  compactSub: { fontSize: Typography.xs, color: Colors.textSecondary, marginTop: 2 },
+  balanceTotalText: {
+    fontSize: Typography.sm, color: Colors.overdue, fontWeight: Typography.bold,
   },
   balanceAmount: {
-    fontSize: Typography.base,
-    fontWeight: Typography.bold,
-    color: Colors.overdue,
-  },
-  balanceTotalText: {
-    fontSize: Typography.sm,
-    fontWeight: Typography.bold,
-    color: Colors.overdue,
+    fontSize: Typography.sm, color: Colors.overdue, fontWeight: Typography.bold,
   },
 
   quickRow: {
     flexDirection: 'row',
-    gap: Spacing.md,
-    marginBottom: Spacing.xxl,
+    gap: Spacing.sm,
     paddingHorizontal: Spacing.base,
+    marginBottom: Spacing.xl,
   },
   quickBtn: {
     flex: 1,
@@ -791,8 +796,6 @@ const styles = StyleSheet.create({
     borderRadius: Radius.lg,
     padding: Spacing.md,
     alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 72,
     ...Shadow.sm,
   },
   quickBtnLabel: {
@@ -801,11 +804,7 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     marginBottom: 2,
   },
-  quickBtnSub: {
-    fontSize: Typography.xs,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-  },
+  quickBtnSub: { fontSize: Typography.xs, color: Colors.textTertiary },
 });
 
 export default HomeScreen;

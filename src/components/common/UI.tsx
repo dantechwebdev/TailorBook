@@ -8,6 +8,7 @@ import {
   TextInput,
   ViewStyle,
   TextStyle,
+  Image,
 } from 'react-native';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../constants/theme';
 import { getInitials, getAvatarColor } from '../../utils/helpers';
@@ -126,9 +127,27 @@ interface AvatarProps {
   style?: ViewStyle;
 }
 
-export const Avatar: React.FC<AvatarProps> = ({ name, size = 44, style }) => {
+export const Avatar: React.FC<AvatarProps> = ({ name, size = 44, photoUri, style }) => {
   const initials = getInitials(name);
   const bgColor = getAvatarColor(name);
+
+  if (photoUri) {
+    return (
+      <Image
+        source={{ uri: photoUri }}
+        style={[
+          {
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+            backgroundColor: Colors.border,
+          },
+          style,
+        ]}
+        resizeMode="cover"
+      />
+    );
+  }
 
   return (
     <View

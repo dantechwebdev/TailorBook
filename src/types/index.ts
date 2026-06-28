@@ -110,6 +110,7 @@ export interface TailorSettings {
   workDays: string;       // JSON array e.g. '["Mon","Tue","Wed","Thu","Fri","Sat"]'
   defaultApparel: string; // e.g. 'Senator'
   onboardingComplete: string; // '0' or '1'
+  profilePhotoUri?: string; // optional tailor/storefront photo URI
 }
 
 // ─── Today Task (derived from jobs for Home screen) ────────────────────────

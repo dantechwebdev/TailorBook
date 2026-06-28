@@ -4,3 +4,5 @@
 - [Onboarding gate](onboarding-gate.md) — App.tsx checks settings.onboardingComplete !== '1' after initialize(); renders OnboardingFlow (no NavigationContainer) until saveSettings flips the flag
 - [Contact picker](contact-picker.md) — ContactPickerButton renders null on web (Platform.OS==='web'); on native uses expo-contacts presentContactPickerAsync via dynamic import
 - [Build prompt authority](build-prompt.md) — attached_assets/Build_prompt_1782663196572.md is constitutional; vision always wins over code
+- [Profile photo pattern](profile-photo.md) — profilePhotoUri is optional in TailorSettings; stored as key-value in settings table (no migration needed); use expo-image-picker with Platform.OS check for native permission; blob URI on web won't survive page reload
+- [Seed data](seed-data.md) — seedDemoDataIfEmpty() disabled with early return; file kept for import compatibility; store.ts still imports but function is a no-op

@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  Image,
 } from 'react-native';
 import { DrawerContentComponentProps } from '@react-navigation/drawer';
 import { Colors, Typography, Spacing, Radius } from '../../constants/theme';
@@ -22,6 +23,7 @@ import {
   ScissorsIcon,
 } from '../common/Icons';
 import { useStore } from '../../context/store';
+import { getInitials, getAvatarColor } from '../../utils/helpers';
 
 // ─── Drawer Content ───────────────────────────────────────────────────────────
 
@@ -33,6 +35,7 @@ const DrawerContent: React.FC<DrawerContentComponentProps> = (props) => {
 
   const shopName = settings?.shopName || 'My Shop';
   const tailorName = settings?.tailorName || 'Tailor';
+  const photoUri = settings?.profilePhotoUri || '';
 
   const navItems = [
     {
@@ -106,7 +109,15 @@ const DrawerContent: React.FC<DrawerContentComponentProps> = (props) => {
       {/* ─── Profile Header ─── */}
       <View style={styles.header}>
         <View style={styles.avatarWrap}>
-          <ScissorsIcon size={28} color={Colors.white} />
+          {photoUri ? (
+            <Image
+              source={{ uri: photoUri }}
+              style={styles.avatarPhoto}
+              resizeMode="cover"
+            />
+          ) : (
+            <DrawerAvatar name={shopName} size={52} />
+          )}
         </View>
         <View style={styles.headerText}>
           <Text style={styles.shopName} numberOfLines={1}>
@@ -159,6 +170,28 @@ const DrawerContent: React.FC<DrawerContentComponentProps> = (props) => {
   );
 };
 
+// ─── Drawer Avatar (initials fallback) ────────────────────────────────────────
+
+const DrawerAvatar: React.FC<{ name: string; size: number }> = ({ name, size }) => {
+  const initials = getInitials(name);
+  const bgColor = getAvatarColor(name);
+  return (
+    <View
+      style={{
+        width: size, height: size, borderRadius: size / 2,
+        backgroundColor: bgColor,
+        alignItems: 'center', justifyContent: 'center',
+      }}
+    >
+      <Text style={{ color: Colors.white, fontSize: size * 0.36, fontWeight: Typography.bold }}>
+        {initials}
+      </Text>
+    </View>
+  );
+};
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.drawerBg },
   header: {
@@ -173,9 +206,11 @@ const styles = StyleSheet.create({
   },
   avatarWrap: {
     width: 52, height: 52, borderRadius: 26,
+    overflow: 'hidden',
     backgroundColor: Colors.primary,
     alignItems: 'center', justifyContent: 'center',
   },
+  avatarPhoto: { width: 52, height: 52 },
   headerText: { flex: 1 },
   shopName: { color: Colors.drawerText, fontSize: Typography.md, fontWeight: Typography.bold },
   shopRole: { color: Colors.drawerTextMuted, fontSize: Typography.sm, marginTop: 2 },
