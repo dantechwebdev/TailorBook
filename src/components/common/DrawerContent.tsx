@@ -20,7 +20,6 @@ import {
   SubscriptionIcon,
   HelpIcon,
   LogoutIcon,
-  ScissorsIcon,
 } from '../common/Icons';
 import { useStore } from '../../context/store';
 import { getInitials, getAvatarColor } from '../../utils/helpers';

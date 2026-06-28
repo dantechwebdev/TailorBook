@@ -105,7 +105,7 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
 
   const goNext = () => setStep((s) => s + 1);
 
-  const handleFinish = async (destination: 'job' | 'workshop') => {
+  const handleFinish = async () => {
     const defaultApparel = selectedApparels[0] || '';
     await saveSettings({
       ...settings,
@@ -120,7 +120,6 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
       profilePhotoUri: profilePhotoUri || '',
     });
     setDone(true);
-    setTimeout(() => onComplete(), 200);
   };
 
   if (done) {
@@ -144,27 +143,17 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
             Welcome to TailorBook{tailorName ? `, ${tailorName}!` : '!'}
           </Text>
           <Text style={styles.completionSub}>
-            Your workshop is set up and ready. Where would you like to start?
+            Your workshop is set up and ready. Hit the button below to start.
           </Text>
           <View style={styles.completionBtnGroup}>
             <TouchableOpacity
               style={[styles.completionBtn, styles.completionBtnPrimary]}
-              onPress={() => handleFinish('job')}
+              onPress={handleFinish}
               activeOpacity={0.85}
             >
-              <Ionicons name="cut" size={32} color={Colors.white} style={{ marginBottom: Spacing.sm }} />
-              <Text style={styles.completionBtnPrimaryLabel}>Create First Job</Text>
-              <Text style={styles.completionBtnSub}>Start taking orders right away</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.completionBtn, styles.completionBtnSecondary]}
-              onPress={() => handleFinish('workshop')}
-              activeOpacity={0.85}
-            >
-              <Ionicons name="storefront-outline" size={32} color={Colors.primary} style={{ marginBottom: Spacing.sm }} />
-              <Text style={styles.completionBtnSecondaryLabel}>Open My Workshop</Text>
-              <Text style={styles.completionBtnSubSecondary}>Explore the app first</Text>
+              <Ionicons name="storefront-outline" size={32} color={Colors.white} style={{ marginBottom: Spacing.sm }} />
+              <Text style={styles.completionBtnPrimaryLabel}>Open My Workshop</Text>
+              <Text style={styles.completionBtnSub}>Your home screen is ready</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -606,20 +595,11 @@ const styles = StyleSheet.create({
     alignItems: 'center', ...Shadow.md,
   },
   completionBtnPrimary: { backgroundColor: Colors.primary },
-  completionBtnSecondary: {
-    backgroundColor: Colors.surface,
-    borderWidth: 2, borderColor: Colors.border,
-  },
   completionBtnPrimaryLabel: {
     fontSize: Typography.md, fontWeight: Typography.bold,
     color: Colors.white, marginBottom: 4,
   },
-  completionBtnSecondaryLabel: {
-    fontSize: Typography.md, fontWeight: Typography.bold,
-    color: Colors.textPrimary, marginBottom: 4,
-  },
   completionBtnSub: { fontSize: Typography.sm, color: 'rgba(255,255,255,0.8)' },
-  completionBtnSubSecondary: { fontSize: Typography.sm, color: Colors.textSecondary },
 
   doneContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.lg },
   doneTitle: { fontSize: Typography.xl, fontWeight: Typography.bold, color: Colors.textPrimary },

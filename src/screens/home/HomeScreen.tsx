@@ -9,7 +9,6 @@ import {
   Image,
   Animated,
   Dimensions,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
@@ -402,7 +401,7 @@ const HomeScreen: React.FC = () => {
             activeOpacity={0.85}
           >
             <Text style={styles.quickBtnLabel}>Customers</Text>
-            <Text style={styles.quickBtnSub}>Memory system</Text>
+            <Text style={styles.quickBtnSub}>Browse all</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.quickBtn}
@@ -410,14 +409,14 @@ const HomeScreen: React.FC = () => {
             activeOpacity={0.85}
           >
             <Text style={styles.quickBtnLabel}>All Jobs</Text>
-            <Text style={styles.quickBtnSub}>Workbench</Text>
+            <Text style={styles.quickBtnSub}>Full list</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.quickBtn}
             onPress={() => navigation.navigate('AccountScreen')}
             activeOpacity={0.85}
           >
-            <Text style={styles.quickBtnLabel}>Settings</Text>
+            <Text style={styles.quickBtnLabel}>Account</Text>
             <Text style={styles.quickBtnSub}>Your profile</Text>
           </TouchableOpacity>
         </View>

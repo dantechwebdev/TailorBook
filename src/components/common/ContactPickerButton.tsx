@@ -1,5 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, Platform, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing, Radius } from '../../constants/theme';
 
 interface Props {
@@ -33,7 +34,7 @@ const ContactPickerButton: React.FC<Props> = ({ onSelect, label = 'From Contacts
 
   return (
     <TouchableOpacity onPress={handlePress} style={styles.btn} activeOpacity={0.8}>
-      <Text style={styles.icon}>👤</Text>
+      <Ionicons name="person-outline" size={14} color={Colors.primary} />
       <Text style={styles.label}>{label}</Text>
     </TouchableOpacity>
   );
@@ -52,7 +53,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.primary + '33',
   },
-  icon: { fontSize: 14 },
   label: {
     fontSize: Typography.sm,
     color: Colors.primary,

@@ -49,7 +49,7 @@ const CustomerCreateScreen: React.FC = () => {
 
       // Prompt to create a job for this customer
       Alert.alert(
-        `${name.trim()} added! 🎉`,
+        `${name.trim()} added!`,
         'Would you like to create a job for this customer now?',
         [
           {

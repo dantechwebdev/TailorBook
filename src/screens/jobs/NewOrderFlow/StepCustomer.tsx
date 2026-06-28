@@ -8,6 +8,7 @@ import {
   ScrollView,
   FlatList,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../../constants/theme';
 import { Avatar } from '../../../components/common/UI';
 import ContactPickerButton from '../../../components/common/ContactPickerButton';
@@ -84,7 +85,7 @@ const StepCustomer: React.FC<Props> = ({ draft, onChange, onNext, prefilledCusto
             activeOpacity={0.85}
             onPress={() => setMode('existing')}
           >
-            <Text style={styles.choiceEmoji}>👤</Text>
+            <Ionicons name="people-outline" size={36} color={Colors.textSecondary} style={{ marginBottom: Spacing.md }} />
             <Text style={styles.choiceLabel}>Existing Customer</Text>
             <Text style={styles.choiceSub}>{customers.length} saved</Text>
           </TouchableOpacity>
@@ -93,7 +94,7 @@ const StepCustomer: React.FC<Props> = ({ draft, onChange, onNext, prefilledCusto
             activeOpacity={0.85}
             onPress={() => setMode('new')}
           >
-            <Text style={styles.choiceEmoji}>➕</Text>
+            <Ionicons name="person-add-outline" size={36} color={Colors.primary} style={{ marginBottom: Spacing.md }} />
             <Text style={styles.choiceLabel}>New Customer</Text>
             <Text style={styles.choiceSub}>Add details now</Text>
           </TouchableOpacity>
@@ -144,7 +145,7 @@ const StepCustomer: React.FC<Props> = ({ draft, onChange, onNext, prefilledCusto
                 </View>
                 {selected && (
                   <View style={styles.checkCircle}>
-                    <Text style={styles.checkMark}>✓</Text>
+                    <Ionicons name="checkmark" size={14} color={Colors.white} />
                   </View>
                 )}
               </TouchableOpacity>
@@ -268,7 +269,6 @@ const styles = StyleSheet.create({
     minHeight: 130,
     justifyContent: 'center',
   },
-  choiceEmoji: { fontSize: 36, marginBottom: Spacing.md },
   choiceLabel: {
     fontSize: Typography.base,
     fontWeight: Typography.bold,
