@@ -12,7 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useStore } from '../../context/store';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../constants/theme';
-import { BackIcon, EditIcon, PhoneIcon, BriefcasePlusIcon, TrashIcon, MeasurementsIcon } from '../../components/common/Icons';
+import { BackIcon, EditIcon, PhoneIcon, BriefcasePlusIcon, TrashIcon, MeasurementsIcon, HomeIcon } from '../../components/common/Icons';
 import { Avatar, StatusBadge, Card, Button, EmptyState } from '../../components/common/UI';
 import { formatPhone, formatDeliveryDate } from '../../utils/helpers';
 import { buildWhatsAppUrl } from '../../utils/whatsapp';
@@ -104,7 +104,13 @@ const CustomerDetailScreen: React.FC = () => {
           <BackIcon size={22} color={Colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Customer Profile</Text>
-        <View style={{ flexDirection: 'row', gap: Spacing.md }}>
+        <View style={{ flexDirection: 'row', gap: Spacing.md, alignItems: 'center' }}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('HomeTab')}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <HomeIcon size={20} color={Colors.textSecondary} />
+          </TouchableOpacity>
           <TouchableOpacity
             onPress={() => navigation.navigate('CustomerEdit', { customerId })}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}

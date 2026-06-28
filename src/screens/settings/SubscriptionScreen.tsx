@@ -8,8 +8,9 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../constants/theme';
-import { CheckIcon, SubscriptionIcon } from '../../components/common/Icons';
+import { CheckIcon, SubscriptionIcon, MenuIcon } from '../../components/common/Icons';
 import { Button } from '../../components/common/UI';
 
 const FREE_FEATURES = [
@@ -33,6 +34,7 @@ const PRO_FEATURES = [
 ];
 
 const SubscriptionScreen: React.FC = () => {
+  const navigation = useNavigation<any>();
   const handleUpgrade = () => {
     Alert.alert(
       'Coming Soon',
@@ -44,7 +46,14 @@ const SubscriptionScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <MenuIcon size={22} color={Colors.textPrimary} />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Subscription</Text>
+        <View style={{ width: 22 }} />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
@@ -141,6 +150,9 @@ const FeatureRow: React.FC<{ label: string; included: boolean; pro?: boolean }> 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.md,
   },

@@ -8,8 +8,9 @@ import {
   Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../constants/theme';
-import { ChevronRightIcon, HelpIcon } from '../../components/common/Icons';
+import { ChevronRightIcon, HelpIcon, MenuIcon } from '../../components/common/Icons';
 import { Card, Divider } from '../../components/common/UI';
 
 const FAQ_ITEMS = [
@@ -44,6 +45,7 @@ const FAQ_ITEMS = [
 ];
 
 const HelpScreen: React.FC = () => {
+  const navigation = useNavigation<any>();
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   const toggle = (idx: number) => {
@@ -53,7 +55,14 @@ const HelpScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <MenuIcon size={22} color={Colors.textPrimary} />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Help & Support</Text>
+        <View style={{ width: 22 }} />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
@@ -177,6 +186,9 @@ const InfoRow: React.FC<{ label: string; value: string }> = ({ label, value }) =
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.md,
   },

@@ -9,10 +9,10 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { useStore } from '../../context/store';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../constants/theme';
-import { SearchIcon, PlusIcon, CustomersIcon, ChevronRightIcon, PhoneIcon } from '../../components/common/Icons';
+import { SearchIcon, PlusIcon, CustomersIcon, ChevronRightIcon, PhoneIcon, MenuIcon } from '../../components/common/Icons';
 import { Avatar, EmptyState } from '../../components/common/UI';
 import { formatPhone } from '../../utils/helpers';
 import { Customer } from '../../types';
@@ -79,6 +79,12 @@ const CustomerListScreen: React.FC = () => {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* ─── Header ─── */}
       <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <MenuIcon size={22} color={Colors.textPrimary} />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Customers</Text>
         <TouchableOpacity
           onPress={() => navigation.navigate('CustomerCreate')}

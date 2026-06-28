@@ -7,10 +7,10 @@ import {
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { useStore } from '../../context/store';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../constants/theme';
-import { NotificationsIcon, CheckIcon, AlertCircleIcon, JobsIcon, ClockIcon } from '../../components/common/Icons';
+import { NotificationsIcon, CheckIcon, AlertCircleIcon, JobsIcon, ClockIcon, MenuIcon } from '../../components/common/Icons';
 import { EmptyState } from '../../components/common/UI';
 import { AppNotification, NotificationType } from '../../types';
 import { formatDateTime } from '../../utils/helpers';
@@ -45,11 +45,19 @@ const NotificationsScreen: React.FC = () => {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* ─── Header ─── */}
       <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <MenuIcon size={22} color={Colors.textPrimary} />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Notifications</Text>
-        {unreadCount > 0 && (
+        {unreadCount > 0 ? (
           <TouchableOpacity onPress={markAllRead} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Text style={styles.markAllText}>Mark all read</Text>
           </TouchableOpacity>
+        ) : (
+          <View style={{ width: 70 }} />
         )}
       </View>
 

@@ -29,6 +29,7 @@ import {
   TrashIcon,
   CheckIcon,
   ScissorsIcon,
+  HomeIcon,
 } from '../../components/common/Icons';
 import { Avatar, StatusBadge, Card, Button } from '../../components/common/UI';
 import { formatDeliveryDate, formatDate, formatNaira, getDeliveryUrgency } from '../../utils/helpers';
@@ -172,7 +173,13 @@ const JobDetailScreen: React.FC = () => {
           <BackIcon size={22} color={Colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Job Details</Text>
-        <View style={{ flexDirection: 'row', gap: Spacing.md }}>
+        <View style={{ flexDirection: 'row', gap: Spacing.md, alignItems: 'center' }}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('HomeTab')}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <HomeIcon size={20} color={Colors.textSecondary} />
+          </TouchableOpacity>
           <TouchableOpacity
             onPress={() => navigation.navigate('JobEdit', { jobId })}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -360,6 +367,19 @@ const JobDetailScreen: React.FC = () => {
 
         <View style={{ height: 120 }} />
       </ScrollView>
+
+      {/* ─── Growth Loop: post-delivery suggestion ─── */}
+      {job.status === 'Delivered' && customer && (
+        <View style={styles.growthBar}>
+          <Text style={styles.growthText}>Start another order for {customer.name}?</Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('NewOrderFlow', { customerId: job.customerId })}
+            style={styles.growthBtn}
+          >
+            <Text style={styles.growthBtnText}>New Order</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* ─── Bottom Bar: Dynamic Next Step ─── */}
       <View style={styles.bottomBar}>
@@ -619,6 +639,36 @@ const styles = StyleSheet.create({
   waLabel: { flex: 1, fontSize: Typography.base, color: Colors.textPrimary, fontWeight: Typography.medium },
   waChevron: {},
   waDivider: { height: 1, backgroundColor: Colors.borderLight, marginHorizontal: Spacing.base },
+
+  // Growth loop
+  growthBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.primaryLight || '#EBF5FF',
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderLight,
+  },
+  growthText: {
+    flex: 1,
+    fontSize: Typography.sm,
+    color: Colors.primary,
+    fontWeight: Typography.semibold,
+    marginRight: Spacing.sm,
+  },
+  growthBtn: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radius.md,
+  },
+  growthBtnText: {
+    color: Colors.white,
+    fontSize: Typography.sm,
+    fontWeight: Typography.bold,
+  },
 
   // Bottom bar
   bottomBar: {

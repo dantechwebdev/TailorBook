@@ -11,13 +11,15 @@ import {
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../constants/theme';
-import { LogoutIcon } from '../../components/common/Icons';
+import { LogoutIcon, MenuIcon } from '../../components/common/Icons';
 import { Avatar, Card, Divider, Button } from '../../components/common/UI';
 import { useStore } from '../../context/store';
 import { TailorSettings } from '../../types';
 
 const AccountScreen: React.FC = () => {
+  const navigation = useNavigation<any>();
   const { jobs, customers, settings, loadSettings, saveSettings } = useStore();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [editingProfile, setEditingProfile] = useState(false);
@@ -66,7 +68,14 @@ const AccountScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <MenuIcon size={22} color={Colors.textPrimary} />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Account</Text>
+        <View style={{ width: 22 }} />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
@@ -282,7 +291,7 @@ const ProfileField: React.FC<{
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  header: { paddingHorizontal: Spacing.base, paddingVertical: Spacing.md },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.base, paddingVertical: Spacing.md },
   headerTitle: { fontSize: Typography.xl, fontWeight: Typography.bold, color: Colors.textPrimary },
   scroll: { paddingHorizontal: Spacing.base },
 
