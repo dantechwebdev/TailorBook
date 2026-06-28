@@ -15,6 +15,7 @@ import { Colors, Typography, Spacing, Radius, Shadow } from '../../constants/the
 import { BackIcon, EditIcon, PhoneIcon, BriefcasePlusIcon, TrashIcon, MeasurementsIcon } from '../../components/common/Icons';
 import { Avatar, StatusBadge, Card, Button, EmptyState } from '../../components/common/UI';
 import { formatPhone, formatDeliveryDate } from '../../utils/helpers';
+import { buildWhatsAppUrl } from '../../utils/whatsapp';
 import { Job } from '../../types';
 import { JOB_STATUS_CONFIG } from '../../constants/theme';
 
@@ -46,6 +47,32 @@ const CustomerDetailScreen: React.FC = () => {
 
   const handleCall = () => {
     Linking.openURL(`tel:${customer.phone}`);
+  };
+
+  const handleWhatsApp = () => {
+    const phone = customer.whatsappPhone || customer.phone;
+    if (!phone) {
+      Alert.alert('No phone number', 'This customer has no phone number saved.');
+      return;
+    }
+    const url = buildWhatsAppUrl(phone, 'custom', {
+      id: '',
+      customerId: customer.id,
+      customerName: customer.name,
+      outfitType: 'Senator',
+      deliveryDate: new Date().toISOString(),
+      deliveryType: 'pickup',
+      price: 0,
+      deposit: 0,
+      balance: 0,
+      status: 'Pending',
+      createdAt: '',
+      updatedAt: '',
+    } as any);
+    const waBase = `https://wa.me/${phone.replace(/[\s\-()]/g, '').replace(/^0/, '234').replace(/^\+/, '')}`;
+    Linking.openURL(waBase).catch(() => {
+      Alert.alert('WhatsApp not available', 'Could not open WhatsApp.');
+    });
   };
 
   const handleDelete = () => {
@@ -97,10 +124,15 @@ const CustomerDetailScreen: React.FC = () => {
             <Avatar name={customer.name} size={68} />
             <View style={styles.profileInfo}>
               <Text style={styles.profileName}>{customer.name}</Text>
+              <View style={styles.contactRow}>
               <TouchableOpacity onPress={handleCall} style={styles.phoneRow}>
                 <PhoneIcon size={14} color={Colors.primary} />
                 <Text style={styles.phoneText}>{formatPhone(customer.phone)}</Text>
               </TouchableOpacity>
+              <TouchableOpacity onPress={handleWhatsApp} style={styles.waBtn}>
+                <Text style={styles.waBtnText}>💬 WhatsApp</Text>
+              </TouchableOpacity>
+            </View>
               {customer.notes ? (
                 <Text style={styles.notesText} numberOfLines={2}>{customer.notes}</Text>
               ) : null}
@@ -121,7 +153,10 @@ const CustomerDetailScreen: React.FC = () => {
         <View style={styles.actionsRow}>
           <Button
             label="New Job"
-            onPress={() => navigation.navigate('JobCreate', { customerId })}
+            onPress={() => navigation.navigate('JobsStack', {
+              screen: 'NewOrderFlow',
+              params: { customerId },
+            })}
             variant="primary"
             icon={<BriefcasePlusIcon size={16} color={Colors.white} />}
             style={{ flex: 1 }}
@@ -195,7 +230,10 @@ const CustomerDetailScreen: React.FC = () => {
             subtitle="Create a job for this customer"
             action={{
               label: 'Create Job',
-              onPress: () => navigation.navigate('JobCreate', { customerId }),
+              onPress: () => navigation.navigate('JobsStack', {
+                screen: 'NewOrderFlow',
+                params: { customerId },
+              }),
             }}
           />
         )}
@@ -278,6 +316,13 @@ const styles = StyleSheet.create({
     fontWeight: Typography.bold,
     color: Colors.textPrimary,
   },
+  contactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    flexWrap: 'wrap',
+    marginTop: 2,
+  },
   phoneRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -287,6 +332,17 @@ const styles = StyleSheet.create({
     fontSize: Typography.sm,
     color: Colors.primary,
     fontWeight: Typography.medium,
+  },
+  waBtn: {
+    backgroundColor: '#E8FFF0',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 3,
+    borderRadius: Radius.full,
+  },
+  waBtnText: {
+    fontSize: Typography.xs,
+    color: '#25D366',
+    fontWeight: Typography.semibold,
   },
   notesText: {
     fontSize: Typography.xs,

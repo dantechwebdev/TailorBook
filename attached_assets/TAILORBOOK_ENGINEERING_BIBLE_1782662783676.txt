@@ -1,0 +1,2542 @@
+╔══════════════════════════════════════════════════════════════════════════════════╗
+║                                                                                  ║
+║              TAILORBOOK — ENGINEERING BIBLE v1.0                                 ║
+║              Complete Codebase Reference & Technical Specification               ║
+║                                                                                  ║
+║   Generated: June 2026                                                           ║
+║   Scope: Full reverse-engineering of the entire TailorBook codebase              ║
+║   Purpose: Single source of truth for any developer picking up this project      ║
+║                                                                                  ║
+╚══════════════════════════════════════════════════════════════════════════════════╝
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TABLE OF CONTENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PART I — PROJECT OVERVIEW
+  01. What TailorBook Is
+  02. Product Vision Summary
+  03. Technology Stack
+  04. Project Structure Map
+  05. Key Dependencies & Versions
+
+PART II — DATA LAYER
+  06. TypeScript Type Definitions (src/types/index.ts)
+  07. Database Schema (SQLite / expo-sqlite)
+  08. Database API Functions (src/utils/database.ts)
+  09. Database Web Stub (src/utils/database.web.ts)
+  10. ID Generation Strategy
+
+PART III — STATE MANAGEMENT
+  11. Zustand Store Architecture (src/context/store.ts)
+  12. Store State Shape
+  13. Store Actions Reference
+  14. Computed/Derived State
+  15. Store Initialization Flow
+
+PART IV — UTILITIES
+  16. Helper Functions (src/utils/helpers.ts)
+  17. Notification System (src/utils/notifications.ts)
+  18. Notification Web Stub (src/utils/notifications.web.ts)
+
+PART V — CONSTANTS & THEMING
+  19. Theme Constants (src/constants/theme.ts)
+  20. Color Palette
+  21. Typography System
+  22. Spacing System
+  23. Job Status Configuration
+  24. Outfit Types & Measurement Templates
+
+PART VI — NAVIGATION
+  25. Navigation Architecture (src/navigation/RootNavigator.tsx)
+  26. Screen Register & Route Params
+  27. Drawer Configuration
+  28. Stack Navigators
+
+PART VII — COMPONENTS
+  29. Icon System (src/components/common/Icons.tsx)
+  30. UI Component Library (src/components/common/UI.tsx)
+  31. Drawer Content (src/components/common/DrawerContent.tsx)
+
+PART VIII — SCREENS
+  32. HomeScreen
+  33. CustomerListScreen
+  34. CustomerDetailScreen
+  35. CustomerCreateScreen
+  36. CustomerEditScreen (inferred)
+  37. JobListScreen
+  38. JobDetailScreen
+  39. JobCreateScreen
+  40. JobEditScreen (inferred)
+  41. MeasurementFormScreen
+  42. NotificationsScreen
+  43. Settings Screens (Account, Subscription, Help)
+
+PART IX — ENTRY POINT
+  44. App.tsx — Root Component & Bootstrap
+
+PART X — BUILD & DEPLOYMENT
+  45. Expo Configuration (app.json)
+  46. EAS Build Configuration (eas.json)
+  47. Web Platform Support
+  48. Replit Development Setup
+
+PART XI — KNOWN ISSUES, BUGS & TECH DEBT
+  49. Critical Bugs
+  50. UX Issues
+  51. Tech Debt Items
+
+PART XII — ENGINEERING TICKETS
+  52. Ticket Backlog (Priority-Ordered)
+
+PART XIII — PRODUCT REVIEW
+  53. Feature Completeness Audit
+  54. UX Review vs Product Vision
+  55. Design Improvement Recommendations
+
+PART XIV — ROADMAP NOTES
+  56. AI Features (Premium Tier)
+  57. Cloud Backup Architecture
+  58. WhatsApp Integration Notes
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART I — PROJECT OVERVIEW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+─────────────────────────────────────────
+01. WHAT TAILORBOOK IS
+─────────────────────────────────────────
+
+TailorBook is an offline-first mobile application designed exclusively for
+Nigerian tailors and fashion designers. It is a private, single-user business
+management tool — NOT a customer-facing app. The tailor uses it to:
+
+  • Register and manage customer profiles (name, phone, notes)
+  • Create and track jobs (outfit orders) with 6-stage production pipelines
+  • Store per-customer body measurements using outfit-specific templates
+  • Track financial data per job (price, deposit paid, outstanding balance)
+  • Receive local notifications for overdue, due-today, and due-soon jobs
+  • Attach sample reference photos to jobs (camera or gallery)
+
+All data is stored locally on the device using SQLite. There is no backend,
+no authentication, no accounts, no sync in v1.0. The app is a "digital
+customer book" replacing handwritten notebooks.
+
+Target user: A Nigerian tailor with 10–200 customers, likely using WhatsApp
+for customer communication. The app augments but does not replace WhatsApp.
+
+─────────────────────────────────────────
+02. PRODUCT VISION SUMMARY
+─────────────────────────────────────────
+
+From PRODUCT_VISION.txt (user-provided):
+
+  Core philosophy: "Built for tailors, not tech people."
+  
+  Offline-first: Full functionality with zero internet connection.
+  Privacy-first: All data stays on the tailor's device.
+  
+  Two delivery types (planned, not yet implemented):
+    - Pickup: Customer comes to collect
+    - Waybill: Tailor ships via courier (address required)
+  
+  Communication: WhatsApp is the channel for customer comms.
+    TailorBook generates/pre-fills messages but doesn't send them.
+  
+  Guided workflows: App should guide the tailor through job creation
+    step-by-step, not dump a form on them.
+  
+  Monetization model (planned):
+    - Free tier: Core features (current build is effectively free tier)
+    - Premium tier: AI features, cloud backup, advanced analytics
+  
+  AI roadmap (premium):
+    - AI measurement suggestions from customer photos
+    - Smart delivery date recommendations based on workload
+    - Automated WhatsApp message drafting
+  
+  Cloud backup (premium):
+    - Optional, encrypted, tailor-owned
+    - Restore to new device
+
+─────────────────────────────────────────
+03. TECHNOLOGY STACK
+─────────────────────────────────────────
+
+Runtime & Framework:
+  • Expo SDK 51 (managed workflow)
+  • React Native 0.74.5
+  • React 18.2.0
+  • TypeScript 5.3.3
+
+State Management:
+  • Zustand 4.5.2 (single global store, no Context API)
+
+Navigation:
+  • @react-navigation/native 6.1.17
+  • @react-navigation/drawer 6.6.15 (slide-type drawer)
+  • @react-navigation/stack 6.3.29 (screen stacks)
+  • react-native-gesture-handler 2.16.1 (gesture support)
+  • react-native-reanimated 3.10.1 (animations)
+
+Database:
+  • expo-sqlite 14.0.3 (native: WAL-mode SQLite)
+  • @react-native-async-storage/async-storage 1.23.1 (peer dep)
+
+UI & Graphics:
+  • react-native-svg 15.2.0 (all custom icons are SVG)
+  • react-native-safe-area-context 4.10.5
+  • react-native-screens 3.31.1
+
+Media:
+  • expo-image-picker 15.1.0 (camera + gallery)
+
+Notifications:
+  • expo-notifications 0.28.0 (local push notifications only)
+
+Utilities:
+  • date-fns 3.6.0 (date formatting and arithmetic)
+  • expo-file-system 17.0.1 (file handling)
+  • expo-font 12.0.5
+  • expo-splash-screen 0.27.4
+
+Web support:
+  • react-native-web 0.19.10
+  • react-dom 18.2.0
+  • Platform-specific stubs: database.web.ts, notifications.web.ts
+
+─────────────────────────────────────────
+04. PROJECT STRUCTURE MAP
+─────────────────────────────────────────
+
+tailorbook/
+├── App.tsx                        # Root component, NavigationContainer, store init
+├── app.json                       # Expo config (name, icons, EAS projectId)
+├── eas.json                       # EAS Build profiles
+├── .npmrc                         # legacy-peer-deps=true
+├── .easignore                     # Excludes node_modules etc from EAS upload
+├── package.json
+├── tsconfig.json
+│
+├── assets/
+│   ├── icon.png                   # App icon (512x512 PNG)
+│   ├── adaptive-icon.png          # Android adaptive icon
+│   ├── splash.png                 # Splash screen
+│   └── favicon.png                # Web favicon
+│
+└── src/
+    ├── types/
+    │   └── index.ts               # All TypeScript interfaces and type aliases
+    │
+    ├── constants/
+    │   └── theme.ts               # Colors, Typography, Spacing, Radius, Shadow,
+    │                              # JOB_STATUS_CONFIG, OUTFIT_TYPES, MEASUREMENT_FIELDS
+    │
+    ├── context/
+    │   └── store.ts               # Zustand store (all state + actions)
+    │
+    ├── navigation/
+    │   └── RootNavigator.tsx      # Full nav tree: Drawer > Stacks > Screens
+    │
+    ├── utils/
+    │   ├── database.ts            # SQLite operations (native)
+    │   ├── database.web.ts        # localStorage mock (web)
+    │   ├── notifications.ts       # expo-notifications scheduling (native)
+    │   ├── notifications.web.ts   # No-op stubs (web)
+    │   ├── helpers.ts             # Pure utility functions
+    │   └── seedData.ts            # Dev seed data (customers + jobs)
+    │
+    ├── components/
+    │   └── common/
+    │       ├── Icons.tsx          # All SVG icons as React Native components
+    │       ├── UI.tsx             # Reusable UI components
+    │       └── DrawerContent.tsx  # Custom sidebar drawer
+    │
+    └── screens/
+        ├── home/
+        │   └── HomeScreen.tsx
+        ├── customers/
+        │   ├── CustomerListScreen.tsx
+        │   ├── CustomerDetailScreen.tsx
+        │   ├── CustomerCreateScreen.tsx
+        │   └── CustomerEditScreen.tsx
+        ├── jobs/
+        │   ├── JobListScreen.tsx
+        │   ├── JobDetailScreen.tsx
+        │   ├── JobCreateScreen.tsx
+        │   └── JobEditScreen.tsx
+        ├── measurements/
+        │   └── MeasurementFormScreen.tsx
+        ├── notifications/
+        │   └── NotificationsScreen.tsx
+        └── settings/
+            ├── AccountScreen.tsx
+            ├── SubscriptionScreen.tsx
+            └── HelpScreen.tsx
+
+─────────────────────────────────────────
+05. KEY DEPENDENCIES & VERSIONS
+─────────────────────────────────────────
+
+Critical versions (breaking changes possible if bumped carelessly):
+
+  expo                          ~51.0.0     — SDK 51 = RN 0.74
+  expo-sqlite                   ~14.0.3     — SQLiteProvider API, async ops
+  expo-notifications            ~0.28.0     — Local notifications
+  expo-image-picker             ~15.1.0     — Camera/gallery
+  react-native-reanimated       ~3.10.1     — Required by drawer
+  react-native-gesture-handler  ~2.16.1     — Required by drawer/stack
+  react-native-svg              15.2.0      — Icon rendering
+  zustand                       ^4.5.2      — State management
+  date-fns                      ^3.6.0      — Note: v3 has breaking API vs v2
+  @react-navigation/drawer      ^6.6.15     — Drawer navigator
+  @react-navigation/stack       ^6.3.29     — Stack navigators
+
+Build notes:
+  • .npmrc contains: legacy-peer-deps=true
+  • eas.json sets NPM_CONFIG_LEGACY_PEER_DEPS=true for EAS builds
+  • These flags were needed to resolve peer dependency conflicts with
+    @react-native-async-storage/async-storage during EAS builds
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART II — DATA LAYER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+─────────────────────────────────────────
+06. TYPESCRIPT TYPE DEFINITIONS (src/types/index.ts)
+─────────────────────────────────────────
+
+All shared types live in a single file. No barrel exports needed as all are
+imported directly.
+
+--- Customer ---
+
+interface Customer {
+  id: string;               // Generated ID: Date.now().toString(36) + random
+  name: string;             // Full name
+  phone: string;            // Phone number (stored as-is, formatted on display)
+  notes?: string;           // Free-text notes about the customer
+  avatar: string;           // One of 10 hex color strings (for avatar background)
+  createdAt: string;        // ISO 8601 datetime string
+}
+
+--- Job ---
+
+interface Job {
+  id: string;
+  customerId: string;       // FK → Customer.id
+  customerName: string;     // Denormalized for display performance (no joins needed)
+  outfitType: OutfitType;   // One of 10 outfit type strings
+  style?: string;           // Optional style description (e.g. "Classic Agbada")
+  fabric?: string;          // Optional fabric type (e.g. "Cashmere", "Ankara")
+  deliveryDate: string;     // ISO date string "YYYY-MM-DD"
+  status: JobStatus;        // One of 6 status strings
+  price: number;            // Total price in Naira (integer)
+  deposit: number;          // Amount deposited in Naira (integer)
+  balance: number;          // price - deposit (computed, stored for query perf)
+  measurementId?: string;   // Optional FK → Measurement.id
+  samplePhotoUri?: string;  // Local file URI for reference photo
+  notes?: string;           // Free-text instructions
+  createdAt: string;        // ISO 8601 datetime string
+}
+
+--- Measurement ---
+
+interface Measurement {
+  id: string;
+  customerId: string;              // FK → Customer.id
+  template: MeasurementTemplate;  // Template key string
+  data: Record<string, string>;   // Field values: { bust: "38", waist: "32", ... }
+                                   // STORED AS JSON STRING in SQLite
+  label?: string;                 // Optional human label
+  createdAt: string;
+}
+
+--- AppNotification ---
+
+interface AppNotification {
+  id: string;
+  type: NotificationType;   // 'overdue' | 'due_today' | 'due_soon' |
+                            // 'completed' | 'payment' | 'system'
+  title: string;
+  message: string;
+  jobId?: string;           // Optional FK → Job.id (for deep-link on tap)
+  read: boolean;
+  createdAt: string;
+}
+
+--- Type Aliases ---
+
+type JobStatus = 'Pending' | 'Cutting' | 'Sewing' | 'Finishing' | 'Ready' | 'Delivered';
+
+type OutfitType = 'Agbada' | 'Senator' | 'Suit' | 'Shirt' | 'Trouser' |
+                 'Gown' | 'Kaftan' | 'Skirt' | 'Blouse' | 'Other';
+
+type MeasurementTemplate = 'mens_senator' | 'agbada' | 'suit' |
+                           'womens_gown' | 'shirt' | 'trouser';
+
+type NotificationType = 'overdue' | 'due_today' | 'due_soon' |
+                        'completed' | 'payment' | 'system';
+
+─────────────────────────────────────────
+07. DATABASE SCHEMA (SQLite / expo-sqlite)
+─────────────────────────────────────────
+
+Database name: tailorbook.db
+Mode: WAL (Write-Ahead Logging) — enabled on init for better concurrency
+Opened via: SQLiteProvider from expo-sqlite (async API, SDK 51+)
+
+--- TABLE: customers ---
+
+CREATE TABLE IF NOT EXISTS customers (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  notes TEXT,
+  avatar TEXT NOT NULL DEFAULT '#4B3FA0',
+  createdAt TEXT NOT NULL
+);
+
+--- TABLE: measurements ---
+
+CREATE TABLE IF NOT EXISTS measurements (
+  id TEXT PRIMARY KEY,
+  customerId TEXT NOT NULL,
+  template TEXT NOT NULL,
+  data TEXT NOT NULL,       -- JSON.stringify(Record<string, string>)
+  label TEXT,
+  createdAt TEXT NOT NULL,
+  FOREIGN KEY (customerId) REFERENCES customers(id) ON DELETE CASCADE
+);
+
+INDEX: CREATE INDEX IF NOT EXISTS idx_measurements_customer
+       ON measurements(customerId);
+
+--- TABLE: jobs ---
+
+CREATE TABLE IF NOT EXISTS jobs (
+  id TEXT PRIMARY KEY,
+  customerId TEXT NOT NULL,
+  customerName TEXT NOT NULL,   -- Denormalized
+  outfitType TEXT NOT NULL,
+  style TEXT,
+  fabric TEXT,
+  deliveryDate TEXT NOT NULL,   -- "YYYY-MM-DD"
+  status TEXT NOT NULL DEFAULT 'Pending',
+  price REAL NOT NULL DEFAULT 0,
+  deposit REAL NOT NULL DEFAULT 0,
+  balance REAL NOT NULL DEFAULT 0,
+  measurementId TEXT,
+  samplePhotoUri TEXT,
+  notes TEXT,
+  createdAt TEXT NOT NULL,
+  FOREIGN KEY (customerId) REFERENCES customers(id) ON DELETE CASCADE
+);
+
+INDEXES:
+  CREATE INDEX IF NOT EXISTS idx_jobs_customer ON jobs(customerId);
+  CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
+  CREATE INDEX IF NOT EXISTS idx_jobs_delivery ON jobs(deliveryDate);
+
+--- TABLE: notifications ---
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id TEXT PRIMARY KEY,
+  type TEXT NOT NULL,
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  jobId TEXT,
+  read INTEGER NOT NULL DEFAULT 0,   -- SQLite boolean: 0=false, 1=true
+  createdAt TEXT NOT NULL
+);
+
+INDEX: CREATE INDEX IF NOT EXISTS idx_notifications_read
+       ON notifications(read);
+
+--- CASCADE BEHAVIOR ---
+Deleting a customer cascades to delete their measurements and jobs.
+(This is enforced at the SQLite FK level via ON DELETE CASCADE)
+
+--- IMPORTANT: FK enforcement ---
+SQLite foreign keys are OFF by default. The database init runs:
+  PRAGMA foreign_keys = ON;
+to enable cascade deletes.
+
+─────────────────────────────────────────
+08. DATABASE API FUNCTIONS (src/utils/database.ts)
+─────────────────────────────────────────
+
+All functions are async. They use expo-sqlite's async API (SDK 51+).
+All functions call getDb() which returns a cached SQLiteDatabase instance.
+
+File path: src/utils/database.ts
+
+--- INITIALIZATION ---
+
+initDatabase(): Promise<void>
+  Opens the DB, enables WAL and FK pragmas, creates all 4 tables and indexes.
+  Called once from App.tsx on mount.
+
+--- CUSTOMER FUNCTIONS ---
+
+createCustomer(customer: Customer): Promise<void>
+  INSERT INTO customers
+  Fields: id, name, phone, notes, avatar, createdAt
+
+getAllCustomers(): Promise<Customer[]>
+  SELECT * FROM customers ORDER BY name ASC
+  Returns all customers sorted alphabetically.
+
+getCustomerById(id: string): Promise<Customer | null>
+  SELECT * FROM customers WHERE id = ?
+
+updateCustomer(id, updates: Partial<Customer>): Promise<void>
+  Dynamic UPDATE: only updates provided fields using Object.keys()
+  Uses parameterized queries to prevent SQL injection.
+
+deleteCustomer(id: string): Promise<void>
+  DELETE FROM customers WHERE id = ?
+  Cascade deletes measurements and jobs via FK.
+
+searchCustomers(query: string): Promise<Customer[]>
+  SELECT * FROM customers WHERE name LIKE ? OR phone LIKE ?
+  Pattern: '%query%'
+
+--- JOB FUNCTIONS ---
+
+createJob(job: Job): Promise<void>
+  INSERT INTO jobs (all fields)
+
+getAllJobs(): Promise<Job[]>
+  SELECT * FROM jobs ORDER BY createdAt DESC
+
+getJobById(id: string): Promise<Job | null>
+  SELECT * FROM jobs WHERE id = ?
+
+getJobsByCustomer(customerId: string): Promise<Job[]>
+  SELECT * FROM jobs WHERE customerId = ? ORDER BY createdAt DESC
+
+updateJob(id, updates: Partial<Job>): Promise<void>
+  Dynamic UPDATE on provided fields.
+
+updateJobStatus(id: string, status: JobStatus): Promise<void>
+  UPDATE jobs SET status = ? WHERE id = ?
+
+deleteJob(id: string): Promise<void>
+  DELETE FROM jobs WHERE id = ?
+
+getDueToday(): Promise<Job[]>
+  SELECT * FROM jobs WHERE deliveryDate = ? AND status != 'Delivered'
+  Uses getTodayISO() for the date value.
+
+getOverdueJobs(): Promise<Job[]>
+  SELECT * FROM jobs WHERE deliveryDate < ? AND status != 'Delivered'
+  Uses getTodayISO() for comparison.
+
+searchJobs(query: string): Promise<Job[]>
+  SELECT * FROM jobs WHERE customerName LIKE ? OR outfitType LIKE ? OR notes LIKE ?
+  Pattern: '%query%'
+
+--- MEASUREMENT FUNCTIONS ---
+
+createMeasurement(measurement: Measurement): Promise<void>
+  INSERT INTO measurements
+  IMPORTANT: measurement.data is JSON.stringify'd before INSERT.
+
+getMeasurementsByCustomer(customerId: string): Promise<Measurement[]>
+  SELECT * FROM measurements WHERE customerId = ? ORDER BY createdAt DESC
+  IMPORTANT: Each row's data field is JSON.parse'd before returning.
+
+getMeasurementById(id: string): Promise<Measurement | null>
+  SELECT * FROM measurements WHERE id = ?
+  Parses data JSON on return.
+
+deleteMeasurement(id: string): Promise<void>
+  DELETE FROM measurements WHERE id = ?
+
+--- NOTIFICATION FUNCTIONS ---
+
+createNotification(notification: AppNotification): Promise<void>
+  INSERT INTO notifications
+
+getAllNotifications(): Promise<AppNotification[]>
+  SELECT * FROM notifications ORDER BY createdAt DESC
+  Maps read field: row.read === 1 → true (SQLite integer to JS boolean)
+
+markNotificationRead(id: string): Promise<void>
+  UPDATE notifications SET read = 1 WHERE id = ?
+
+markAllNotificationsRead(): Promise<void>
+  UPDATE notifications SET read = 1
+
+deleteOldNotifications(): Promise<void>
+  DELETE FROM notifications WHERE read = 1 AND createdAt < ?
+  Deletes read notifications older than 30 days.
+
+─────────────────────────────────────────
+09. DATABASE WEB STUB (src/utils/database.web.ts)
+─────────────────────────────────────────
+
+Since expo-sqlite only works on native (Android/iOS), a platform-specific
+stub exists for running the app in a web browser (Replit dev environment).
+
+The stub uses localStorage as storage via a generic read/write helper.
+
+Key design:
+  • localStorage['tailorbook_customers'] = JSON.stringify(Customer[])
+  • localStorage['tailorbook_jobs'] = JSON.stringify(Job[])
+  • localStorage['tailorbook_measurements'] = JSON.stringify(Measurement[])
+  • localStorage['tailorbook_notifications'] = JSON.stringify(AppNotification[])
+
+The web stub exports ALL the same function signatures as database.ts.
+It does NOT implement:
+  - WAL mode (not applicable)
+  - CASCADE deletes (handled manually in deleteCustomer)
+  - SQL indexes (not applicable)
+
+Search functions (searchCustomers, searchJobs) use Array.filter() with
+.toLowerCase().includes() instead of SQL LIKE.
+
+getDueToday() and getOverdueJobs() use JavaScript date comparisons.
+
+IMPORTANT: The web stub persists across page reloads via localStorage,
+but data is tab-isolated and not cross-device.
+
+─────────────────────────────────────────
+10. ID GENERATION STRATEGY
+─────────────────────────────────────────
+
+IDs are NOT UUID v4. They use a custom generation function in store.ts:
+
+  const generateId = () =>
+    Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+
+Example output: "lrx9k2c4p7f3a"
+
+Properties:
+  - Roughly time-sortable (timestamp prefix)
+  - ~15 characters
+  - Not guaranteed collision-free (random component is only 9 chars)
+  - No external library dependency
+
+RISK: At very high creation rates (unlikely for a single tailor), ID
+collisions are theoretically possible. For v1, this is acceptable.
+For v2, consider using a proper UUID library.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART III — STATE MANAGEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+─────────────────────────────────────────
+11. ZUSTAND STORE ARCHITECTURE (src/context/store.ts)
+─────────────────────────────────────────
+
+The entire application state lives in a single Zustand store:
+
+  export const useStore = create<AppStore>()((set, get) => ({ ... }));
+
+No middleware (no devtools, no persist). All persistence is via SQLite.
+State in memory is ephemeral — refreshed from SQLite on initialize().
+
+Store imported in components as:
+  const { customers, addJob, ... } = useStore();
+
+─────────────────────────────────────────
+12. STORE STATE SHAPE
+─────────────────────────────────────────
+
+interface AppStore {
+  // Raw data arrays (loaded from SQLite)
+  customers: Customer[];
+  jobs: Job[];
+  measurements: Measurement[];
+  notifications: AppNotification[];
+
+  // Derived/computed collections (computed from jobs array)
+  dueToday: Job[];         // Jobs where deliveryDate === today AND status !== 'Delivered'
+  overdueJobs: Job[];      // Jobs where deliveryDate < today AND status !== 'Delivered'
+  pendingJobs: Job[];      // Jobs where status === 'Pending'
+  recentJobs: Job[];       // Last 10 jobs sorted by createdAt DESC
+
+  // UI state
+  isLoading: boolean;
+  unreadNotificationCount: number;
+
+  // Actions (see section 13)
+  initialize: () => Promise<void>;
+  // ... all CRUD actions
+}
+
+─────────────────────────────────────────
+13. STORE ACTIONS REFERENCE
+─────────────────────────────────────────
+
+--- INITIALIZATION ---
+
+initialize(): Promise<void>
+  Loads all data from SQLite into memory.
+  Sets isLoading true → fetches customers, jobs, measurements, notifications
+  → computes derived state → sets isLoading false.
+  Also schedules all pending notification checks.
+  Called from HomeScreen's useEffect on mount.
+
+--- REFRESH ACTIONS ---
+
+refreshCustomers(): Promise<void>
+  Reloads customers from DB, updates state.
+
+refreshJobs(): Promise<void>
+  Reloads all jobs, recomputes dueToday/overdueJobs/pendingJobs/recentJobs.
+
+refreshNotifications(): Promise<void>
+  Reloads notifications, recomputes unreadNotificationCount.
+
+--- CUSTOMER ACTIONS ---
+
+addCustomer(data: Omit<Customer, 'id' | 'createdAt'>): Promise<Customer>
+  Generates ID, timestamps, calls db.createCustomer(), updates state.
+  Returns the created Customer object.
+
+updateCustomer(id: string, updates: Partial<Customer>): Promise<void>
+  Calls db.updateCustomer(), refreshes customers state.
+
+deleteCustomer(id: string): Promise<void>
+  Calls db.deleteCustomer() (cascades measurements + jobs in SQLite),
+  refreshes customers, jobs, measurements state.
+
+--- JOB ACTIONS ---
+
+addJob(data: Omit<Job, 'id' | 'createdAt'>): Promise<Job>
+  Generates ID, timestamps, calls db.createJob(), updates state.
+  Returns the created Job object.
+  JobCreateScreen uses navigation.replace('JobDetail', { jobId: job.id })
+  after creation — replaces history so back doesn't return to create form.
+
+updateJob(id: string, updates: Partial<Job>): Promise<void>
+  Calls db.updateJob(), refreshes jobs state.
+
+updateJobStatus(id: string, status: JobStatus): Promise<void>
+  Shorthand for status-only updates. Refreshes jobs and derived state.
+
+deleteJob(id: string): Promise<void>
+  Calls db.deleteJob(), refreshes jobs state.
+
+--- MEASUREMENT ACTIONS ---
+
+addMeasurement(data: Omit<Measurement, 'id' | 'createdAt'>): Promise<Measurement>
+  Generates ID, timestamps, calls db.createMeasurement(), updates state.
+  The data field (Record<string, string>) is passed as-is to db layer,
+  which handles JSON serialization.
+
+deleteMeasurement(id: string): Promise<void>
+  Removes from DB and state.
+
+--- NOTIFICATION ACTIONS ---
+
+markNotificationRead(id: string): Promise<void>
+  Updates DB, recomputes unreadNotificationCount.
+
+markAllRead(): Promise<void>
+  Calls db.markAllNotificationsRead(), recomputes count.
+
+--- LOOKUP SELECTORS (synchronous) ---
+
+getCustomer(id: string): Customer | undefined
+  Returns customers.find(c => c.id === id)
+
+getJob(id: string): Job | undefined
+  Returns jobs.find(j => j.id === id)
+
+getJobsByCustomer(customerId: string): Job[]
+  Returns jobs.filter(j => j.customerId === customerId)
+
+getMeasurementsByCustomer(customerId: string): Measurement[]
+  Returns measurements.filter(m => m.customerId === customerId)
+
+─────────────────────────────────────────
+14. COMPUTED/DERIVED STATE
+─────────────────────────────────────────
+
+These are computed whenever jobs changes (inside refreshJobs and initialize):
+
+  const today = getTodayISO(); // "YYYY-MM-DD"
+
+  dueToday    = jobs.filter(j => j.deliveryDate === today && j.status !== 'Delivered')
+  overdueJobs = jobs.filter(j => j.deliveryDate < today && j.status !== 'Delivered')
+  pendingJobs = jobs.filter(j => j.status === 'Pending')
+  recentJobs  = [...jobs].sort((a,b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 10)
+
+unreadNotificationCount is computed whenever notifications changes:
+  notifications.filter(n => !n.read).length
+
+─────────────────────────────────────────
+15. STORE INITIALIZATION FLOW
+─────────────────────────────────────────
+
+App boots → App.tsx renders NavigationContainer + Drawer
+→ HomeScreen mounts → useEffect calls store.initialize()
+→ initialize() sets isLoading: true
+→ Parallel fetches: getAllCustomers, getAllJobs, getMeasurementsByCustomer (all),
+                    getAllNotifications
+→ Computes dueToday, overdueJobs, pendingJobs, recentJobs
+→ Computes unreadNotificationCount
+→ Schedules notifications (checkAndScheduleNotifications)
+→ Sets isLoading: false
+
+Note: There is NO loading screen or splash gate in the current build.
+The HomeScreen renders with empty arrays while loading, then updates.
+This can cause a brief flash of "no jobs yet" empty states.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART IV — UTILITIES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+─────────────────────────────────────────
+16. HELPER FUNCTIONS (src/utils/helpers.ts)
+─────────────────────────────────────────
+
+All pure functions. No side effects. Imported individually as needed.
+
+--- Date Helpers ---
+
+getTodayISO(): string
+  Returns today's date as "YYYY-MM-DD"
+  Uses: new Date().toISOString().split('T')[0]
+
+addDaysISO(days: number): string
+  Returns a future date as "YYYY-MM-DD"
+  Used for delivery preset buttons (Tomorrow, 3 Days, 1 Week, 2 Weeks)
+
+formatDeliveryDate(isoDate: string): string
+  Formats "YYYY-MM-DD" to human display.
+  Uses date-fns format().
+  Output examples:
+    - Today → "Today"
+    - Tomorrow → "Tomorrow"
+    - Within 7 days → "Mon, 5 Jul"
+    - Beyond 7 days → "5 Jul 2026"
+  Handles 'overdue' with red indicator (color applied by caller).
+
+formatDate(isoString: string): string
+  Formats a full ISO datetime string to "5 Jul 2026"
+  Used for "Created" date display.
+
+formatDateTime(isoString: string): string
+  Formats to "5 Jul, 2:30 PM" — used in notification timestamps.
+
+getDeliveryUrgency(deliveryDate: string): 'overdue' | 'today' | 'soon' | 'normal'
+  'overdue' → deliveryDate < today
+  'today'   → deliveryDate === today
+  'soon'    → deliveryDate within 3 days of today
+  'normal'  → everything else
+  Used by JobListScreen for color-coded dates and JobDetailScreen for chip colors.
+
+--- String/Name Helpers ---
+
+getFirstName(fullName: string): string
+  Returns first space-delimited word.
+  "Emeka Johnson" → "Emeka"
+
+getGreeting(): string
+  Time-based greeting:
+    00:00–11:59 → "Good morning"
+    12:00–16:59 → "Good afternoon"
+    17:00–23:59 → "Good evening"
+
+formatPhone(phone: string): string
+  Formats Nigerian phone numbers for display.
+  "08031234567" → "0803 123 4567"
+  If not 11 digits, returns as-is.
+
+isValidName(name: string): boolean
+  name.trim().length >= 2
+
+isValidPhone(phone: string): boolean
+  Strips spaces/hyphens, checks if remaining is 10–11 digits.
+  Accepts: "080...", "090...", "070..." patterns.
+
+--- Financial Helpers ---
+
+formatNaira(amount: number): string
+  Formats to "₦45,000" with thousands separator.
+  Uses Intl.NumberFormat with 'en-NG' locale.
+
+parseNaira(value: string): number
+  Parses user input to integer.
+  Strips non-numeric characters.
+  Returns 0 if empty/invalid.
+
+--- Avatar Helpers ---
+
+getAvatarColor(name: string): string
+  Deterministic color assignment based on name.
+  Hashes name characters, picks from 10 predefined hex colors:
+  ['#4B3FA0', '#E53E3E', '#38A169', '#D69E2E', '#3182CE',
+   '#805AD5', '#DD6B20', '#319795', '#D53F8C', '#2D3748']
+
+Note: avatar field on Customer stores the hex color string, not a URL.
+The Avatar component uses it as backgroundColor for the initials circle.
+
+─────────────────────────────────────────
+17. NOTIFICATION SYSTEM (src/utils/notifications.ts)
+─────────────────────────────────────────
+
+TailorBook uses LOCAL notifications only (no push server).
+Notifications are scheduled on the device using expo-notifications.
+
+--- Permissions ---
+
+requestNotificationPermissions(): Promise<boolean>
+  Requests iOS/Android notification permissions.
+  Returns true if granted, false otherwise.
+  Called from App.tsx on startup.
+
+--- Scheduling ---
+
+scheduleJobNotifications(job: Job): Promise<void>
+  Schedules 3 local notifications for a job:
+    1. "due_soon"  → 3 days before deliveryDate at 08:00
+    2. "due_today" → on deliveryDate at 07:00
+    3. "overdue"   → day after deliveryDate at 08:00 (if not delivered)
+  Uses expo-notifications.scheduleNotificationAsync with trigger: { date: Date }
+
+cancelJobNotifications(jobId: string): Promise<void>
+  Cancels all scheduled notifications for a given job.
+  Fetches all scheduled notifications, filters by job identifier,
+  cancels matching ones.
+
+--- Database Integration ---
+
+checkAndScheduleNotifications(jobs: Job[]): Promise<void>
+  Run on app initialize(). For each non-Delivered job:
+    - Creates in-app notification records (AppNotification in SQLite)
+    - Schedules OS-level local notifications
+  Creates records for: overdue, due_today, due_soon based on date comparison.
+
+Note: In-app notifications (shown in NotificationsScreen) are stored in SQLite.
+OS-level notifications (lock screen banners) are handled by expo-notifications.
+These are separate systems that run in parallel.
+
+─────────────────────────────────────────
+18. NOTIFICATION WEB STUB (src/utils/notifications.web.ts)
+─────────────────────────────────────────
+
+All functions are no-ops or return default values:
+
+  requestNotificationPermissions: async () => false
+  scheduleJobNotifications: async () => {}
+  cancelJobNotifications: async () => {}
+  checkAndScheduleNotifications: async () => {}
+
+expo-notifications doesn't work in a browser. The web stub prevents crashes.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART V — CONSTANTS & THEMING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+─────────────────────────────────────────
+19. THEME CONSTANTS (src/constants/theme.ts)
+─────────────────────────────────────────
+
+Single source of truth for all visual tokens. Import by name:
+  import { Colors, Typography, Spacing, Radius, Shadow } from '../../constants/theme';
+
+─────────────────────────────────────────
+20. COLOR PALETTE
+─────────────────────────────────────────
+
+export const Colors = {
+  // Brand
+  primary:       '#4B3FA0',   // Deep purple — primary actions, active states
+  primaryLight:  '#7B6FD0',   // Lighter purple — drawer active icons
+  primaryFaint:  '#F0EEFF',   // Very light purple — chip bg, badge bg
+  accent:        '#F5A623',   // Orange — secondary actions, "Create Job" card
+
+  // Surfaces
+  background:    '#F5F5F7',   // App background (light gray)
+  surface:       '#FFFFFF',   // Cards, inputs, list items
+  white:         '#FFFFFF',
+
+  // Text
+  textPrimary:   '#1A1A2E',   // Main text
+  textSecondary: '#6B7280',   // Secondary labels, dates
+  textTertiary:  '#9CA3AF',   // Placeholder, hints
+
+  // Borders
+  border:        '#E5E7EB',   // Standard border
+  borderLight:   '#F3F4F6',   // Subtle separators
+
+  // Status: Overdue
+  overdue:       '#EF4444',   // Red — overdue jobs, balance remaining
+  overdueLight:  '#FEF2F2',   // Light red background
+
+  // Status: Due Soon
+  dueSoon:       '#F59E0B',   // Amber — due within 3 days
+  dueSoonLight:  '#FFFBEB',   // Light amber background
+
+  // Status: Ready / Completed
+  ready:         '#10B981',   // Green — ready/delivered, deposit paid
+  readyLight:    '#ECFDF5',   // Light green background
+
+  // Drawer
+  drawerBg:      '#1A1A2E',   // Dark navy — drawer background
+  drawerText:    '#FFFFFF',
+  drawerTextMuted: '#9CA3AF',
+  drawerActive:  '#FFFFFF15', // Semi-transparent white for active item bg
+};
+
+─────────────────────────────────────────
+21. TYPOGRAPHY SYSTEM
+─────────────────────────────────────────
+
+export const Typography = {
+  // Font sizes (in points)
+  xs:   11,
+  sm:   13,
+  base: 15,
+  md:   17,
+  lg:   20,
+  xl:   24,
+  xxl:  28,
+
+  // Font weights (as string values for fontWeight prop)
+  regular:    '400',
+  medium:     '500',
+  semibold:   '600',
+  bold:       '700',
+  extrabold:  '800',
+};
+
+Usage pattern in StyleSheet:
+  fontSize: Typography.sm,
+  fontWeight: Typography.semibold,
+
+Note: System font is used (no custom fonts loaded). expo-font is a
+dependency but no custom fonts are installed in the current build.
+
+─────────────────────────────────────────
+22. SPACING SYSTEM
+─────────────────────────────────────────
+
+export const Spacing = {
+  xs:    4,
+  sm:    8,
+  md:    12,
+  base:  16,
+  lg:    20,
+  xl:    24,
+  xxl:   32,
+  xxxl:  48,
+};
+
+Content padding: Spacing.base (16px) horizontal on all screens.
+Card padding: Spacing.md (12px).
+Section gap: Spacing.xl (24px) marginBottom.
+Bottom scroll padding: Spacing.xxxl (48px) to clear home indicator.
+
+─────────────────────────────────────────
+23. JOB STATUS CONFIGURATION
+─────────────────────────────────────────
+
+export const JOB_STATUSES = ['Pending', 'Cutting', 'Sewing', 'Finishing', 'Ready', 'Delivered'];
+
+export const JOB_STATUS_CONFIG: Record<JobStatus, StatusConfig> = {
+  Pending:   { label: 'Pending',   color: '#9CA3AF', bgColor: '#F3F4F6' },  // Gray
+  Cutting:   { label: 'Cutting',   color: '#F59E0B', bgColor: '#FFFBEB' },  // Amber
+  Sewing:    { label: 'Sewing',    color: '#3B82F6', bgColor: '#EFF6FF' },  // Blue
+  Finishing: { label: 'Finishing', color: '#8B5CF6', bgColor: '#F5F3FF' },  // Violet
+  Ready:     { label: 'Ready',     color: '#10B981', bgColor: '#ECFDF5' },  // Green
+  Delivered: { label: 'Delivered', color: '#6B7280', bgColor: '#F9FAFB' },  // Neutral gray
+};
+
+The STATUS_PIPELINE order (for progress display):
+  ['Pending', 'Cutting', 'Sewing', 'Finishing', 'Ready', 'Delivered']
+
+Each status dot in the pipeline is colored by its config.color when current,
+green (#10B981) with a checkmark when past, and border-colored when future.
+
+─────────────────────────────────────────
+24. OUTFIT TYPES & MEASUREMENT TEMPLATES
+─────────────────────────────────────────
+
+export const OUTFIT_TYPES: OutfitType[] = [
+  'Agbada', 'Senator', 'Suit', 'Shirt', 'Trouser',
+  'Gown', 'Kaftan', 'Skirt', 'Blouse', 'Other'
+];
+
+export const MEASUREMENT_FIELDS: Record<MeasurementTemplate, MeasurementField[]>
+  Each template has an array of { key: string; label: string } objects.
+
+  Template 'mens_senator' fields (example):
+    chest, waist, hips, shoulder, sleeve, neck, trouser_waist, trouser_inseam,
+    trouser_outseam, thigh, knee, ankle
+
+  Template 'agbada' fields:
+    chest, waist, shoulder, sleeve, length, neck, trouser_waist, trouser_inseam
+
+  Template 'suit' fields:
+    chest, waist, hips, shoulder, sleeve, jacket_length, trouser_waist, inseam
+
+  Template 'womens_gown' fields:
+    bust, waist, hips, shoulder, sleeve, length, neckline
+
+  Template 'shirt' fields:
+    chest, waist, shoulder, sleeve, length, neck
+
+  Template 'trouser' fields:
+    waist, hips, thigh, knee, inseam, outseam, ankle
+
+export const TEMPLATE_LABELS: Record<MeasurementTemplate, string> = {
+  mens_senator: "Men's Senator",
+  agbada: "Agbada",
+  suit: "Suit",
+  womens_gown: "Women's Gown",
+  shirt: "Shirt",
+  trouser: "Trouser",
+};
+
+All measurements are stored in INCHES (the inch symbol " is displayed next to inputs).
+
+Avatar color pool (10 colors, deterministic by name hash):
+  '#4B3FA0', '#E53E3E', '#38A169', '#D69E2E', '#3182CE',
+  '#805AD5', '#DD6B20', '#319795', '#D53F8C', '#2D3748'
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART VI — NAVIGATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+─────────────────────────────────────────
+25. NAVIGATION ARCHITECTURE (src/navigation/RootNavigator.tsx)
+─────────────────────────────────────────
+
+Root: <NavigationContainer>
+  └── <Drawer.Navigator>            ← DrawerNavigator (root)
+        ├── HomeTab                  ← HomeStack.Navigator (nested)
+        │     └── Home              → HomeScreen
+        ├── CustomersStack           ← CustomerStack.Navigator (nested)
+        │     ├── CustomerList       → CustomerListScreen
+        │     ├── CustomerDetail     → CustomerDetailScreen
+        │     ├── CustomerCreate     → CustomerCreateScreen
+        │     └── CustomerEdit       → CustomerEditScreen
+        ├── JobsStack                ← JobStack.Navigator (nested)
+        │     ├── JobList            → JobListScreen
+        │     ├── JobDetail          → JobDetailScreen
+        │     ├── JobCreate          → JobCreateScreen
+        │     └── JobEdit            → JobEditScreen
+        ├── NotificationsScreen      → NotificationsScreen (flat, no stack)
+        ├── AccountScreen            → AccountScreen (flat)
+        ├── SubscriptionScreen       → SubscriptionScreen (flat)
+        └── HelpScreen               → HelpScreen (flat)
+
+Additional screens navigable from within stacks:
+  • MeasurementForm → MeasurementFormScreen
+    (navigated to from CustomerDetailScreen and JobCreateScreen)
+    It lives outside the stack definitions as a shared screen...
+    
+IMPORTANT: MeasurementFormScreen is registered inside the CustomerStack
+in the actual code. Cross-stack navigation to it from JobCreateScreen
+uses navigation.navigate('MeasurementForm', { customerId }).
+
+─────────────────────────────────────────
+26. SCREEN REGISTER & ROUTE PARAMS
+─────────────────────────────────────────
+
+All headers are hidden on the Drawer navigator:
+  screenOptions={{ headerShown: false }}
+
+All headers are hidden on Stack navigators:
+  screenOptions={{ headerShown: false, cardStyle: { backgroundColor: Colors.background } }}
+
+Route parameters by screen:
+
+  CustomerDetail:    { customerId: string }
+  CustomerEdit:      { customerId: string }
+  JobDetail:         { jobId: string }
+  JobEdit:           { jobId: string }
+  JobCreate:         { customerId?: string }  ← optional prefill
+  MeasurementForm:   { customerId: string; jobId?: string; existingMeasurementId?: string }
+  NotificationsScreen: (none)
+  AccountScreen:     (none)
+  SubscriptionScreen: (none)
+  HelpScreen:        (none)
+
+─────────────────────────────────────────
+27. DRAWER CONFIGURATION
+─────────────────────────────────────────
+
+drawerType="slide"      ← Main content slides right, drawer appears behind
+drawerStyle={{ width: 280 }}
+drawerContent={(props) => <DrawerContent {...props} />}
+
+The drawer does NOT use the default DrawerItems component.
+DrawerContent is fully custom with:
+  - Profile header (shop name + scissors icon avatar)
+  - Navigation items with icons and notification badge
+  - Logout button (currently no-op)
+  - Footer ("TailorBook v1.0")
+
+Active route detection:
+  const currentRoute = state.routeNames[state.index];
+  Compares against item.key to set active state.
+
+─────────────────────────────────────────
+28. STACK NAVIGATORS
+─────────────────────────────────────────
+
+HomeStack:
+  Navigator: createStackNavigator
+  Initial: 'Home' → HomeScreen
+
+CustomerStack:
+  Navigator: createStackNavigator
+  Screens: CustomerList (initial), CustomerDetail, CustomerCreate,
+           CustomerEdit, MeasurementForm
+
+JobStack:
+  Navigator: createStackNavigator
+  Screens: JobList (initial), JobDetail, JobCreate, JobEdit
+
+Cross-stack navigation uses:
+  navigation.navigate('JobsStack', { screen: 'JobDetail', params: { jobId } })
+  navigation.navigate('CustomersStack', { screen: 'CustomerCreate' })
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART VII — COMPONENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+─────────────────────────────────────────
+29. ICON SYSTEM (src/components/common/Icons.tsx)
+─────────────────────────────────────────
+
+All icons are custom SVG components using react-native-svg.
+No icon library dependency (no react-native-vector-icons, etc.).
+
+Each icon component props:
+  interface IconProps {
+    size?: number;      // Default varies (usually 24)
+    color?: string;     // Default Colors.textPrimary
+    strokeWidth?: number; // Default 1.5
+  }
+
+Icons are SVG <Path> elements wrapped in <Svg viewBox="0 0 24 24">.
+Stroke-based icons (not filled), Feather/Heroicons visual style.
+
+Available icons:
+  HomeIcon, CustomersIcon, JobsIcon, NotificationsIcon, MeasurementsIcon,
+  AccountIcon, SubscriptionIcon, HelpIcon, LogoutIcon,
+  MenuIcon, BackIcon, SearchIcon, PlusIcon, ChevronRightIcon, ChevronDownIcon,
+  EditIcon, TrashIcon, CheckIcon, AlertCircleIcon, ClockIcon,
+  PhoneIcon, CameraIcon, ImageIcon, BriefcasePlusIcon, UserPlusIcon,
+  ScissorsIcon
+
+─────────────────────────────────────────
+30. UI COMPONENT LIBRARY (src/components/common/UI.tsx)
+─────────────────────────────────────────
+
+--- Avatar ---
+Props: { name: string; size?: number; style?: ViewStyle }
+  • Generates colored circle with initials
+  • Color: getAvatarColor(name)
+  • Initials: name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2)
+  • Default size: 40px
+
+--- StatusBadge ---
+Props: { status: JobStatus; size?: 'sm' | 'md' }
+  • Renders colored pill label using JOB_STATUS_CONFIG
+  • 'sm' → smaller font + padding
+  • 'md' → default
+
+--- Button ---
+Props: {
+  label: string;
+  onPress: () => void;
+  variant?: 'primary' | 'secondary' | 'ghost';  // Default: 'primary'
+  size?: 'sm' | 'md' | 'lg';                     // Default: 'md'
+  loading?: boolean;
+  disabled?: boolean;
+  icon?: React.ReactNode;
+  style?: ViewStyle;
+  fullWidth?: boolean;  // Default: true
+}
+  • 'primary'   → purple background, white text
+  • 'secondary' → white background, purple border + text
+  • 'ghost'     → no border, primary-colored text
+  • loading state shows ActivityIndicator in place of label
+  • disabled state: reduced opacity (0.5)
+
+--- InputField ---
+Props: {
+  label: string;
+  value: string;
+  onChangeText: (v: string) => void;
+  placeholder?: string;
+  error?: string;
+  keyboardType?: KeyboardTypeOptions;
+  multiline?: boolean;
+  numberOfLines?: number;
+  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  secureTextEntry?: boolean;
+}
+  • Renders label above input
+  • Border turns red on error, shows error text below
+  • Focus state: border color changes to Colors.primary
+
+--- Card ---
+Props: { style?: ViewStyle; children: React.ReactNode }
+  • White rounded card with shadow
+  • borderRadius: Radius.lg
+  • padding: Spacing.base
+
+--- Chip ---
+Props: { label: string; selected: boolean; onPress: () => void }
+  • Toggle-style pill button
+  • Selected: purple background + white text
+  • Unselected: surface background + gray text + border
+
+--- SectionHeader ---
+Props: {
+  title: string;
+  action?: { label: string; onPress: () => void };
+  style?: ViewStyle;
+}
+  • Title on left, optional action link on right
+
+--- EmptyState ---
+Props: {
+  icon: React.ReactNode;
+  title: string;
+  subtitle?: string;
+  action?: { label: string; onPress: () => void };
+}
+  • Centered illustration area with icon, title, subtitle, optional button
+
+─────────────────────────────────────────
+31. DRAWER CONTENT (src/components/common/DrawerContent.tsx)
+─────────────────────────────────────────
+
+Custom drawer component replacing default DrawerItems.
+
+Profile header:
+  • Scissors icon in purple circle (avatar placeholder — not user-configurable)
+  • Shop name: "Tunde Stitches" (HARDCODED — see tech debt)
+  • Role: "Tailor" (HARDCODED)
+
+Navigation items array:
+  { key, label, icon(active: boolean), badge? }
+  
+  key must match the screen/stack name in the Drawer.Navigator.
+  Active state: currentRoute === item.key
+
+Notification badge: Shows unreadNotificationCount on the Notifications item.
+Logout: Shows Alert confirmation but does nothing (no-op — no auth in v1).
+
+Footer: "TailorBook v1.0" + "Your digital customer book"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART VIII — SCREENS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+─────────────────────────────────────────
+32. HOMESCREEN
+─────────────────────────────────────────
+
+File: src/screens/home/HomeScreen.tsx
+Route: 'Home' (in HomeStack, which is a Drawer item)
+
+Purpose: The dashboard. First screen the user sees. Provides a quick
+overview of the day's work and shortcuts to common actions.
+
+State consumed from store:
+  customers, dueToday, overdueJobs, pendingJobs, recentJobs,
+  unreadNotificationCount, isLoading, initialize, refreshJobs
+
+Lifecycle:
+  useEffect(() => { initialize(); }, []) ← Triggers full app data load on first render
+
+Pull-to-refresh: RefreshControl calls refreshJobs()
+
+Layout (top to bottom):
+  1. TopBar
+     - Left: MenuIcon → opens drawer (DrawerActions.openDrawer())
+     - Right: NotificationsIcon + red badge (count capped at '9+')
+  
+  2. Greeting block
+     - getGreeting() + tailor name (HARDCODED as 'Chinedu' — see tech debt)
+     - "Let's get some jobs done."
+  
+  3. Quick Action Cards (2-up grid)
+     - "Register New Customer" → CustomersStack/CustomerCreate
+     - "Create New Job" → JobsStack/JobCreate
+  
+  4. Due Today section
+     - SectionHeader with count and "View all" link (if > 3 items)
+     - Shows first 3 DueTodayItems
+     - Empty state: "No deliveries due today 🎉"
+  
+  5. Pending Jobs section
+     - Tappable stat card → navigates to JobsStack
+  
+  6. Overdue Jobs section (conditional — only shown if overdueJobs.length > 0)
+     - Red stat card with count → navigates to JobsStack
+  
+  7. Recent Jobs (horizontal scroll)
+     - RecentJobCard: 130px wide, shows sample photo or emoji placeholder
+     - OUTFIT_PLACEHOLDERS: emoji map per outfit type
+     - EmptyState if no jobs
+
+Sub-components:
+  QuickActionCard, DueTodayItem, RecentJobCard (all defined in same file)
+
+Notable: tailorName is hardcoded 'Chinedu' with comment "In production: pull from settings"
+
+─────────────────────────────────────────
+33. CUSTOMERLISTSCREEN
+─────────────────────────────────────────
+
+File: src/screens/customers/CustomerListScreen.tsx
+Route: 'CustomerList' (initial screen of CustomersStack)
+
+Features:
+  - FlatList of all customers sorted alphabetically (by DB query)
+  - Real-time search via db.searchCustomers() (not in-memory filter)
+    Search triggers on every keystroke, updates searchResults state
+    If search is empty, shows full customers list from store
+  - Pull-to-refresh: refreshCustomers()
+  - Each item shows: Avatar, name, formatted phone, notes (1 line), job count badge
+  - Tapping item → CustomerDetail
+  - Plus button (circular, top right) → CustomerCreate
+
+Data flow for search:
+  TextInput onChange → handleSearch() → db.searchCustomers(text)
+  → setSearchResults() → displayList = searchResults ?? customers
+
+Note: The job count badge uses getJobsByCustomer() from the store (in-memory)
+which works because jobs are already loaded. This means the count reflects
+current store state, not a fresh DB query.
+
+─────────────────────────────────────────
+34. CUSTOMERDETAILSCREEN
+─────────────────────────────────────────
+
+File: src/screens/customers/CustomerDetailScreen.tsx
+Route: 'CustomerDetail', params: { customerId: string }
+
+Layout (scrollable):
+  1. Header: Back, "Customer Profile" title, Edit icon, Delete (trash) icon
+  2. Profile Card (Card component):
+     - Avatar (68px), name, tappable phone (opens tel: link), notes
+     - Stats row: Total Jobs | Active | Delivered
+  3. Action buttons row: "New Job" (primary) | "Measurements" (secondary)
+  4. Active Jobs section (if any): JobRow list in a Card
+  5. Saved Measurements section (if any): Card per measurement (label + date)
+  6. Delivered Jobs section (if any): JobRow list in a Card
+  7. EmptyState if no jobs at all
+
+JobRow sub-component:
+  { outfitType, status badge, delivery date }
+  Tapping → JobDetail
+
+Delete behavior:
+  Alert confirmation → deleteCustomer(customerId) → navigation.goBack()
+  Note: Cascade delete in SQLite removes all jobs + measurements too.
+
+Measurements displayed here show label and date only (not field values).
+Full field values are shown in JobDetailScreen.
+
+Phone tap: Linking.openURL(`tel:${customer.phone}`)
+
+─────────────────────────────────────────
+35. CUSTOMERCREATESCREEN
+─────────────────────────────────────────
+
+File: src/screens/customers/CustomerCreateScreen.tsx
+Route: 'CustomerCreate'
+
+Fields:
+  • Customer Name * — text input, autoCapitalize="words"
+  • Phone Number * — phone-pad keyboard
+  • Notes (optional) — multiline, 3 lines
+
+Live avatar preview updates as user types name.
+
+Validation (on save):
+  isValidName(): min 2 chars
+  isValidPhone(): 10-11 digits after stripping spaces/hyphens
+
+On successful save:
+  Alert: "[Name] added! 🎉 Would you like to create a job now?"
+  - "Not now" → CustomerDetail
+  - "Create Job" → JobCreate (with customerId prefilled)
+
+Avatar color is assigned via getAvatarColor(name) on creation.
+
+─────────────────────────────────────────
+36. CUSTOMEREDITSCREEN (INFERRED)
+─────────────────────────────────────────
+
+File: src/screens/customers/CustomerEditScreen.tsx
+Route: 'CustomerEdit', params: { customerId: string }
+
+Not directly read, but inferred from navigation patterns:
+  - Navigated to from CustomerDetailScreen (Edit icon)
+  - Similar form to CustomerCreate but pre-filled with existing values
+  - On save: calls updateCustomer(), navigates back
+
+─────────────────────────────────────────
+37. JOBLISTSCREEN
+─────────────────────────────────────────
+
+File: src/screens/jobs/JobListScreen.tsx
+Route: 'JobList' (initial screen of JobsStack)
+
+Features:
+  - Full job list from store (no pagination)
+  - Search: db.searchJobs() — searches customerName, outfitType, notes
+  - Status filter: Horizontal FlatList of Chip buttons
+    Values: ['All', 'Pending', 'Cutting', 'Sewing', 'Finishing', 'Ready', 'Delivered']
+  - Sort: overdue → today → soon → normal, then by deliveryDate ASC
+    Uses getDeliveryUrgency() for sort keys
+  - Each JobCard: Avatar (customer initials), "[Name]'s [OutfitType]",
+    delivery date (color-coded by urgency), "⚠ Overdue" tag, StatusBadge
+
+Filter + Search interaction:
+  baseList = searchResults ?? jobs
+  filteredJobs = filterStatus === 'All' ? baseList : baseList.filter(status)
+  sortedJobs = filteredJobs.sort(urgency → date)
+
+Job count display: "{N} jobs" shown above list.
+
+─────────────────────────────────────────
+38. JOBDETAILSCREEN
+─────────────────────────────────────────
+
+File: src/screens/jobs/JobDetailScreen.tsx
+Route: 'JobDetail', params: { jobId: string }
+
+Layout (scrollable):
+  1. Header: Back, "Job Details", Edit + Delete icons
+  
+  2. Hero Card:
+     - Outfit type (large title), style (subtitle)
+     - Tappable customer link → CustomerDetail
+     - Sample photo thumbnail (90×110px) or ScissorsIcon placeholder
+     - StatusBadge + delivery date chip (color by urgency)
+  
+  3. Progress section — StatusPipeline component:
+     - 6 dots connected by lines, showing current position
+     - Past: green dot with checkmark
+     - Current: larger colored dot
+     - Future: white dot with border
+     - Below: "Mark as [NextStatus]" button (quick advance)
+             + "Change Status" button (opens bottom sheet modal)
+  
+  4. Payment section:
+     - Total Price | Deposit Paid (green) | Balance Remaining (red if > 0)
+  
+  5. Details section:
+     - Fabric | Created date | Delivery date
+  
+  6. Measurements section (if measurementId linked):
+     - Shows label, then field key/value pairs
+  
+  7. Notes section (if present)
+
+Status change modal (bottom sheet):
+  Modal with presentationStyle="overFullScreen"
+  Lists all 6 statuses, current highlighted, CheckIcon on current
+  Tap any status → handleStatusChange() → updateJobStatus()
+
+Quick advance:
+  STATUS_ORDER = ['Pending', 'Cutting', 'Sewing', 'Finishing', 'Ready', 'Delivered']
+  nextStatus = STATUS_ORDER[currentIndex + 1]
+  "Mark as [nextStatus]" button only shows if not at last status.
+
+Delete: Alert confirmation → deleteJob() → navigation.goBack()
+
+─────────────────────────────────────────
+39. JOBCREATESCREEN
+─────────────────────────────────────────
+
+File: src/screens/jobs/JobCreateScreen.tsx
+Route: 'JobCreate', params: { customerId?: string }
+
+Form sections:
+  1. CUSTOMER — Touch selector → CustomerPickerModal (bottom sheet FlatList)
+     If customerId param provided, pre-selects that customer.
+  
+  2. OUTFIT TYPE — Horizontal chip grid (10 outfit types)
+     Default: 'Senator'
+  
+  3. DETAILS — Style input, Fabric input
+  
+  4. DELIVERY DATE — 4 preset buttons: Tomorrow | 3 Days | 1 Week | 2 Weeks
+     LIMITATION: No custom date picker — user can only pick from presets!
+     Default: addDaysISO(7)
+  
+  5. MEASUREMENTS (only shown if customer selected)
+     - Lists customer's saved measurements (selectable)
+     - Toggle: tap same one to deselect
+     - "Add new measurements" link → MeasurementForm
+     - If no measurements: "Add Measurements" button → MeasurementForm
+  
+  6. SAMPLE REFERENCE — Camera / Gallery buttons
+     Photo aspect ratio forced to 3:4, quality 0.7
+     Alert with remove option if photo already selected
+  
+  7. PAYMENT — Price input, Deposit input
+     Live balance calculation: max(0, price - deposit)
+     Balance shown in red if > 0
+  
+  8. NOTES — Multiline textarea
+
+Validation (on save):
+  - Customer required
+  - Outfit type required (always set via chip, so never invalid)
+  - Delivery date required (always set from presets, so never invalid)
+
+On save:
+  • addJob() called
+  • navigation.replace('JobDetail', { jobId: job.id })
+  (Replace not push — so back button from JobDetail goes to JobList not JobCreate)
+
+CustomerPickerModal sub-component:
+  FlatList of customers, CheckIcon on selected, "+ New Customer" button at bottom
+
+Permissions:
+  Camera: ImagePicker.requestCameraPermissionsAsync()
+  Gallery: ImagePicker.requestMediaLibraryPermissionsAsync()
+  If denied: Alert explaining why permission is needed.
+
+─────────────────────────────────────────
+40. JOBEDITSCREEN (INFERRED)
+─────────────────────────────────────────
+
+File: src/screens/jobs/JobEditScreen.tsx
+Route: 'JobEdit', params: { jobId: string }
+
+Not directly read. Inferred from navigation patterns:
+  - Navigated to from JobDetailScreen (Edit icon)
+  - Similar form to JobCreate but pre-filled
+  - On save: calls updateJob(), navigates back
+
+─────────────────────────────────────────
+41. MEASUREMENTFORMSCREEN
+─────────────────────────────────────────
+
+File: src/screens/measurements/MeasurementFormScreen.tsx
+Route: 'MeasurementForm', params: { customerId: string; jobId?: string; existingMeasurementId?: string }
+
+Purpose: Add new measurements for a customer. Not edit existing ones
+(no edit flow currently exists — each save creates a new measurement record).
+
+Layout:
+  1. "Use Previous Measurements" section (shown only if customer has existing)
+     - List of prior measurements with date
+     - Tap "Copy →" → pre-fills template + data from that record
+  
+  2. Template selector — Chips for 6 templates
+     Changing template resets data to {} (previous values lost)
+  
+  3. Measurement fields grid (2 columns, 47% each)
+     - Each field: label above, numeric input + inch symbol
+     - decimal-pad keyboard, max 5 chars per field
+  
+  4. Label input (optional)
+     Placeholder: "[Template Name] — [Month Year]"
+     Default if empty: same as placeholder
+
+On save:
+  - Requires at least one field filled
+  - addMeasurement() → Alert "Saved!" → navigation.goBack()
+
+Note: The existingMeasurementId param is accepted but not implemented
+(no edit flow). It's in the type signature for future use.
+
+─────────────────────────────────────────
+42. NOTIFICATIONSSCREEN
+─────────────────────────────────────────
+
+File: src/screens/notifications/NotificationsScreen.tsx
+Route: 'NotificationsScreen' (flat drawer item, no stack)
+
+Features:
+  - Tab filter: All | Jobs | System
+    'Jobs' = n.type !== 'system'
+    'System' = n.type === 'system'
+  - "Mark all read" button (shown only if unread exist)
+  - FlatList of NotificationItem components
+
+NotificationItem:
+  - Icon bubble (type-colored background)
+  - Title, message (2 line max), timestamp (formatDateTime)
+  - Left purple border on unread items
+  - Blue dot indicator on unread items
+  - Tap: marks read + navigates to JobDetail if jobId present
+
+Icon/color per type:
+  overdue:   ClockIcon, red bg
+  due_today: AlertCircleIcon, red bg
+  due_soon:  NotificationsIcon, amber bg
+  completed: CheckIcon, green bg
+  payment:   CheckIcon, green bg
+  system:    NotificationsIcon, purple bg
+
+─────────────────────────────────────────
+43. SETTINGS SCREENS (Account, Subscription, Help)
+─────────────────────────────────────────
+
+Files: src/screens/settings/AccountScreen.tsx
+       src/screens/settings/SubscriptionScreen.tsx
+       src/screens/settings/HelpScreen.tsx
+
+Not read directly. Based on drawer nav and product vision:
+
+AccountScreen:
+  Likely contains: shop name, tailor name, phone number fields
+  Currently these are hardcoded in HomeScreen and DrawerContent
+  No persistence implemented yet
+
+SubscriptionScreen:
+  Likely a placeholder for future premium tier upgrade flow
+  No payment integration in current build
+
+HelpScreen:
+  Likely static FAQ content or contact information
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART IX — ENTRY POINT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+─────────────────────────────────────────
+44. APP.TSX — ROOT COMPONENT & BOOTSTRAP
+─────────────────────────────────────────
+
+File: App.tsx (root of the project, not inside src/)
+
+Responsibilities:
+  1. Database initialization: calls initDatabase() on mount (useEffect)
+  2. Notification permissions: calls requestNotificationPermissions()
+  3. Splash screen management: SplashScreen.preventAutoHideAsync() on load,
+     SplashScreen.hideAsync() after DB init
+  4. Renders NavigationContainer (react-navigation root)
+  5. Renders GestureHandlerRootView (required for drawer gestures)
+  6. Renders RootNavigator inside NavigationContainer
+
+Bootstrap sequence:
+  1. JS bundle evaluates
+  2. SplashScreen.preventAutoHideAsync() called (keeps splash visible)
+  3. App component mounts
+  4. useEffect fires: initDatabase() + requestNotificationPermissions()
+  5. After DB ready: SplashScreen.hideAsync()
+  6. GestureHandlerRootView > NavigationContainer > RootNavigator renders
+  7. Drawer renders → HomeTab is initial route → HomeScreen mounts
+  8. HomeScreen useEffect: store.initialize() → loads all data from SQLite
+
+Note: No loading state is shown between step 5 and 8.
+Temporary flash of empty state may occur before data loads.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART X — BUILD & DEPLOYMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+─────────────────────────────────────────
+45. EXPO CONFIGURATION (app.json)
+─────────────────────────────────────────
+
+Key fields:
+  name: "TailorBook"
+  slug: "tailorbook"
+  version: "1.0.0"
+  orientation: "portrait"
+  sdkVersion: "51.0.0"
+
+Android:
+  package: "com.tailorbook.app" (or similar)
+  adaptiveIcon: ./assets/adaptive-icon.png (foregroundImage)
+  backgroundColor: #4B3FA0 (brand purple)
+
+iOS:
+  bundleIdentifier: "com.tailorbook.app"
+  supportsTablet: false
+
+EAS:
+  projectId: set during first `eas build` run (UUID in app.json)
+
+Plugins:
+  expo-notifications (for local notification support)
+  expo-image-picker (for camera/gallery permissions)
+  expo-sqlite (native DB)
+
+─────────────────────────────────────────
+46. EAS BUILD CONFIGURATION (eas.json)
+─────────────────────────────────────────
+
+{
+  "cli": { "version": ">= 12.0.0" },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": { "NPM_CONFIG_LEGACY_PEER_DEPS": "true" }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": { "buildType": "apk" },
+      "env": { "NPM_CONFIG_LEGACY_PEER_DEPS": "true" }
+    },
+    "production": {
+      "env": { "NPM_CONFIG_LEGACY_PEER_DEPS": "true" }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
+
+APK build command (used and verified working):
+  eas build --platform android --profile preview
+
+Output: APK downloadable via EAS dashboard URL.
+Install: Via QR code in Expo Go, or download APK directly.
+
+CRITICAL: NPM_CONFIG_LEGACY_PEER_DEPS=true is required in ALL build
+profiles to resolve the @react-native-async-storage peer dependency
+conflict. Removing it will cause EAS builds to fail.
+
+─────────────────────────────────────────
+47. WEB PLATFORM SUPPORT
+─────────────────────────────────────────
+
+The app runs as a web app in development via:
+  npx expo start --web --port 5000
+
+Platform-specific files resolve at build time:
+  database.web.ts     → loaded on web (instead of database.ts)
+  notifications.web.ts → loaded on web (instead of notifications.ts)
+
+React Native component compatibility:
+  react-native-web handles RN → DOM bridging.
+  react-native-svg works on web via same package.
+  expo-sqlite does NOT work on web → stub required.
+  expo-notifications does NOT work on web → stub required.
+  expo-image-picker: works on web with limitations.
+
+Known web limitations:
+  - No camera access without HTTPS in most browsers
+  - localStorage data is not persistent across incognito sessions
+  - SafeAreaView doesn't auto-detect browser chrome (manual padding needed)
+  - Push-to-refresh (RefreshControl) has no visual feedback on web
+
+Workflow for Replit:
+  Name: "Start application" (or similar)
+  Command: npx expo start --web --port 5000
+  Port: 5000
+
+─────────────────────────────────────────
+48. REPLIT DEVELOPMENT SETUP
+─────────────────────────────────────────
+
+Required for app to run in Replit's proxied iframe:
+
+app.json / metro.config.js should NOT restrict allowed hosts.
+Expo's bundler (Metro) must allow all hosts (Replit proxies requests).
+
+.npmrc:
+  legacy-peer-deps=true
+
+Dev command:
+  npx expo start --web --port 5000 --host tunnel  (if proxy issues)
+  OR
+  npx expo start --web --port 5000
+
+Removed: @expo/webpack-config (was in package.json, caused conflicts,
+  removed because Expo SDK 51 uses Metro bundler for web, not webpack)
+
+Asset fix: PNG assets must be valid PNGs. During development, corrupted
+  placeholder PNGs were fixed via a Python script (pillow-based).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART XI — KNOWN ISSUES, BUGS & TECH DEBT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+─────────────────────────────────────────
+49. CRITICAL BUGS
+─────────────────────────────────────────
+
+BUG-001: No custom date picker for delivery date
+  Severity: HIGH (UX-breaking for some tailors)
+  Location: JobCreateScreen.tsx, DELIVERY_PRESETS
+  Description: Users can only choose from 4 preset durations (Tomorrow, 3 Days,
+    1 Week, 2 Weeks). There is no free date picker. A tailor with a 3-week or
+    specific calendar-date deadline has no way to input it.
+  Fix: Add DateTimePicker (expo or @react-native-community/datetimepicker)
+    with the presets as shortcuts and a "Custom date" option.
+
+BUG-002: Delivery date comparison ignores timezone
+  Severity: MEDIUM
+  Location: helpers.ts (getTodayISO), database.ts (getDueToday, getOverdueJobs)
+  Description: new Date().toISOString().split('T')[0] returns UTC date.
+    In UTC+1 (Nigeria), this is wrong between midnight and 1 AM.
+    A job due "today" by Nigerian time might be marked overdue at midnight.
+  Fix: Use local date: new Date().toLocaleDateString('en-CA') which gives YYYY-MM-DD in local TZ.
+
+BUG-003: Tailor name and shop name are hardcoded
+  Severity: HIGH (product quality)
+  Location: HomeScreen.tsx (tailorName = 'Chinedu'), DrawerContent.tsx ("Tunde Stitches")
+  Description: Every tailor who installs this app sees "Chinedu" as the greeting
+    and "Tunde Stitches" as their shop name in the drawer.
+  Fix: AccountScreen should save tailor name + shop name to AsyncStorage or SQLite
+    settings table. Read in HomeScreen and DrawerContent.
+
+BUG-004: MeasurementFormScreen creates new record every time (no edit)
+  Severity: MEDIUM
+  Location: MeasurementFormScreen.tsx
+  Description: Every save creates a NEW measurement record. No way to edit
+    an existing measurement. Customers accumulate duplicate records.
+    The existingMeasurementId param exists in the type but is unused.
+  Fix: If existingMeasurementId is provided, load it and UPDATE on save
+    instead of INSERT.
+
+BUG-005: Notification scheduling does not cancel on delivery
+  Severity: MEDIUM
+  Location: notifications.ts, store.ts updateJobStatus
+  Description: When a job status changes to 'Delivered', the OS-level
+    scheduled notifications (overdue, due_today, due_soon) are not cancelled.
+    The tailor may receive a banner "Job is overdue" for a delivered job.
+  Fix: Call cancelJobNotifications(job.id) inside updateJobStatus() when
+    newStatus === 'Delivered'.
+
+BUG-006: Logout button is a no-op
+  Severity: LOW (no auth in v1, expected)
+  Location: DrawerContent.tsx
+  Description: Pressing "Log out" shows an alert but does nothing.
+    Since there's no authentication in v1, this is by design.
+    But the UI implies it does something, which is confusing.
+  Fix (short-term): Remove logout from drawer or change label to "Clear all data"
+    with a destructive confirmation that actually clears the SQLite database.
+
+BUG-007: Flash of empty state on app load
+  Severity: LOW (cosmetic)
+  Location: HomeScreen.tsx
+  Description: store.initialize() is async. Before it completes, all lists
+    (dueToday, recentJobs etc.) are empty arrays, showing empty states
+    briefly even if the user has existing data.
+  Fix: Track isLoading in store, show a skeleton/spinner while loading.
+
+BUG-008: No pull-to-refresh on CustomerDetailScreen or JobDetailScreen
+  Severity: LOW
+  Location: CustomerDetailScreen.tsx, JobDetailScreen.tsx
+  Description: Data on detail screens is read from in-memory store state.
+    If the store is stale, details may not reflect latest DB state.
+    Most create/update actions refresh the store, so this is rare.
+  Fix: Add RefreshControl on detail screen ScrollViews.
+
+─────────────────────────────────────────
+50. UX ISSUES
+─────────────────────────────────────────
+
+UX-001: No confirmation when navigating away from unsaved form
+  Forms (JobCreate, CustomerCreate, MeasurementForm) have no "are you
+  sure you want to leave?" guard. The tailor can accidentally lose a
+  half-filled form by tapping the back button.
+
+UX-002: No "WhatsApp" quick action on CustomerDetail
+  Product vision says WhatsApp is the communication channel. The app
+  has a phone call link but no WhatsApp deep-link.
+  Fix: Add WhatsApp button: Linking.openURL('whatsapp://send?phone=' + phone)
+  or 'https://wa.me/' + internationalPhone
+
+UX-003: Due today shows "Due today by 6:00 PM" — time is hardcoded
+  Location: HomeScreen.tsx DueTodayItem
+  The "by 6:00 PM" string is hardcoded. There's no time component on
+  deliveryDate (it's a date string, not datetime). Remove the time or
+  make it configurable.
+
+UX-004: Balance field is calculated but the user inputs a string
+  JobCreateScreen uses parseNaira() which strips non-numeric characters.
+  But the user types "45000" and the displayed balance is "₦45,000".
+  Edge case: What if user types "45,000" (with comma)? parseNaira strips
+  commas, so it works. But "₦45,000" would also parse correctly. No harm,
+  but not validated with user feedback.
+
+UX-005: No way to search within MeasurementForm existing measurements
+  If a customer has many past measurements, finding the right one to copy
+  requires scrolling through the list with no search/filter.
+
+UX-006: Customer search runs a DB query on every keystroke
+  Potential performance issue on slow devices with large customer lists.
+  Consider debouncing with a 200–300ms delay.
+
+UX-007: Recent Jobs on HomeScreen shows last 10 jobs by createdAt
+  Not by last-updated or by status urgency. A job created long ago but
+  status-changed recently won't bubble up in recents.
+
+UX-008: Status badge sizes ('sm' vs 'md') are inconsistent
+  JobListScreen uses 'sm', JobDetailScreen uses 'md' (default).
+  HomeScreen DueTodayItem uses 'sm', RecentJobCard uses a manual dot+text.
+  Standardize status display across all list and detail contexts.
+
+─────────────────────────────────────────
+51. TECH DEBT ITEMS
+─────────────────────────────────────────
+
+DEBT-001: ID generation is not UUID
+  Custom generateId() function. Low collision risk for single-user app
+  but not production-grade. Switch to nanoid or uuid when scaling.
+
+DEBT-002: customerName is denormalized in Job
+  Job.customerName is duplicated from Customer.name. If the tailor edits
+  a customer's name, all their jobs still show the old name.
+  Fix: Update all jobs when customer name changes, OR join on display.
+
+DEBT-003: No input sanitization on free-text fields
+  notes, style, fabric, label — all stored as-is. Not a security issue
+  (no server, no SQL injection risk since parameterized queries are used)
+  but could cause display issues with very long strings or emoji.
+
+DEBT-004: Measurements data is JSON string in SQLite
+  The data field is JSON.stringify'd on write and JSON.parse'd on read.
+  There's no schema enforcement. A bad parse would silently return
+  null/undefined. Should add try/catch around JSON.parse.
+
+DEBT-005: No error boundaries
+  If any screen throws an uncaught error, the entire app crashes.
+  React error boundaries are not implemented.
+
+DEBT-006: HomeScreen calls initialize() on every mount
+  If the user navigates away from Home and back, initialize() runs again.
+  This is harmless (just reloads data) but wasteful. Add an isInitialized
+  flag to the store to prevent duplicate initialization.
+
+DEBT-007: seedData.ts exists but is not used
+  The file contains seed customers and jobs for development testing.
+  It's not imported anywhere. Should be removed or wired to a dev toggle.
+
+DEBT-008: No TypeScript strict mode
+  tsconfig.json has strict mode disabled or partially configured.
+  Several implicit any types and non-null assertions exist.
+
+DEBT-009: KeyboardAvoidingView behavior is 'padding' only for iOS
+  Android gets `undefined` behavior which is often wrong on smaller screens.
+  Should test with KeyboardAvoidingView behavior="height" on Android.
+
+DEBT-010: AccountScreen/SubscriptionScreen/HelpScreen may be placeholder stubs
+  Not confirmed to have real implementations. Likely show minimal content.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART XII — ENGINEERING TICKETS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+─────────────────────────────────────────
+52. TICKET BACKLOG (Priority-Ordered)
+─────────────────────────────────────────
+
+Priority: P0 = Blocker / P1 = High / P2 = Medium / P3 = Nice-to-have
+
+━ P0 TICKETS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+TICKET-001 [P0]: Fix hardcoded tailor name and shop name
+  Problem: "Chinedu" and "Tunde Stitches" are hardcoded. Every user sees them.
+  Solution:
+    1. Add a `settings` table to SQLite (or AsyncStorage key):
+       { tailorName: string, shopName: string, phone: string }
+    2. Implement AccountScreen to read/write these values
+    3. On first launch, show an onboarding prompt (name + shop name)
+    4. Update HomeScreen to read tailorName from settings store
+    5. Update DrawerContent to read shopName from settings store
+  Files: AccountScreen.tsx, HomeScreen.tsx, DrawerContent.tsx,
+         database.ts (add settings functions), store.ts (add settings state)
+  Effort: 3–4 hours
+
+TICKET-002 [P0]: Add custom date picker for delivery date
+  Problem: Only 4 preset delivery windows available. No calendar picker.
+  Solution:
+    1. Install @react-native-community/datetimepicker
+       OR use expo's built-in DateTimePicker in newer SDKs
+    2. Add "Custom Date" preset button that opens the picker
+    3. Selected date shows as a formatted string below the presets
+    4. Default remains 1 Week from today
+  Files: JobCreateScreen.tsx, JobEditScreen.tsx
+  Effort: 2–3 hours
+
+TICKET-003 [P0]: Cancel notifications when job is delivered
+  Problem: OS-level notifications fire for delivered jobs.
+  Solution:
+    1. In store.ts updateJobStatus(), if newStatus === 'Delivered':
+       call cancelJobNotifications(job.id)
+    2. Also update in-app notification records to mark them read
+  Files: store.ts, notifications.ts
+  Effort: 1 hour
+
+━ P1 TICKETS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+TICKET-004 [P1]: Fix timezone bug in date comparison
+  Problem: new Date().toISOString() returns UTC, causing off-by-one-day bugs
+    for Nigerian tailors between midnight and 1 AM.
+  Solution: Replace getTodayISO() in helpers.ts:
+    const getTodayISO = () => {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    };
+  Files: helpers.ts
+  Effort: 30 minutes
+
+TICKET-005 [P1]: Add WhatsApp quick-action on CustomerDetail
+  Problem: Product vision calls for WhatsApp as the communication channel.
+    Currently only a phone call link exists.
+  Solution:
+    1. Add WhatsApp icon button next to phone icon
+    2. On press: format phone to international (+234...) and open:
+       Linking.openURL('https://wa.me/234XXXXXXXXXX')
+    3. Handle Nigeria-specific number formatting:
+       "0803..." → "234803..."
+    4. Gracefully handle: Linking.canOpenURL() check before opening
+  Files: CustomerDetailScreen.tsx, helpers.ts (add formatPhoneInternational)
+  Icons: Add WhatsAppIcon to Icons.tsx (green WhatsApp SVG)
+  Effort: 2 hours
+
+TICKET-006 [P1]: Implement measurement editing
+  Problem: Every measurement save creates a new record. No edit flow.
+  Solution:
+    1. Add updateMeasurement() to database.ts
+    2. Add updateMeasurement() action to store.ts
+    3. In MeasurementFormScreen, if existingMeasurementId param is provided:
+       - Load the existing measurement on mount
+       - Pre-fill template, data, label
+       - On save: call updateMeasurement() instead of addMeasurement()
+    4. Add "Edit" button to measurement cards in CustomerDetailScreen
+  Files: MeasurementFormScreen.tsx, CustomerDetailScreen.tsx,
+         database.ts, store.ts
+  Effort: 3 hours
+
+TICKET-007 [P1]: Add loading skeleton / spinner on app boot
+  Problem: Empty states flash briefly while data loads on first boot.
+  Solution:
+    1. Add isInitialized: boolean to store (false by default)
+    2. Set isInitialized = true at end of initialize()
+    3. In HomeScreen, show an ActivityIndicator or skeleton layout
+       while !isInitialized
+    4. Optional: use expo-splash-screen to keep splash until data ready
+  Files: store.ts, HomeScreen.tsx, App.tsx
+  Effort: 2 hours
+
+TICKET-008 [P1]: Fix customer name denormalization
+  Problem: Job.customerName is stored and not updated when Customer.name changes.
+  Solution Option A (simplest): In updateCustomer(), if name changes,
+    also run: UPDATE jobs SET customerName = ? WHERE customerId = ?
+  Solution Option B: Remove customerName from Job, always JOIN/lookup on display.
+    Higher complexity, lower risk of stale data.
+  Recommendation: Option A.
+  Files: database.ts, store.ts
+  Effort: 1 hour
+
+TICKET-009 [P1]: Add onboarding flow for first-time users
+  Problem: A new install shows a blank HomeScreen with empty states.
+    No guidance on what to do first or how the app works.
+  Solution:
+    1. Detect first launch (AsyncStorage flag 'onboarding_complete')
+    2. Show a simple 3-step onboarding:
+       - Step 1: Enter your name + shop name
+       - Step 2: Explanation of the job workflow
+       - Step 3: "Register your first customer" CTA
+    3. Mark onboarding complete after step 3 or skip
+  Files: New OnboardingScreen.tsx, App.tsx (check flag on boot)
+  Effort: 4–6 hours
+
+━ P2 TICKETS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+TICKET-010 [P2]: Debounce search inputs
+  Problem: DB queries fire on every keystroke in CustomerList and JobList.
+  Solution: Wrap handleSearch in useDebouncedCallback (use react-native's
+    InteractionManager or a simple setTimeout ref) with 250ms delay.
+  Files: CustomerListScreen.tsx, JobListScreen.tsx
+  Effort: 1 hour
+
+TICKET-011 [P2]: Add form unsaved-changes guard
+  Problem: Back button discards unsaved form data silently.
+  Solution: Use react-navigation's beforeRemove event:
+    navigation.addListener('beforeRemove', (e) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        Alert.alert('Discard changes?', ...);
+      }
+    });
+  Files: JobCreateScreen.tsx, CustomerCreateScreen.tsx, MeasurementFormScreen.tsx
+  Effort: 2 hours
+
+TICKET-012 [P2]: Add job count/summary statistics to HomeScreen
+  Problem: HomeScreen shows "X jobs" for pending and overdue but no revenue stats.
+  Solution:
+    1. Compute total outstanding balance: jobs.reduce(sum balance where not Delivered)
+    2. Compute month's delivered jobs count
+    3. Show a small stats strip below the greeting:
+       "₦120,000 outstanding · 5 delivered this month"
+  Files: HomeScreen.tsx, store.ts (add computed stats)
+  Effort: 2 hours
+
+TICKET-013 [P2]: Implement delivery type (Pickup vs Waybill)
+  Problem: Product vision specifies two delivery types. Current build only tracks
+    a single delivery date with no type distinction.
+  Solution:
+    1. Add deliveryType: 'pickup' | 'waybill' to Job type
+    2. Add deliveryAddress?: string to Job for waybill
+    3. Add to jobs SQLite table (migration needed for existing data)
+    4. Update JobCreateScreen to show delivery type selector
+    5. If waybill: show address input field
+    6. Show delivery type in JobDetailScreen details section
+  Files: types/index.ts, database.ts, store.ts, JobCreateScreen.tsx,
+         JobDetailScreen.tsx
+  Effort: 4 hours
+
+TICKET-014 [P2]: Add photo gallery within CustomerDetail
+  Problem: Sample photos are attached to individual jobs. No way to see
+    all photos for a customer in one place.
+  Solution:
+    1. In CustomerDetailScreen, add a "Photos" section
+    2. Horizontal scroll of all job sample photos for the customer
+    3. Tap to expand full-screen (Modal with Image fullscreen)
+  Files: CustomerDetailScreen.tsx
+  Effort: 2 hours
+
+TICKET-015 [P2]: JSON.parse error handling for measurements.data
+  Problem: measurements.data is stored as JSON string. If corrupted,
+    JSON.parse will throw and crash.
+  Solution: Wrap in try/catch in database.ts getMeasurementsByCustomer:
+    try { data = JSON.parse(row.data); } catch { data = {}; }
+  Files: database.ts
+  Effort: 30 minutes
+
+TICKET-016 [P2]: Add React error boundaries
+  Problem: Unhandled component errors crash the entire app.
+  Solution:
+    1. Create ErrorBoundary component class
+    2. Wrap RootNavigator and/or individual screen stacks
+    3. Show a friendly "Something went wrong" screen with a restart button
+  Files: New components/ErrorBoundary.tsx, App.tsx
+  Effort: 2 hours
+
+TICKET-017 [P2]: Remove or wire up seedData.ts
+  Problem: seedData.ts exists but is never used. Dead code.
+  Solution A: Delete it.
+  Solution B: Add a dev-only "Seed Data" button in HelpScreen
+    (only shown when __DEV__ === true)
+  Recommendation: Solution B for easier testing.
+  Files: seedData.ts, HelpScreen.tsx
+  Effort: 30 minutes
+
+TICKET-018 [P2]: Fix isInitialized flag to prevent double-initialize
+  Problem: HomeScreen calls initialize() on every mount. Navigating away
+    and back reinitializes. Wasteful.
+  Solution: Add isInitialized flag to store. initialize() early-returns
+    if already initialized.
+  Files: store.ts, HomeScreen.tsx
+  Effort: 30 minutes
+
+━ P3 TICKETS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+TICKET-019 [P3]: WhatsApp message generation
+  Feature: Pre-fill WhatsApp messages with job status updates.
+  Example: "Hi [customer], your [outfit] is ready for pickup. 
+    Outstanding balance: ₦10,000. Please come in by [date]. - [shop name]"
+  Implementation:
+    1. In JobDetailScreen, add "Notify Customer" button (when status = Ready)
+    2. Generate formatted WhatsApp message
+    3. Open: Linking.openURL('https://wa.me/..?text=' + encodeURIComponent(msg))
+  Files: JobDetailScreen.tsx, helpers.ts (message generators)
+  Effort: 3 hours
+
+TICKET-020 [P3]: Add payment tracking (partial payments)
+  Feature: Record multiple payments against a job (payment history).
+  Current: Only initial deposit is tracked. Any additional payments are not recorded.
+  Implementation:
+    1. New `payments` table: { id, jobId, amount, date, note }
+    2. PaymentHistory component on JobDetailScreen
+    3. "Add Payment" button to log payments
+    4. Auto-update balance field on job
+  Effort: 6 hours
+
+TICKET-021 [P3]: Export to PDF / share receipt
+  Feature: Generate a printable receipt or job order slip.
+  Implementation: Use expo-print or expo-sharing.
+    Generate HTML template with job details and render as PDF.
+  Effort: 4 hours
+
+TICKET-022 [P3]: Replace custom ID generator with nanoid
+  Fix: npm install nanoid; import { nanoid } from 'nanoid/non-secure';
+  Replace all generateId() calls.
+  Effort: 1 hour
+
+TICKET-023 [P3]: Add tablet layout support
+  Current app is portrait-only, optimized for phone.
+  ProductVision doesn't mention tablets, but some tailors use larger devices.
+  Effort: 8+ hours
+
+TICKET-024 [P3]: Search debouncing and caching
+  Enhance search with:
+    - 250ms debounce on keystroke
+    - Cache last query result to avoid duplicate DB calls
+  Effort: 2 hours
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART XIII — PRODUCT REVIEW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+─────────────────────────────────────────
+53. FEATURE COMPLETENESS AUDIT
+─────────────────────────────────────────
+
+IMPLEMENTED (✓) / NOT IMPLEMENTED (✗) / PARTIAL (◐)
+
+CORE FEATURES:
+  ✓ Customer registration (name, phone, notes)
+  ✓ Customer list with search
+  ✓ Customer detail with job history
+  ✓ Customer edit + delete (with cascade)
+  ✓ Job creation with 9 form sections
+  ✓ Job detail with status pipeline visualization
+  ✓ Job list with search + status filter
+  ✓ Job status progression (6 stages)
+  ✓ Measurement templates (6 outfit types)
+  ✓ Measurement attachment to jobs
+  ✓ Sample photo attachment (camera + gallery)
+  ✓ Payment tracking (price, deposit, balance)
+  ✓ In-app notifications with type icons
+  ◐ OS-level local notifications (implemented but cancel-on-delivery bug)
+  ✓ Offline operation (all data local, no network required)
+
+MISSING FEATURES (from product vision):
+  ✗ Tailor profile / shop name (hardcoded)
+  ✗ Onboarding flow for new users
+  ✗ Delivery type (pickup vs waybill)
+  ✗ Waybill address field
+  ✗ WhatsApp message generation
+  ✗ Custom delivery date picker
+  ✗ Payment history (multiple partial payments)
+  ✗ Cloud backup (premium feature)
+  ✗ AI measurement suggestions (premium feature)
+  ✗ Revenue analytics / reports
+  ✗ Job receipt / PDF export
+
+─────────────────────────────────────────
+54. UX REVIEW VS PRODUCT VISION
+─────────────────────────────────────────
+
+STRONG AREAS:
+  + Clean, professional visual design with a distinct brand color (#4B3FA0)
+  + Status pipeline visualization in JobDetail is excellent — intuitive
+  + Avatar system with deterministic colors is elegant and distinctive
+  + Quick Action Cards on Home are well-placed
+  + Chip-based outfit type and status filtering feel native and fast
+  + Bottom-sheet modals (status picker, customer picker) are appropriate UX
+  + Due Today section on Home directly surfaces urgent work
+  + Search is real-time and searches the DB (not just in-memory)
+  + Measurements "Copy →" feature reduces data re-entry friction
+
+GAPS VS PRODUCT VISION:
+  - "Built for tailors, not tech people" — the onboarding experience is missing.
+    A non-technical tailor installing this app cold would not know what to do.
+  - WhatsApp integration is the expected communication channel but completely absent.
+    This is a significant gap since the vision explicitly calls for it.
+  - Delivery type (pickup/waybill) is absent. For courier-based deliveries,
+    there's no place to record the shipping address.
+  - Custom date picker: a 1-week default is fine for fast tailoring, but
+    bespoke garments often have 3–4 week lead times. The preset options are limiting.
+  - The greeting "Hello, Chinedu" makes the app feel unfinished for all users
+    except the fictional Chinedu.
+
+POSITIVE SURPRISES (not in vision, but well-executed):
+  + Horizontal Recent Jobs carousel on Home is visually engaging
+  + Outfit emoji placeholders on job cards add warmth
+  + The "Due Today by 6:00 PM" copy is friendly and specific
+    (even if the 6 PM is hardcoded)
+
+─────────────────────────────────────────
+55. DESIGN IMPROVEMENT RECOMMENDATIONS
+─────────────────────────────────────────
+
+DESIGN-001: Add a balance summary card to HomeScreen
+  Current: No financial summary anywhere.
+  Recommendation: A "Money Owed" card: "₦{totalOutstanding} outstanding 
+    across {N} jobs" with a link to JobList filtered by unpaid.
+  Visual: Amber/orange card (matches the accent color) near the top.
+
+DESIGN-002: Overdue jobs should appear more prominently
+  Current: Overdue section is below Due Today and Pending Jobs.
+  Recommendation: Overdue should be ABOVE Due Today. Overdue jobs are the
+    most urgent. Color the section header red.
+
+DESIGN-003: Add a floating action button (FAB) on list screens
+  Current: Add buttons are in the header (small circle, easy to miss).
+  Recommendation: A prominent FAB (bottom-right, 56px circle with PlusIcon)
+    on CustomerList and JobList. This is a standard mobile UX pattern.
+
+DESIGN-004: Job card in JobList should show balance due
+  Current: JobListScreen shows: customer name + outfit, delivery date, status badge.
+  Recommendation: Add a small "₦{balance}" in red if balance > 0.
+    Helps tailor quickly identify which jobs have outstanding payment.
+
+DESIGN-005: Color-code the due date on DueTodayItem more aggressively
+  Current: "Due today by 6:00 PM" is shown in Colors.overdue (red) for all.
+  Recommendation: "Due today" = orange/amber, "Overdue" = red. 
+    These are different urgency levels.
+
+DESIGN-006: Add a progress percentage or numeric counter to StatusPipeline
+  Current: Pipeline shows dots and labels.
+  Recommendation: Show step number: "Step 3 of 6" below the pipeline.
+    Also consider a horizontal progress bar as an alternative to the dot pipeline.
+
+DESIGN-007: Measurement form grid layout could be improved
+  Current: 2-column grid, fields at 47% width each.
+  Recommendation: For fields like "Chest", "Waist" — show the body part with
+    a small icon or diagram. A simple reference illustration would dramatically
+    help less experienced tailors filling in correct values.
+
+DESIGN-008: Notification icons need better visual hierarchy
+  Current: All notification types use the same card layout with different
+    icon background colors.
+  Recommendation: 'overdue' notifications should have the entire card border-left
+    in red (thicker, more attention-grabbing). 'due_soon' in amber. 
+    'completed' in green. This is more than the current left-border on unread items.
+
+DESIGN-009: Add haptic feedback on status change
+  When the tailor marks a job as "Ready" or "Delivered", a haptic vibration
+  (expo-haptics) would make the action feel more satisfying and confirmatory.
+  This is especially powerful for the "Delivered" final status — a success
+  moment deserves tactile feedback.
+
+DESIGN-010: Home greeting should include date context
+  Current: "Good morning, Chinedu 👋 / Let's get some jobs done."
+  Recommendation: "Good morning, [Name] 👋 / Monday, 28 July"
+    Showing the date grounds the tailor and makes the app feel like a daily tool.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART XIV — ROADMAP NOTES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+─────────────────────────────────────────
+56. AI FEATURES (PREMIUM TIER)
+─────────────────────────────────────────
+
+From product vision — planned premium features:
+
+AI Measurement Suggestions:
+  Vision: Tailor takes a photo of the customer, AI estimates body measurements.
+  Technical approach:
+    - MediaPipe Pose (Google) for body landmark detection
+    - ML model fine-tuned on West African body types and clothing styles
+    - Returns: chest, waist, hips, shoulder estimates in inches
+    - Confidence score shown per measurement
+    - User confirms/adjusts before saving
+  Complexity: HIGH. Requires:
+    - Backend ML inference server OR on-device model (CoreML/TFLite)
+    - Camera integration with pose overlay
+    - Calibration (reference object in photo for scale)
+
+Smart Delivery Date Recommendation:
+  Vision: App suggests delivery date based on current workload.
+  Technical approach:
+    - Analyze current pending job count and their delivery dates
+    - Simple heuristic: "You have {N} active jobs. Based on your typical
+      2-job-per-week capacity, we suggest {date}."
+    - Could start as purely local computation (no AI needed)
+    - Eventually: learn from historical completion times
+
+Automated WhatsApp Message Drafting:
+  Vision: AI drafts customer-appropriate messages.
+  Technical approach:
+    - Templates with dynamic fields (simplest version — no AI)
+    - LLM integration for tone/language customization (premium version)
+    - Awareness of Nigerian informal vs formal tone
+
+─────────────────────────────────────────
+57. CLOUD BACKUP ARCHITECTURE
+─────────────────────────────────────────
+
+From product vision — optional cloud backup (premium):
+
+Design principles:
+  - Tailor-owned: Data should belong to the tailor, not TailorBook
+  - End-to-end encrypted: TailorBook cannot read the backed-up data
+  - Restore to new device: Full data recovery from backup
+
+Technical approach (recommended):
+  1. On backup trigger (manual or scheduled):
+     - SQLite → JSON export (customers, jobs, measurements, notifications)
+     - Encrypt JSON with a key derived from tailor's PIN/password
+     - Upload encrypted blob to cloud storage (Cloudflare R2, S3, Supabase Storage)
+  2. Backup identifier: phone number or email (tailor-chosen)
+  3. Restore flow:
+     - Enter backup ID + PIN on new device
+     - Download encrypted blob
+     - Decrypt → restore SQLite tables
+  
+  Storage cost: A typical tailor's database would be < 5MB even with
+    hundreds of customers and jobs. Cloud storage is essentially free at this scale.
+
+Authentication: OTP via SMS (Nigerian tailors are familiar with OTP)
+  - Send OTP to tailor's phone number
+  - Verify before allowing backup/restore
+
+─────────────────────────────────────────
+58. WHATSAPP INTEGRATION NOTES
+─────────────────────────────────────────
+
+WhatsApp Business API is heavy (requires Facebook Business verification).
+For TailorBook, the simpler "share to WhatsApp" approach is correct:
+
+  Deep link format:
+    whatsapp://send?phone={internationalPhone}&text={encodedMessage}
+  
+  Web fallback:
+    https://wa.me/{internationalPhone}?text={encodedMessage}
+
+Nigerian number formatting:
+  Input:  "0803 123 4567" or "08031234567"
+  Output: "2348031234567" (replace leading 0 with country code 234)
+
+  const formatPhoneInternational = (phone: string): string => {
+    const digits = phone.replace(/\D/g, '');
+    if (digits.startsWith('0')) return '234' + digits.slice(1);
+    if (digits.startsWith('234')) return digits;
+    return '234' + digits;
+  };
+
+Message templates to implement:
+  Job Created:     "Hi [name], your [outfit] order has been received. 
+                   Expected delivery: [date]. Thanks! - [shop]"
+  
+  Job Ready:       "Hi [name], your [outfit] is ready for collection! 
+                   Please bring ₦[balance]. - [shop]"
+  
+  Reminder:        "Hi [name], friendly reminder: your [outfit] is due 
+                   for pickup tomorrow. - [shop]"
+  
+  Job Delivered:   "Thanks [name] for picking up your [outfit]! 
+                   It was a pleasure. - [shop]"
+
+Implementation note: All messages open WhatsApp in the customer's chat.
+The tailor taps Send manually. TailorBook never sends messages autonomously.
+This keeps the tailor in control and avoids WhatsApp API compliance issues.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+END OF TAILORBOOK ENGINEERING BIBLE v1.0
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Document statistics:
+  Sections: 58
+  Coverage: Complete codebase reverse-engineering
+  Engineering Tickets: 24 (4 P0, 5 P1, 10 P2, 5 P3)
+  Known Bugs: 8
+  UX Issues: 8
+  Tech Debt Items: 10
+  Design Recommendations: 10
+
+Next steps for development:
+  1. Fix TICKET-001 (hardcoded names) — user-facing embarrassment
+  2. Fix TICKET-002 (date picker) — core UX gap
+  3. Fix TICKET-003 (cancel notifications) — notification correctness
+  4. Fix TICKET-004 (timezone) — data correctness
+  5. Build TICKET-005 (WhatsApp) — key product vision feature
+  6. Build TICKET-009 (onboarding) — new user retention
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

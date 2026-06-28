@@ -11,7 +11,7 @@ import {
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../../constants/theme';
 import { DeliveryType } from '../../../types';
 import { OrderDraft } from './index';
-import { addDays, format } from 'date-fns';
+import { addDays, format, parse, isValid } from 'date-fns';
 
 interface Props {
   draft: OrderDraft;
@@ -19,7 +19,6 @@ interface Props {
   onNext: () => void;
 }
 
-// Quick date presets
 function getPresets() {
   const today = new Date();
   return [
@@ -35,14 +34,39 @@ function getPresets() {
 function formatDisplayDate(iso: string): string {
   if (!iso) return '';
   try {
-    return format(new Date(iso), 'EEE, d MMM yyyy');
+    return format(new Date(iso + 'T00:00:00'), 'EEE, d MMM yyyy');
   } catch {
     return iso;
   }
 }
 
+function parseCustomDate(input: string): string | null {
+  const clean = input.trim();
+  if (!clean) return null;
+
+  const tryFormats = [
+    { fmt: 'dd/MM/yyyy', val: clean },
+    { fmt: 'dd-MM-yyyy', val: clean },
+    { fmt: 'yyyy-MM-dd', val: clean },
+    { fmt: 'dd/MM/yy', val: clean },
+    { fmt: 'ddMMyyyy', val: clean.replace(/\D/g, '') },
+  ];
+
+  for (const { fmt, val } of tryFormats) {
+    try {
+      const parsed = parse(val, fmt, new Date());
+      if (isValid(parsed) && parsed.getFullYear() >= new Date().getFullYear()) {
+        return format(parsed, 'yyyy-MM-dd');
+      }
+    } catch {}
+  }
+  return null;
+}
+
 const StepDelivery: React.FC<Props> = ({ draft, onChange, onNext }) => {
   const [address, setAddress] = useState(draft.deliveryAddress);
+  const [customDateInput, setCustomDateInput] = useState('');
+  const [customDateError, setCustomDateError] = useState('');
   const presets = getPresets();
 
   const selectedDate = draft.deliveryDate;
@@ -51,7 +75,24 @@ const StepDelivery: React.FC<Props> = ({ draft, onChange, onNext }) => {
   const canProceed = !!selectedDate && (deliveryType === 'pickup' || address.trim().length > 2);
 
   const selectPreset = (date: Date) => {
+    setCustomDateInput('');
+    setCustomDateError('');
     onChange({ deliveryDate: format(date, 'yyyy-MM-dd') });
+  };
+
+  const handleCustomDateChange = (val: string) => {
+    setCustomDateInput(val);
+    setCustomDateError('');
+    const parsed = parseCustomDate(val);
+    if (parsed) {
+      onChange({ deliveryDate: parsed });
+    }
+  };
+
+  const handleCustomDateBlur = () => {
+    if (customDateInput.trim() && !parseCustomDate(customDateInput)) {
+      setCustomDateError('Enter date as DD/MM/YYYY e.g. 25/12/2025');
+    }
   };
 
   const handleNext = () => {
@@ -69,7 +110,7 @@ const StepDelivery: React.FC<Props> = ({ draft, onChange, onNext }) => {
       {/* ─── Delivery Date ─────────────────────────────────────────────────── */}
       <View style={styles.promptBlock}>
         <Text style={styles.question}>When is it due?</Text>
-        <Text style={styles.subtitle}>Pick a delivery date for this order</Text>
+        <Text style={styles.subtitle}>Pick a preset or enter a custom date</Text>
       </View>
 
       {/* Quick presets */}
@@ -93,6 +134,24 @@ const StepDelivery: React.FC<Props> = ({ draft, onChange, onNext }) => {
             </TouchableOpacity>
           );
         })}
+      </View>
+
+      {/* Custom date input */}
+      <View style={styles.customDateBlock}>
+        <Text style={styles.inputLabel}>Or enter a specific date</Text>
+        <TextInput
+          style={[styles.customDateInput, customDateError ? styles.customDateInputError : null]}
+          placeholder="DD/MM/YYYY  e.g. 25/12/2025"
+          placeholderTextColor={Colors.textTertiary}
+          value={customDateInput}
+          onChangeText={handleCustomDateChange}
+          onBlur={handleCustomDateBlur}
+          keyboardType="numeric"
+          maxLength={10}
+        />
+        {customDateError ? (
+          <Text style={styles.errorText}>{customDateError}</Text>
+        ) : null}
       </View>
 
       {selectedDate ? (
@@ -187,7 +246,6 @@ const styles = StyleSheet.create({
   },
   subtitle: { fontSize: Typography.base, color: Colors.textSecondary },
 
-  // Presets
   presetsWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -219,6 +277,29 @@ const styles = StyleSheet.create({
   presetDate: { fontSize: Typography.xs, color: Colors.textSecondary, marginTop: 2 },
   presetDateSelected: { color: Colors.primaryLight },
 
+  customDateBlock: {
+    paddingHorizontal: Spacing.base,
+    marginBottom: Spacing.md,
+  },
+  customDateInput: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.lg,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.md,
+    fontSize: Typography.base,
+    color: Colors.textPrimary,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+  },
+  customDateInputError: {
+    borderColor: Colors.overdue,
+  },
+  errorText: {
+    fontSize: Typography.xs,
+    color: Colors.overdue,
+    marginTop: 4,
+  },
+
   selectedDateBox: {
     marginHorizontal: Spacing.base,
     marginBottom: Spacing.lg,
@@ -236,7 +317,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // Delivery type
   sectionHeader: {
     paddingHorizontal: Spacing.base,
     marginBottom: Spacing.md,
@@ -278,7 +358,6 @@ const styles = StyleSheet.create({
   deliveryLabelSelected: { color: Colors.primary },
   deliverySub: { fontSize: Typography.xs, color: Colors.textSecondary, textAlign: 'center' },
 
-  // Address
   addressBlock: { paddingHorizontal: Spacing.base, marginBottom: Spacing.xl },
   inputLabel: {
     fontSize: Typography.sm,

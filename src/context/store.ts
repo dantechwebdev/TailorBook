@@ -260,6 +260,7 @@ export const useStore = create<TailorBookState>((set, get) => ({
           customerId: job.customerId,
         });
       } else if (status === 'Delivered') {
+        await db.deleteNotificationsByJobId(jobId);
         await get().addNotification({
           type: 'system',
           title: 'Order delivered',
@@ -271,11 +272,14 @@ export const useStore = create<TailorBookState>((set, get) => ({
     }
 
     await get().refreshJobs();
+    await get().refreshNotifications();
   },
 
   deleteJob: async (id) => {
+    await db.deleteNotificationsByJobId(id);
     await db.deleteJob(id);
     await get().refreshJobs();
+    await get().refreshNotifications();
   },
 
   getJob: (id) => get().jobs.find((j) => j.id === id),

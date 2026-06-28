@@ -410,6 +410,14 @@ export async function markAllNotificationsRead(): Promise<void> {
   await database.runAsync('UPDATE notifications SET read = 1');
 }
 
+export async function deleteNotificationsByJobId(jobId: string): Promise<void> {
+  const database = await getDatabase();
+  await database.runAsync(
+    "DELETE FROM notifications WHERE jobId = ? AND type != 'system'",
+    [jobId]
+  );
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getTodayLocal(): string {

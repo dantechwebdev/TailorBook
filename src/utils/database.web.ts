@@ -210,3 +210,9 @@ export async function markAllNotificationsRead(): Promise<void> {
   db.notifications = db.notifications.map((n) => ({ ...n, read: true }));
   save(db);
 }
+
+export async function deleteNotificationsByJobId(jobId: string): Promise<void> {
+  const db = load();
+  db.notifications = db.notifications.filter((n) => n.jobId !== jobId || n.type === 'system');
+  save(db);
+}

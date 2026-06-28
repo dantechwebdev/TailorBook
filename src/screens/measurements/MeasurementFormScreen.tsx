@@ -34,13 +34,22 @@ const MeasurementFormScreen: React.FC = () => {
   const route = useRoute<any>();
   const { customerId, jobId, existingMeasurementId } = route.params || {};
 
-  const { addMeasurement, getMeasurementsByCustomer, getCustomer } = useStore();
+  const { addMeasurement, updateMeasurement, getMeasurementsByCustomer, getCustomer } = useStore();
   const customer = getCustomer(customerId);
   const existingMeasurements = getMeasurementsByCustomer(customerId);
 
-  const [template, setTemplate] = useState<MeasurementTemplate>('mens_senator');
-  const [data, setData] = useState<Record<string, string>>({});
-  const [label, setLabel] = useState('');
+  const isEditing = !!existingMeasurementId;
+  const existingRecord = isEditing
+    ? existingMeasurements.find((m) => m.id === existingMeasurementId)
+    : null;
+
+  const [template, setTemplate] = useState<MeasurementTemplate>(
+    (existingRecord?.template as MeasurementTemplate) || 'mens_senator'
+  );
+  const [data, setData] = useState<Record<string, string>>(
+    existingRecord ? { ...existingRecord.data } : {}
+  );
+  const [label, setLabel] = useState(existingRecord?.label || '');
   const [loading, setLoading] = useState(false);
 
   const fields = MEASUREMENT_FIELDS[template] || [];
@@ -54,16 +63,29 @@ const MeasurementFormScreen: React.FC = () => {
 
     setLoading(true);
     try {
-      const measurement = await addMeasurement({
-        customerId,
-        template,
-        data,
-        label: label.trim() || `${TEMPLATE_LABELS[template]} — ${format(new Date(), 'MMM yyyy')}`,
-      });
+      const autoLabel = label.trim() || `${TEMPLATE_LABELS[template]} — ${format(new Date(), 'MMM yyyy')}`;
 
-      Alert.alert('Saved!', 'Measurements have been saved.', [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
+      if (isEditing && existingRecord) {
+        await updateMeasurement({
+          ...existingRecord,
+          template,
+          data,
+          label: autoLabel,
+        });
+        Alert.alert('Updated!', 'Measurements have been updated.', [
+          { text: 'OK', onPress: () => navigation.goBack() },
+        ]);
+      } else {
+        await addMeasurement({
+          customerId,
+          template,
+          data,
+          label: autoLabel,
+        });
+        Alert.alert('Saved!', 'Measurements have been saved.', [
+          { text: 'OK', onPress: () => navigation.goBack() },
+        ]);
+      }
     } catch (error) {
       Alert.alert('Error', 'Could not save measurements. Please try again.');
     } finally {
@@ -90,7 +112,9 @@ const MeasurementFormScreen: React.FC = () => {
             <BackIcon size={22} color={Colors.textPrimary} />
           </TouchableOpacity>
           <View>
-            <Text style={styles.headerTitle}>Measurements</Text>
+            <Text style={styles.headerTitle}>
+              {isEditing ? 'Edit Measurements' : 'Measurements'}
+            </Text>
             {customer && (
               <Text style={styles.headerSub}>{customer.name}</Text>
             )}
@@ -103,8 +127,8 @@ const MeasurementFormScreen: React.FC = () => {
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
         >
-          {/* ─── Copy from existing ─── */}
-          {existingMeasurements.length > 0 && (
+          {/* ─── Copy from existing (only when creating new) ─── */}
+          {!isEditing && existingMeasurements.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Use Previous Measurements</Text>
               {existingMeasurements.map((m) => (
@@ -141,7 +165,7 @@ const MeasurementFormScreen: React.FC = () => {
                   selected={template === t}
                   onPress={() => {
                     setTemplate(t);
-                    setData({});
+                    if (!isEditing) setData({});
                   }}
                 />
               ))}
@@ -191,7 +215,7 @@ const MeasurementFormScreen: React.FC = () => {
 
           {/* ─── Save ─── */}
           <Button
-            label="Save Measurements"
+            label={isEditing ? 'Update Measurements' : 'Save Measurements'}
             onPress={handleSave}
             loading={loading}
             size="lg"
