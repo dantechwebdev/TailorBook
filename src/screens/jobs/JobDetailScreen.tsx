@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { useStore } from '../../context/store';
 import {
   Colors,
@@ -32,32 +33,53 @@ import {
   HomeIcon,
 } from '../../components/common/Icons';
 import { Avatar, StatusBadge, Card, Button } from '../../components/common/UI';
-import { formatDeliveryDate, formatDate, formatNaira, getDeliveryUrgency } from '../../utils/helpers';
+import { formatDeliveryDate, formatDate, formatNaira, getDeliveryUrgency, getFirstName } from '../../utils/helpers';
 import { JobStatus } from '../../types';
-import { buildWhatsAppUrl, WhatsAppMessageType } from '../../utils/whatsapp';
+import {
+  buildWhatsAppUrl,
+  buildMessageText,
+  buildDirectChatUrl,
+  WhatsAppMessageType,
+} from '../../utils/whatsapp';
 
-// ─── Dynamic Next Step Config ─────────────────────────────────────────────────
+// ─── Next Step Config ─────────────────────────────────────────────────────────
 
 const STATUS_ORDER: JobStatus[] = [
   'Pending', 'Cutting', 'Sewing', 'Finishing', 'Ready', 'Delivered',
 ];
 
-function getNextStepLabel(status: JobStatus, deliveryType: 'pickup' | 'waybill'): string | null {
+function getNextStep(
+  status: JobStatus,
+  deliveryType: 'pickup' | 'waybill'
+): { label: string; icon: string } | null {
   switch (status) {
-    case 'Pending': return '✂️ Start Cutting';
-    case 'Cutting': return '🧵 Move to Sewing';
-    case 'Sewing': return '🪡 Move to Finishing';
-    case 'Finishing': return '✅ Mark as Ready';
+    case 'Pending':   return { label: 'Start Cutting',    icon: 'cut-outline' };
+    case 'Cutting':   return { label: 'Move to Sewing',   icon: 'git-commit-outline' };
+    case 'Sewing':    return { label: 'Move to Finishing', icon: 'layers-outline' };
+    case 'Finishing': return { label: 'Mark as Ready',    icon: 'checkmark-circle-outline' };
     case 'Ready':
-      return deliveryType === 'waybill' ? '📦 Mark Dispatched' : '👋 Mark Delivered';
+      return deliveryType === 'waybill'
+        ? { label: 'Mark Dispatched', icon: 'cube-outline' }
+        : { label: 'Mark Delivered',  icon: 'checkmark-done-outline' };
     case 'Delivered': return null;
-    default: return null;
+    default:          return null;
   }
 }
 
 function getNextStatus(status: JobStatus): JobStatus | null {
   const idx = STATUS_ORDER.indexOf(status);
   return idx < STATUS_ORDER.length - 1 ? STATUS_ORDER[idx + 1] : null;
+}
+
+// ─── WhatsApp Preview State ───────────────────────────────────────────────────
+
+interface WaPreview {
+  visible: boolean;
+  type: WhatsAppMessageType;
+  messageText: string;
+  url: string;
+  recipientName: string;
+  phone: string;
 }
 
 // ─── JobDetailScreen ──────────────────────────────────────────────────────────
@@ -67,13 +89,15 @@ const JobDetailScreen: React.FC = () => {
   const route = useRoute<any>();
   const { jobId } = route.params;
 
-  const { getJob, getCustomer, updateJobStatus, deleteJob, getMeasurementsByCustomer } = useStore();
+  const { getJob, getCustomer, updateJobStatus, deleteJob, getMeasurementsByCustomer, settings } = useStore();
   const job = getJob(jobId);
   const customer = job ? getCustomer(job.customerId) : null;
+  const currency = settings?.currency || '₦';
 
   const [showStatusPicker, setShowStatusPicker] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
   const [statusLoading, setStatusLoading] = useState(false);
+  const [waPreview, setWaPreview] = useState<WaPreview | null>(null);
 
   if (!job) {
     return (
@@ -91,7 +115,7 @@ const JobDetailScreen: React.FC = () => {
   }
 
   const urgency = getDeliveryUrgency(job.deliveryDate);
-  const nextStepLabel = getNextStepLabel(job.status, job.deliveryType || 'pickup');
+  const nextStep = getNextStep(job.status, job.deliveryType || 'pickup');
   const nextStatus = getNextStatus(job.status);
   const measurements = job.measurementId
     ? getMeasurementsByCustomer(job.customerId).find((m) => m.id === job.measurementId)
@@ -105,17 +129,13 @@ const JobDetailScreen: React.FC = () => {
   };
 
   const handleNextStep = () => {
-    if (!nextStatus) return;
-    const label = getNextStepLabel(job.status, job.deliveryType || 'pickup') || '';
+    if (!nextStatus || !nextStep) return;
     Alert.alert(
-      label,
+      nextStep.label,
       `Move this job to "${nextStatus}"?`,
       [
         { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Confirm',
-          onPress: () => handleStatusChange(nextStatus),
-        },
+        { text: 'Confirm', onPress: () => handleStatusChange(nextStatus) },
       ]
     );
   };
@@ -138,26 +158,40 @@ const JobDetailScreen: React.FC = () => {
     );
   };
 
+  // Show message preview before opening WhatsApp
   const handleWhatsApp = (msgType: WhatsAppMessageType) => {
     const phone = customer?.phone || job.customerPhone || '';
     if (!phone) {
       Alert.alert('No phone number', 'This customer has no phone number saved.');
       return;
     }
-    const url = buildWhatsAppUrl(phone, msgType, job);
-    Linking.openURL(url).catch(() => {
-      Alert.alert(
-        'WhatsApp not available',
-        'WhatsApp message has been queued and will send when available.'
-      );
+    const messageText = buildMessageText(msgType, job, currency);
+    const url = buildWhatsAppUrl(phone, msgType, job, currency);
+    setWaPreview({
+      visible: true,
+      type: msgType,
+      messageText,
+      url,
+      recipientName: getFirstName(job.customerName),
+      phone,
     });
   };
 
-  const whatsAppType: WhatsAppMessageType =
+  const handleConfirmSend = () => {
+    if (!waPreview?.url) return;
+    Linking.openURL(waPreview.url).catch(() => {
+      Alert.alert(
+        'WhatsApp not available',
+        'Could not open WhatsApp. Make sure it is installed on your device.'
+      );
+    });
+    setWaPreview(null);
+  };
+
+  // Determine the context-appropriate "primary" WhatsApp action
+  const primaryWaType: WhatsAppMessageType =
     job.status === 'Ready'
-      ? job.deliveryType === 'waybill'
-        ? 'ready_waybill'
-        : 'ready_pickup'
+      ? job.deliveryType === 'waybill' ? 'ready_waybill' : 'ready_pickup'
       : job.status === 'Delivered'
       ? 'delivery_complete'
       : 'job_created';
@@ -196,6 +230,29 @@ const JobDetailScreen: React.FC = () => {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+
+        {/* ─── Contextual "Notify" banner (only when Ready) ─── */}
+        {job.status === 'Ready' && (
+          <TouchableOpacity
+            onPress={() => handleWhatsApp(primaryWaType)}
+            activeOpacity={0.88}
+            style={styles.notifyBanner}
+          >
+            <View style={styles.notifyBannerLeft}>
+              <Ionicons name="logo-whatsapp" size={22} color="#25D366" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.notifyBannerTitle}>
+                  Notify {getFirstName(job.customerName)} — order is ready!
+                </Text>
+                <Text style={styles.notifyBannerSub}>
+                  {job.deliveryType === 'waybill' ? 'Send dispatch notice via WhatsApp' : 'Send pickup notice via WhatsApp'}
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#25D366" />
+          </TouchableOpacity>
+        )}
+
         {/* ─── Hero ─── */}
         <Card style={styles.heroCard}>
           <View style={styles.heroTop}>
@@ -222,7 +279,6 @@ const JobDetailScreen: React.FC = () => {
           {/* Status + Delivery badges */}
           <View style={styles.heroBadgeRow}>
             <StatusBadge status={job.status} />
-            {/* Delivery type */}
             <View
               style={[
                 styles.deliveryTypeChip,
@@ -231,38 +287,52 @@ const JobDetailScreen: React.FC = () => {
                   : { backgroundColor: Colors.readyLight },
               ]}
             >
+              <Ionicons
+                name={job.deliveryType === 'waybill' ? 'cube-outline' : 'storefront-outline'}
+                size={11}
+                color={job.deliveryType === 'waybill' ? Colors.cutting : Colors.ready}
+              />
               <Text
                 style={[
                   styles.deliveryTypeText,
                   { color: job.deliveryType === 'waybill' ? Colors.cutting : Colors.ready },
                 ]}
               >
-                {job.deliveryType === 'waybill' ? '📦 Waybill' : '🏪 Pickup'}
+                {job.deliveryType === 'waybill' ? 'Waybill' : 'Pickup'}
               </Text>
             </View>
-            {/* Due date */}
             <View
               style={[
                 styles.deliveryChip,
                 urgency === 'overdue' && { backgroundColor: Colors.overdueLight },
-                urgency === 'today' && { backgroundColor: Colors.overdueLight },
-                urgency === 'soon' && { backgroundColor: Colors.dueSoonLight },
+                urgency === 'today'   && { backgroundColor: Colors.overdueLight },
+                urgency === 'soon'    && { backgroundColor: Colors.dueSoonLight },
               ]}
             >
+              <Ionicons
+                name="calendar-outline"
+                size={11}
+                color={
+                  urgency === 'overdue' || urgency === 'today'
+                    ? Colors.overdue
+                    : urgency === 'soon'
+                    ? Colors.dueSoon
+                    : Colors.textSecondary
+                }
+              />
               <Text
                 style={[
                   styles.deliveryChipText,
                   urgency === 'overdue' && { color: Colors.overdue },
-                  urgency === 'today' && { color: Colors.overdue },
-                  urgency === 'soon' && { color: Colors.dueSoon },
+                  urgency === 'today'   && { color: Colors.overdue },
+                  urgency === 'soon'    && { color: Colors.dueSoon },
                 ]}
               >
-                📅 {formatDeliveryDate(job.deliveryDate)}
+                {formatDeliveryDate(job.deliveryDate)}
               </Text>
             </View>
           </View>
 
-          {/* Waybill destination */}
           {job.deliveryType === 'waybill' && job.deliveryAddress && (
             <View style={styles.destinationRow}>
               <Text style={styles.destinationLabel}>Destination: </Text>
@@ -289,8 +359,8 @@ const JobDetailScreen: React.FC = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Payment</Text>
           <Card>
-            <PaymentRow label="Total Price" value={formatNaira(job.price)} />
-            <PaymentRow label="Deposit Paid" value={formatNaira(job.deposit)} valueColor={Colors.ready} />
+            <PaymentRow label="Total Price"      value={formatNaira(job.price)} />
+            <PaymentRow label="Deposit Paid"     value={formatNaira(job.deposit)} valueColor={Colors.ready} />
             <View style={styles.paymentDivider} />
             <PaymentRow
               label="Balance Remaining"
@@ -305,8 +375,8 @@ const JobDetailScreen: React.FC = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Details</Text>
           <Card>
-            {job.fabric && <InfoRow label="Fabric" value={job.fabric} />}
-            <InfoRow label="Created" value={formatDate(job.createdAt)} />
+            {job.fabric && <InfoRow label="Fabric"   value={job.fabric} />}
+            <InfoRow label="Created"  value={formatDate(job.createdAt)} />
             <InfoRow label="Delivery" value={formatDeliveryDate(job.deliveryDate)} last />
           </Card>
         </View>
@@ -346,21 +416,33 @@ const JobDetailScreen: React.FC = () => {
           <Text style={styles.sectionTitle}>WhatsApp</Text>
           <Card padding={0}>
             <WhatsAppRow
-              label="Send order confirmation"
-              icon="📋"
+              label="Order confirmation"
+              subtitle="Acknowledge receipt of this order"
+              iconName="document-text-outline"
               onPress={() => handleWhatsApp('job_created')}
             />
             <View style={styles.waDivider} />
             <WhatsAppRow
-              label={job.deliveryType === 'waybill' ? 'Notify — ready to dispatch' : 'Notify — ready for pickup'}
-              icon={job.deliveryType === 'waybill' ? '📦' : '👋'}
-              onPress={() => handleWhatsApp(whatsAppType)}
+              label={job.deliveryType === 'waybill' ? 'Ready to dispatch' : 'Ready for pickup'}
+              subtitle={job.deliveryType === 'waybill' ? 'Notify customer to expect shipment' : 'Tell customer their outfit is ready'}
+              iconName={job.deliveryType === 'waybill' ? 'cube-outline' : 'bag-check-outline'}
+              highlight={job.status === 'Ready'}
+              onPress={() => handleWhatsApp(primaryWaType)}
             />
             <View style={styles.waDivider} />
             <WhatsAppRow
-              label="Send payment reminder"
-              icon="💰"
+              label="Payment reminder"
+              subtitle={job.balance > 0 ? `Balance: ${formatNaira(job.balance)}` : 'No outstanding balance'}
+              iconName="wallet-outline"
+              disabled={job.balance === 0}
               onPress={() => handleWhatsApp('payment_reminder')}
+            />
+            <View style={styles.waDivider} />
+            <WhatsAppRow
+              label="Delivery complete"
+              subtitle="Thank customer after handoff"
+              iconName="checkmark-done-outline"
+              onPress={() => handleWhatsApp('delivery_complete')}
             />
           </Card>
         </View>
@@ -383,18 +465,20 @@ const JobDetailScreen: React.FC = () => {
 
       {/* ─── Bottom Bar: Dynamic Next Step ─── */}
       <View style={styles.bottomBar}>
-        {nextStepLabel ? (
+        {nextStep ? (
           <TouchableOpacity
             onPress={handleNextStep}
             disabled={statusLoading}
             activeOpacity={0.88}
             style={[styles.nextStepBtn, statusLoading && { opacity: 0.7 }]}
           >
-            <Text style={styles.nextStepText}>{nextStepLabel}</Text>
+            <Ionicons name={nextStep.icon as any} size={18} color={Colors.white} />
+            <Text style={styles.nextStepText}>{nextStep.label}</Text>
           </TouchableOpacity>
         ) : (
           <View style={[styles.nextStepBtn, { backgroundColor: Colors.delivered }]}>
-            <Text style={styles.nextStepText}>✓ Delivered</Text>
+            <Ionicons name="checkmark-done" size={18} color={Colors.white} />
+            <Text style={styles.nextStepText}>Delivered</Text>
           </View>
         )}
 
@@ -405,6 +489,57 @@ const JobDetailScreen: React.FC = () => {
           <Text style={styles.summaryBtnText}>Summary</Text>
         </TouchableOpacity>
       </View>
+
+      {/* ─── WhatsApp Message Preview Modal ─── */}
+      {waPreview && (
+        <Modal
+          visible={waPreview.visible}
+          transparent
+          animationType="slide"
+          presentationStyle="overFullScreen"
+          onRequestClose={() => setWaPreview(null)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalSheet, styles.previewSheet]}>
+              <View style={styles.modalHandle} />
+
+              <View style={styles.previewHeader}>
+                <Ionicons name="logo-whatsapp" size={28} color="#25D366" />
+                <View style={{ flex: 1, marginLeft: Spacing.md }}>
+                  <Text style={styles.previewTitle}>Preview message</Text>
+                  <Text style={styles.previewRecipient}>
+                    To: {waPreview.recipientName} · {waPreview.phone}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.previewBubbleWrap}>
+                <ScrollView showsVerticalScrollIndicator={false}>
+                  <View style={styles.previewBubble}>
+                    <Text style={styles.previewBubbleText}>{waPreview.messageText}</Text>
+                  </View>
+                </ScrollView>
+              </View>
+
+              <TouchableOpacity
+                onPress={handleConfirmSend}
+                style={styles.sendWaBtn}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="logo-whatsapp" size={18} color={Colors.white} />
+                <Text style={styles.sendWaBtnText}>Open in WhatsApp</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => setWaPreview(null)}
+                style={styles.cancelPreviewBtn}
+              >
+                <Text style={styles.cancelPreviewText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
 
       {/* ─── Status Picker Bottom Sheet ─── */}
       <Modal visible={showStatusPicker} transparent animationType="slide" presentationStyle="overFullScreen">
@@ -441,19 +576,18 @@ const JobDetailScreen: React.FC = () => {
           <View style={[styles.modalSheet, styles.summarySheet]}>
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>Job Summary</Text>
-
             <ScrollView showsVerticalScrollIndicator={false}>
               <SummaryItem label="Customer" value={job.customerName} />
-              <SummaryItem label="Outfit" value={`${job.outfitType}${job.style ? ' · ' + job.style : ''}`} />
-              <SummaryItem label="Status" value={job.status} />
+              <SummaryItem label="Outfit"   value={`${job.outfitType}${job.style ? ' · ' + job.style : ''}`} />
+              <SummaryItem label="Status"   value={job.status} />
               <SummaryItem
                 label="Delivery"
-                value={`${job.deliveryType === 'waybill' ? '📦 Waybill' : '🏪 Pickup'} · ${formatDeliveryDate(job.deliveryDate)}`}
+                value={`${job.deliveryType === 'waybill' ? 'Waybill' : 'Pickup'} · ${formatDeliveryDate(job.deliveryDate)}`}
               />
               {job.deliveryAddress && (
                 <SummaryItem label="Destination" value={job.deliveryAddress} />
               )}
-              <SummaryItem label="Price" value={formatNaira(job.price)} />
+              <SummaryItem label="Price"   value={formatNaira(job.price)} />
               <SummaryItem label="Deposit" value={formatNaira(job.deposit)} />
               <SummaryItem
                 label="Balance"
@@ -461,9 +595,8 @@ const JobDetailScreen: React.FC = () => {
                 valueColor={job.balance > 0 ? Colors.overdue : Colors.ready}
               />
               {job.fabric && <SummaryItem label="Fabric" value={job.fabric} />}
-              {job.notes && <SummaryItem label="Notes" value={job.notes} />}
+              {job.notes  && <SummaryItem label="Notes"  value={job.notes} />}
             </ScrollView>
-
             <Button label="Close" onPress={() => setShowSummary(false)} variant="ghost" style={{ marginTop: Spacing.md }} />
           </View>
         </View>
@@ -482,14 +615,14 @@ const StatusPipeline: React.FC<{ currentStatus: JobStatus }> = ({ currentStatus 
     <View style={styles.pipeline}>
       {STATUS_PIPELINE.map((s, idx) => {
         const config = JOB_STATUS_CONFIG[s];
-        const isPast = idx < currentIdx;
+        const isPast    = idx < currentIdx;
         const isCurrent = idx === currentIdx;
         return (
           <View key={s} style={styles.pipelineStep}>
             <View
               style={[
                 styles.pipelineDot,
-                isPast && { backgroundColor: Colors.ready, borderColor: Colors.ready },
+                isPast    && { backgroundColor: Colors.ready, borderColor: Colors.ready },
                 isCurrent && { backgroundColor: config.color, borderColor: config.color, width: 16, height: 16 },
               ]}
             >
@@ -526,17 +659,34 @@ const InfoRow: React.FC<{ label: string; value: string; last?: boolean }> = ({ l
   </View>
 );
 
-const WhatsAppRow: React.FC<{ label: string; icon: string; onPress: () => void }> = ({
-  label, icon, onPress,
-}) => (
-  <TouchableOpacity onPress={onPress} style={styles.waRow} activeOpacity={0.8}>
-    <View style={styles.waIcon}>
-      <Text style={{ fontSize: 20 }}>{icon}</Text>
+const WhatsAppRow: React.FC<{
+  label: string;
+  subtitle?: string;
+  iconName: string;
+  highlight?: boolean;
+  disabled?: boolean;
+  onPress: () => void;
+}> = ({ label, subtitle, iconName, highlight = false, disabled = false, onPress }) => (
+  <TouchableOpacity
+    onPress={onPress}
+    style={[styles.waRow, highlight && styles.waRowHighlight, disabled && styles.waRowDisabled]}
+    activeOpacity={disabled ? 1 : 0.8}
+    disabled={disabled}
+  >
+    <View style={[styles.waIcon, highlight && { backgroundColor: '#25D366' }]}>
+      <Ionicons name={iconName as any} size={20} color={highlight ? Colors.white : '#25D366'} />
     </View>
-    <Text style={styles.waLabel}>{label}</Text>
-    <View style={styles.waChevron}>
-      <Text style={{ color: '#25D366', fontSize: 16 }}>→</Text>
+    <View style={{ flex: 1 }}>
+      <Text style={[styles.waLabel, disabled && { color: Colors.textTertiary }]}>{label}</Text>
+      {subtitle ? (
+        <Text style={[styles.waSubLabel, disabled && { color: Colors.borderLight }]}>{subtitle}</Text>
+      ) : null}
     </View>
+    <Ionicons
+      name="chevron-forward"
+      size={16}
+      color={disabled ? Colors.borderLight : highlight ? '#25D366' : Colors.textTertiary}
+    />
   </TouchableOpacity>
 );
 
@@ -563,6 +713,36 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: Typography.md, fontWeight: Typography.bold, color: Colors.textPrimary },
   scroll: { paddingHorizontal: Spacing.base, paddingBottom: Spacing.xxxl },
 
+  // Notify banner
+  notifyBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FFF7',
+    borderWidth: 1.5,
+    borderColor: '#25D36640',
+    borderRadius: Radius.lg,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.md,
+    marginBottom: Spacing.md,
+    gap: Spacing.md,
+  },
+  notifyBannerLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  notifyBannerTitle: {
+    fontSize: Typography.base,
+    fontWeight: Typography.bold,
+    color: '#1a7a3f',
+  },
+  notifyBannerSub: {
+    fontSize: Typography.xs,
+    color: '#1a7a3f99',
+    marginTop: 2,
+  },
+
   // Hero
   heroCard: { marginBottom: Spacing.xl },
   heroTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: Spacing.md },
@@ -578,11 +758,13 @@ const styles = StyleSheet.create({
   },
   heroBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginTop: Spacing.sm, flexWrap: 'wrap' },
   deliveryTypeChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 10, paddingVertical: 4,
     borderRadius: Radius.full,
   },
   deliveryTypeText: { fontSize: Typography.xs, fontWeight: Typography.semibold },
   deliveryChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 10, paddingVertical: 4,
     borderRadius: Radius.full, backgroundColor: Colors.borderLight,
   },
@@ -627,17 +809,19 @@ const styles = StyleSheet.create({
   measureKey: { fontSize: Typography.sm, color: Colors.textSecondary, textTransform: 'capitalize' },
   measureValue: { fontSize: Typography.sm, fontWeight: Typography.semibold, color: Colors.textPrimary },
 
-  // WhatsApp
+  // WhatsApp rows
   waRow: {
     flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: Spacing.base, paddingVertical: Spacing.md, gap: Spacing.md,
+    paddingHorizontal: Spacing.base, paddingVertical: Spacing.md + 2, gap: Spacing.md,
   },
+  waRowHighlight: { backgroundColor: '#F0FFF7' },
+  waRowDisabled: { opacity: 0.5 },
   waIcon: {
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: '#E8FFF1', alignItems: 'center', justifyContent: 'center',
   },
-  waLabel: { flex: 1, fontSize: Typography.base, color: Colors.textPrimary, fontWeight: Typography.medium },
-  waChevron: {},
+  waLabel: { fontSize: Typography.base, color: Colors.textPrimary, fontWeight: Typography.medium },
+  waSubLabel: { fontSize: Typography.xs, color: Colors.textSecondary, marginTop: 2 },
   waDivider: { height: 1, backgroundColor: Colors.borderLight, marginHorizontal: Spacing.base },
 
   // Growth loop
@@ -647,89 +831,109 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.sm,
-    backgroundColor: Colors.primaryLight || '#EBF5FF',
+    backgroundColor: '#EBF5FF',
     borderTopWidth: 1,
     borderTopColor: Colors.borderLight,
   },
-  growthText: {
-    flex: 1,
-    fontSize: Typography.sm,
-    color: Colors.primary,
-    fontWeight: Typography.semibold,
-    marginRight: Spacing.sm,
-  },
-  growthBtn: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radius.md,
-  },
-  growthBtnText: {
-    color: Colors.white,
-    fontSize: Typography.sm,
-    fontWeight: Typography.bold,
-  },
+  growthText: { flex: 1, fontSize: Typography.sm, color: Colors.primary, fontWeight: Typography.semibold, marginRight: Spacing.sm },
+  growthBtn: { backgroundColor: Colors.primary, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radius.md },
+  growthBtnText: { color: Colors.white, fontSize: Typography.sm, fontWeight: Typography.bold },
 
   // Bottom bar
   bottomBar: {
     flexDirection: 'row',
-    gap: Spacing.md,
     paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.md,
-    paddingBottom: Platform.OS === 'ios' ? 28 : Spacing.lg,
-    backgroundColor: Colors.surface,
+    paddingBottom: Platform.OS === 'ios' ? 24 : Spacing.base,
+    paddingTop: Spacing.sm,
+    backgroundColor: Colors.background,
     borderTopWidth: 1,
     borderTopColor: Colors.borderLight,
-    ...Shadow.lg,
+    gap: Spacing.md,
   },
   nextStepBtn: {
-    flex: 1,
-    backgroundColor: Colors.primary,
-    paddingVertical: Spacing.md,
-    borderRadius: Radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
+    flex: 3, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: Colors.primary, paddingVertical: Spacing.md,
+    borderRadius: Radius.lg, gap: Spacing.sm,
   },
   nextStepText: { fontSize: Typography.base, fontWeight: Typography.bold, color: Colors.white },
   summaryBtn: {
-    backgroundColor: Colors.primaryFaint,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: Radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
+    flex: 1, alignItems: 'center', justifyContent: 'center',
+    paddingVertical: Spacing.md, borderRadius: Radius.lg,
+    borderWidth: 1.5, borderColor: Colors.border,
   },
-  summaryBtnText: { fontSize: Typography.sm, fontWeight: Typography.bold, color: Colors.primary },
+  summaryBtnText: { fontSize: Typography.sm, color: Colors.textSecondary, fontWeight: Typography.medium },
 
-  // Modal
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  // Modals shared
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end',
+  },
   modalSheet: {
-    backgroundColor: Colors.surface,
-    borderTopLeftRadius: Radius.xxl, borderTopRightRadius: Radius.xxl,
-    paddingHorizontal: Spacing.base, paddingBottom: 36,
+    backgroundColor: Colors.background,
+    borderTopLeftRadius: Radius.xl, borderTopRightRadius: Radius.xl,
+    padding: Spacing.base, paddingBottom: 32,
   },
-  summarySheet: { maxHeight: '70%' },
   modalHandle: {
-    width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.border,
-    alignSelf: 'center', marginTop: Spacing.md, marginBottom: Spacing.lg,
+    width: 40, height: 4, borderRadius: 2,
+    backgroundColor: Colors.border, alignSelf: 'center', marginBottom: Spacing.lg,
   },
-  modalTitle: { fontSize: Typography.lg, fontWeight: Typography.bold, color: Colors.textPrimary, marginBottom: Spacing.md },
+  modalTitle: {
+    fontSize: Typography.lg, fontWeight: Typography.bold,
+    color: Colors.textPrimary, marginBottom: Spacing.lg,
+  },
+
+  // WhatsApp preview modal
+  previewSheet: { maxHeight: '85%' },
+  previewHeader: {
+    flexDirection: 'row', alignItems: 'center',
+    marginBottom: Spacing.lg,
+  },
+  previewTitle: {
+    fontSize: Typography.base, fontWeight: Typography.bold, color: Colors.textPrimary,
+  },
+  previewRecipient: {
+    fontSize: Typography.xs, color: Colors.textSecondary, marginTop: 2,
+  },
+  previewBubbleWrap: {
+    maxHeight: 220, marginBottom: Spacing.lg,
+  },
+  previewBubble: {
+    backgroundColor: '#E8FFF1',
+    borderRadius: Radius.lg, borderTopLeftRadius: 4,
+    padding: Spacing.base,
+  },
+  previewBubbleText: {
+    fontSize: Typography.base, color: '#1a4a2e', lineHeight: 22,
+  },
+  sendWaBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#25D366', borderRadius: Radius.lg,
+    paddingVertical: Spacing.md + 2, gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  sendWaBtnText: {
+    fontSize: Typography.base, fontWeight: Typography.bold, color: Colors.white,
+  },
+  cancelPreviewBtn: { alignItems: 'center', paddingVertical: Spacing.sm },
+  cancelPreviewText: { fontSize: Typography.base, color: Colors.textSecondary },
+
+  // Status picker
   statusOption: {
-    flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
-    paddingVertical: Spacing.md, paddingHorizontal: Spacing.md,
-    borderRadius: Radius.md, marginBottom: 4,
+    flexDirection: 'row', alignItems: 'center',
+    paddingVertical: Spacing.md, paddingHorizontal: Spacing.base,
+    borderRadius: Radius.md, marginBottom: 4, gap: Spacing.md,
   },
   statusDot: { width: 10, height: 10, borderRadius: 5 },
-  statusOptionText: { flex: 1, fontSize: Typography.base, color: Colors.textPrimary, fontWeight: Typography.medium },
+  statusOptionText: { flex: 1, fontSize: Typography.base, color: Colors.textPrimary },
 
-  // Summary sheet rows
+  // Summary sheet
+  summarySheet: { maxHeight: '75%' },
   summaryRow: {
     flexDirection: 'row', justifyContent: 'space-between',
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1, borderBottomColor: Colors.borderLight,
   },
-  summaryLabel: { fontSize: Typography.sm, color: Colors.textSecondary, flex: 1 },
-  summaryValue: { fontSize: Typography.sm, fontWeight: Typography.semibold, color: Colors.textPrimary, flex: 2, textAlign: 'right' },
+  summaryLabel: { fontSize: Typography.sm, color: Colors.textSecondary },
+  summaryValue: { fontSize: Typography.sm, fontWeight: Typography.medium, color: Colors.textPrimary, maxWidth: '60%', textAlign: 'right' },
 });
 
 export default JobDetailScreen;

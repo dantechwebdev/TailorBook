@@ -8,6 +8,7 @@ import {
   Alert,
   Linking,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useStore } from '../../context/store';
@@ -55,22 +56,8 @@ const CustomerDetailScreen: React.FC = () => {
       Alert.alert('No phone number', 'This customer has no phone number saved.');
       return;
     }
-    const url = buildWhatsAppUrl(phone, 'custom', {
-      id: '',
-      customerId: customer.id,
-      customerName: customer.name,
-      outfitType: 'Senator',
-      deliveryDate: new Date().toISOString(),
-      deliveryType: 'pickup',
-      price: 0,
-      deposit: 0,
-      balance: 0,
-      status: 'Pending',
-      createdAt: '',
-      updatedAt: '',
-    } as any);
-    const waBase = `https://wa.me/${phone.replace(/[\s\-()]/g, '').replace(/^0/, '234').replace(/^\+/, '')}`;
-    Linking.openURL(waBase).catch(() => {
+    const clean = phone.replace(/[\s\-()]/g, '').replace(/^0/, '234').replace(/^\+/, '');
+    Linking.openURL(`https://wa.me/${clean}`).catch(() => {
       Alert.alert('WhatsApp not available', 'Could not open WhatsApp.');
     });
   };

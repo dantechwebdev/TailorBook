@@ -3,7 +3,6 @@ import { Job } from '../types';
 
 // ─── WhatsApp Deep-Link System ────────────────────────────────────────────────
 // The app is the BRAIN. WhatsApp is the VOICE.
-// All sending is simulated when WhatsApp API is absent.
 
 export type WhatsAppMessageType =
   | 'job_created'
@@ -13,18 +12,31 @@ export type WhatsAppMessageType =
   | 'delivery_complete'
   | 'custom';
 
-function sanitizePhone(phone: string): string {
-  // Strip spaces, dashes, brackets; ensure starts with country code
+export function sanitizePhone(phone: string): string {
   let p = phone.replace(/[\s\-()]/g, '');
   if (p.startsWith('0')) p = '234' + p.slice(1);
   if (!p.startsWith('+')) p = '+' + p;
-  return p.replace(/^\+/, ''); // WhatsApp wants no leading +
+  return p.replace(/^\+/, '');
 }
 
-function buildMessage(type: WhatsAppMessageType, job: Job): string {
+function formatDate(isoDate: string): string {
+  try {
+    const d = new Date(isoDate);
+    return d.toLocaleDateString('en-NG', { weekday: 'short', day: 'numeric', month: 'short' });
+  } catch {
+    return isoDate;
+  }
+}
+
+export function buildMessageText(
+  type: WhatsAppMessageType,
+  job: Job,
+  currency = '₦'
+): string {
   const outfit = job.outfitType;
   const name = job.customerName.split(' ')[0];
   const date = formatDate(job.deliveryDate);
+  const balance = `${currency}${job.balance.toLocaleString()}`;
 
   switch (type) {
     case 'job_created':
@@ -40,7 +52,7 @@ function buildMessage(type: WhatsAppMessageType, job: Job): string {
         `Good day ${name}! 🎉\n\n` +
         `Your *${outfit}* is *ready for pickup*!\n` +
         `Please come in at your convenience.\n` +
-        `Balance due: ₦${job.balance.toLocaleString()}\n\n` +
+        (job.balance > 0 ? `Balance due: *${balance}*\n\n` : '\n') +
         `See you soon! 👋`
       );
 
@@ -49,7 +61,7 @@ function buildMessage(type: WhatsAppMessageType, job: Job): string {
         `Good day ${name}! 📦\n\n` +
         `Your *${outfit}* is *ready* and will be dispatched to ` +
         `*${job.deliveryAddress || 'your address'}* today.\n` +
-        `Balance due: ₦${job.balance.toLocaleString()}\n\n` +
+        (job.balance > 0 ? `Balance due: *${balance}*\n\n` : '\n') +
         `We'll send tracking info once it ships. Thank you! 🙏`
       );
 
@@ -57,7 +69,7 @@ function buildMessage(type: WhatsAppMessageType, job: Job): string {
       return (
         `Hello ${name},\n\n` +
         `This is a gentle reminder that your balance of ` +
-        `*₦${job.balance.toLocaleString()}* is due for your *${outfit}*.\n` +
+        `*${balance}* is due for your *${outfit}*.\n` +
         `Please make payment at pickup/delivery. Thank you! 🙏`
       );
 
@@ -74,25 +86,30 @@ function buildMessage(type: WhatsAppMessageType, job: Job): string {
   }
 }
 
-function formatDate(isoDate: string): string {
-  try {
-    const d = new Date(isoDate);
-    return d.toLocaleDateString('en-NG', { weekday: 'short', day: 'numeric', month: 'short' });
-  } catch {
-    return isoDate;
-  }
+export function buildWhatsAppUrl(
+  phone: string,
+  type: WhatsAppMessageType,
+  job: Job,
+  currency = '₦'
+): string {
+  const message = buildMessageText(type, job, currency);
+  const clean = sanitizePhone(phone);
+  const encoded = encodeURIComponent(message);
+  return `https://wa.me/${clean}?text=${encoded}`;
+}
+
+export function buildDirectChatUrl(phone: string): string {
+  const clean = sanitizePhone(phone);
+  return `https://wa.me/${clean}`;
 }
 
 export async function sendWhatsAppMessage(
   phone: string,
   type: WhatsAppMessageType,
-  job: Job
+  job: Job,
+  currency = '₦'
 ): Promise<{ sent: boolean; simulated: boolean }> {
-  const message = buildMessage(type, job);
-  const clean = sanitizePhone(phone);
-  const encoded = encodeURIComponent(message);
-  const url = `https://wa.me/${clean}?text=${encoded}`;
-
+  const url = buildWhatsAppUrl(phone, type, job, currency);
   try {
     const canOpen = await Linking.canOpenURL(url);
     if (canOpen) {
@@ -100,17 +117,19 @@ export async function sendWhatsAppMessage(
       return { sent: true, simulated: false };
     }
   } catch {}
-
-  // Fallback: silently queue (simulated)
-  console.log('[WhatsApp simulated]', { phone: clean, type, message });
+  console.log('[WhatsApp simulated]', { phone, type });
   return { sent: false, simulated: true };
 }
 
-export function buildWhatsAppUrl(phone: string, type: WhatsAppMessageType, job: Job): string {
-  const message = buildMessage(type, job);
-  const clean = sanitizePhone(phone);
-  const encoded = encodeURIComponent(message);
-  return `https://wa.me/${clean}?text=${encoded}`;
+export function getMessageTypeLabel(type: WhatsAppMessageType, deliveryType?: string): string {
+  switch (type) {
+    case 'job_created': return 'Order confirmation';
+    case 'ready_pickup': return 'Ready for pickup';
+    case 'ready_waybill': return 'Ready to dispatch';
+    case 'payment_reminder': return 'Payment reminder';
+    case 'delivery_complete': return 'Delivery complete';
+    default: return 'Message';
+  }
 }
 
 export function getNotificationLabel(job: Job): string {
@@ -121,22 +140,14 @@ export function getNotificationLabel(job: Job): string {
 
   if (job.status === 'Ready') {
     if (job.deliveryType === 'waybill') {
-      return `📦 Waybill ${name} → ${job.deliveryAddress || 'dispatch'} today`;
+      return `Dispatch ${name}'s ${outfit} → ${job.deliveryAddress || 'destination'} today`;
     }
-    return `👋 ${name} Pickup Today`;
+    return `${name} Pickup Today — ${outfit} is ready`;
   }
 
-  if (dueDate === today) {
-    return `🧵 Finish ${name}'s ${outfit} today`;
-  }
+  if (dueDate === today) return `Finish ${name}'s ${outfit} today`;
+  if (dueDate < today) return `${name}'s ${outfit} is overdue`;
+  if (job.balance > 0) return `Collect balance from ${name}`;
 
-  if (dueDate < today) {
-    return `⚠️ ${name}'s ${outfit} is overdue`;
-  }
-
-  if (job.balance > 0) {
-    return `💰 Collect balance from ${name}`;
-  }
-
-  return `🧵 ${name}'s ${outfit} in progress`;
+  return `${name}'s ${outfit} in progress`;
 }
