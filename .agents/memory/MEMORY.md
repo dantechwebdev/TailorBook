@@ -1,3 +1,6 @@
 - [Build workflow](build-workflow.md) — must run `npx expo export:web` then restart "Start application" workflow after every code change
-- [NewOrderFlow steps](neworderflow-steps.md) — 6 steps: Customer→Garment→Measurements→Delivery→Payment→Review; OrderDraft has draftMeasurement field
+- [NewOrderFlow steps](neworderflow-steps.md) — 7 steps: Customer→Garment→Photos→Measurements→Delivery→Payment→Review; OrderDraft has photoUris and draftMeasurement fields
+- [Photo field migration](photo-migration.md) — samplePhotoUri replaced by photoUris (string[]); DB keeps both columns, read logic prefers photoUris then falls back to samplePhotoUri
+- [Onboarding gate](onboarding-gate.md) — App.tsx checks settings.onboardingComplete !== '1' after initialize(); renders OnboardingFlow (no NavigationContainer) until saveSettings flips the flag
+- [Contact picker](contact-picker.md) — ContactPickerButton renders null on web (Platform.OS==='web'); on native uses expo-contacts presentContactPickerAsync via dynamic import
 - [Build prompt authority](build-prompt.md) — attached_assets/Build_prompt_1782663196572.md is constitutional; vision always wins over code

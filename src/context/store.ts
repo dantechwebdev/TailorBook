@@ -7,45 +7,37 @@ import { seedDemoDataIfEmpty } from '../utils/seedData';
 // ─── Store Interface ──────────────────────────────────────────────────────────
 
 interface TailorBookState {
-  // Data
   customers: Customer[];
   jobs: Job[];
   measurements: Measurements[];
   notifications: AppNotification[];
 
-  // Derived / cached
   dueToday: Job[];
   overdueJobs: Job[];
   pendingJobs: Job[];
   recentJobs: Job[];
   readyJobs: Job[];
+  pendingWaybills: Job[];
+  outstandingBalances: Job[];
   unreadNotificationCount: number;
 
-  // Settings
   settings: TailorSettings;
-
-  // Loading states
   isLoading: boolean;
   isInitialized: boolean;
-
-  // ─── Actions ───────────────────────────────────────────────────────────────
 
   initialize: () => Promise<void>;
   refreshJobs: () => Promise<void>;
   refreshCustomers: () => Promise<void>;
   refreshNotifications: () => Promise<void>;
 
-  // Settings actions
   loadSettings: () => Promise<void>;
   saveSettings: (settings: TailorSettings) => Promise<void>;
 
-  // Customer actions
   addCustomer: (customer: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Customer>;
   updateCustomer: (customer: Customer) => Promise<void>;
   deleteCustomer: (id: string) => Promise<void>;
   getCustomer: (id: string) => Customer | undefined;
 
-  // Job actions
   addJob: (job: Omit<Job, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Job>;
   updateJob: (job: Job) => Promise<void>;
   updateJobStatus: (jobId: string, status: JobStatus) => Promise<void>;
@@ -53,12 +45,10 @@ interface TailorBookState {
   getJob: (id: string) => Job | undefined;
   getJobsByCustomer: (customerId: string) => Job[];
 
-  // Measurement actions
   addMeasurement: (m: Omit<Measurements, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Measurements>;
   updateMeasurement: (m: Measurements) => Promise<void>;
   getMeasurementsByCustomer: (customerId: string) => Measurements[];
 
-  // Notification actions
   markNotificationRead: (id: string) => Promise<void>;
   markAllRead: () => Promise<void>;
   addNotification: (n: Omit<AppNotification, 'id' | 'createdAt' | 'read'>) => Promise<void>;
@@ -72,6 +62,9 @@ const DEFAULT_SETTINGS: TailorSettings = {
   phone: '',
   location: '',
   currency: '₦',
+  workDays: '["Mon","Tue","Wed","Thu","Fri","Sat"]',
+  defaultApparel: '',
+  onboardingComplete: '0',
 };
 
 // ─── Store Implementation ─────────────────────────────────────────────────────
@@ -86,6 +79,8 @@ export const useStore = create<TailorBookState>((set, get) => ({
   pendingJobs: [],
   recentJobs: [],
   readyJobs: [],
+  pendingWaybills: [],
+  outstandingBalances: [],
   unreadNotificationCount: 0,
   settings: DEFAULT_SETTINGS,
   isLoading: false,
@@ -109,30 +104,26 @@ export const useStore = create<TailorBookState>((set, get) => ({
       );
       const measurements = measurementArrays.flat();
 
-      const [dueToday, overdueJobs, pendingJobs, recentJobs, readyJobs, unreadNotificationCount] =
-        await Promise.all([
-          db.getJobsDueToday(),
-          db.getOverdueJobs(),
-          db.getPendingJobs(),
-          db.getRecentJobs(10),
-          db.getReadyJobs(),
-          db.getUnreadNotificationCount(),
-        ]);
+      const [
+        dueToday, overdueJobs, pendingJobs, recentJobs, readyJobs,
+        pendingWaybills, outstandingBalances, unreadNotificationCount,
+      ] = await Promise.all([
+        db.getJobsDueToday(),
+        db.getOverdueJobs(),
+        db.getPendingJobs(),
+        db.getRecentJobs(10),
+        db.getReadyJobs(),
+        db.getPendingWaybills(),
+        db.getOutstandingBalances(),
+        db.getUnreadNotificationCount(),
+      ]);
 
       set({
-        customers,
-        jobs,
-        measurements,
-        notifications,
-        dueToday,
-        overdueJobs,
-        pendingJobs,
-        recentJobs,
-        readyJobs,
-        unreadNotificationCount,
-        settings,
-        isLoading: false,
-        isInitialized: true,
+        customers, jobs, measurements, notifications,
+        dueToday, overdueJobs, pendingJobs, recentJobs, readyJobs,
+        pendingWaybills, outstandingBalances,
+        unreadNotificationCount, settings,
+        isLoading: false, isInitialized: true,
       });
     } catch (error) {
       console.error('Failed to initialize store:', error);
@@ -141,15 +132,20 @@ export const useStore = create<TailorBookState>((set, get) => ({
   },
 
   refreshJobs: async () => {
-    const [jobs, dueToday, overdueJobs, pendingJobs, recentJobs, readyJobs] = await Promise.all([
+    const [
+      jobs, dueToday, overdueJobs, pendingJobs, recentJobs, readyJobs,
+      pendingWaybills, outstandingBalances,
+    ] = await Promise.all([
       db.getAllJobs(),
       db.getJobsDueToday(),
       db.getOverdueJobs(),
       db.getPendingJobs(),
       db.getRecentJobs(10),
       db.getReadyJobs(),
+      db.getPendingWaybills(),
+      db.getOutstandingBalances(),
     ]);
-    set({ jobs, dueToday, overdueJobs, pendingJobs, recentJobs, readyJobs });
+    set({ jobs, dueToday, overdueJobs, pendingJobs, recentJobs, readyJobs, pendingWaybills, outstandingBalances });
   },
 
   refreshCustomers: async () => {
@@ -165,8 +161,6 @@ export const useStore = create<TailorBookState>((set, get) => ({
     set({ notifications, unreadNotificationCount });
   },
 
-  // ─── Settings ──────────────────────────────────────────────────────────────
-
   loadSettings: async () => {
     const settings = await db.getSettings();
     set({ settings });
@@ -177,16 +171,9 @@ export const useStore = create<TailorBookState>((set, get) => ({
     set({ settings });
   },
 
-  // ─── Customer Actions ──────────────────────────────────────────────────────
-
   addCustomer: async (customerData) => {
     const now = new Date().toISOString();
-    const customer: Customer = {
-      ...customerData,
-      id: generateId(),
-      createdAt: now,
-      updatedAt: now,
-    };
+    const customer: Customer = { ...customerData, id: generateId(), createdAt: now, updatedAt: now };
     await db.createCustomer(customer);
     set((state) => ({ customers: [...state.customers, customer] }));
     return customer;
@@ -211,16 +198,9 @@ export const useStore = create<TailorBookState>((set, get) => ({
 
   getCustomer: (id) => get().customers.find((c) => c.id === id),
 
-  // ─── Job Actions ───────────────────────────────────────────────────────────
-
   addJob: async (jobData) => {
     const now = new Date().toISOString();
-    const job: Job = {
-      ...jobData,
-      id: generateId(),
-      createdAt: now,
-      updatedAt: now,
-    };
+    const job: Job = { ...jobData, id: generateId(), createdAt: now, updatedAt: now };
     await db.createJob(job);
 
     await get().addNotification({
@@ -285,16 +265,9 @@ export const useStore = create<TailorBookState>((set, get) => ({
   getJob: (id) => get().jobs.find((j) => j.id === id),
   getJobsByCustomer: (customerId) => get().jobs.filter((j) => j.customerId === customerId),
 
-  // ─── Measurement Actions ───────────────────────────────────────────────────
-
   addMeasurement: async (measurementData) => {
     const now = new Date().toISOString();
-    const measurement: Measurements = {
-      ...measurementData,
-      id: generateId(),
-      createdAt: now,
-      updatedAt: now,
-    };
+    const measurement: Measurements = { ...measurementData, id: generateId(), createdAt: now, updatedAt: now };
     await db.createMeasurement(measurement);
     set((state) => ({ measurements: [...state.measurements, measurement] }));
     return measurement;
@@ -311,14 +284,10 @@ export const useStore = create<TailorBookState>((set, get) => ({
   getMeasurementsByCustomer: (customerId) =>
     get().measurements.filter((m) => m.customerId === customerId),
 
-  // ─── Notification Actions ──────────────────────────────────────────────────
-
   markNotificationRead: async (id) => {
     await db.markNotificationRead(id);
     set((state) => ({
-      notifications: state.notifications.map((n) =>
-        n.id === id ? { ...n, read: true } : n
-      ),
+      notifications: state.notifications.map((n) => (n.id === id ? { ...n, read: true } : n)),
       unreadNotificationCount: Math.max(0, state.unreadNotificationCount - 1),
     }));
   },
@@ -349,7 +318,5 @@ export const useStore = create<TailorBookState>((set, get) => ({
 function formatDate(isoDate: string): string {
   try {
     return new Date(isoDate).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' });
-  } catch {
-    return isoDate;
-  }
+  } catch { return isoDate; }
 }

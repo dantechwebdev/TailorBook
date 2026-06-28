@@ -56,7 +56,7 @@ const JobEditScreen: React.FC = () => {
   const [price, setPrice] = useState(job?.price ? String(job.price) : '');
   const [deposit, setDeposit] = useState(job?.deposit ? String(job.deposit) : '');
   const [notes, setNotes] = useState(job?.notes || '');
-  const [samplePhotoUri, setSamplePhotoUri] = useState<string | undefined>(job?.samplePhotoUri);
+  const [samplePhotoUri, setSamplePhotoUri] = useState<string | undefined>(job?.photoUris?.[0]);
   const [selectedMeasurementId, setSelectedMeasurementId] = useState<string | undefined>(job?.measurementId);
   const [loading, setLoading] = useState(false);
 
@@ -123,7 +123,7 @@ const JobEditScreen: React.FC = () => {
         deposit: depositNum,
         balance: Math.max(0, priceNum - depositNum),
         measurementId: selectedMeasurementId,
-        samplePhotoUri,
+        photoUris: samplePhotoUri ? [samplePhotoUri] : (job.photoUris || []),
         notes: notes.trim() || undefined,
       });
 

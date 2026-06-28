@@ -64,7 +64,7 @@ const JobCreateScreen: React.FC = () => {
   const [price, setPrice] = useState('');
   const [deposit, setDeposit] = useState('');
   const [notes, setNotes] = useState('');
-  const [samplePhotoUri, setSamplePhotoUri] = useState<string | undefined>();
+  const [photoUris: samplePhotoUri ? [samplePhotoUri] : [], setSamplePhotoUri] = useState<string | undefined>();
   const [selectedMeasurementId, setSelectedMeasurementId] = useState<string | undefined>();
   const [status] = useState<JobStatus>('Pending');
   const [loading, setLoading] = useState(false);
@@ -157,7 +157,7 @@ const JobCreateScreen: React.FC = () => {
         balance: Math.max(0, priceNum - depositNum),
         status,
         measurementId: selectedMeasurementId,
-        samplePhotoUri,
+        photoUris: samplePhotoUri ? [samplePhotoUri] : [],
         notes: notes.trim() || undefined,
       });
 

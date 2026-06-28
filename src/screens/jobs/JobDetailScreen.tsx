@@ -210,8 +210,8 @@ const JobDetailScreen: React.FC = () => {
                 <Text style={styles.customerLinkText}>{job.customerName}</Text>
               </TouchableOpacity>
             </View>
-            {job.samplePhotoUri ? (
-              <Image source={{ uri: job.samplePhotoUri }} style={styles.sampleThumb} />
+            {job.photoUris?.[0] ? (
+              <Image source={{ uri: job.photoUris[0] }} style={styles.sampleThumb} />
             ) : (
               <View style={styles.samplePlaceholder}>
                 <ScissorsIcon size={24} color={Colors.textTertiary} />

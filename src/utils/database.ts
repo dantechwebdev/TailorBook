@@ -59,6 +59,7 @@ async function initializeDatabase(database: SQLite.SQLiteDatabase): Promise<void
       status TEXT NOT NULL DEFAULT 'Pending',
       measurementId TEXT,
       samplePhotoUri TEXT,
+      photoUris TEXT,
       notes TEXT,
       createdAt TEXT NOT NULL,
       updatedAt TEXT NOT NULL,
@@ -88,26 +89,33 @@ async function initializeDatabase(database: SQLite.SQLiteDatabase): Promise<void
     CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(read);
   `);
 
-  // Run migrations for existing installs
   await runMigrations(database);
 }
 
 async function runMigrations(database: SQLite.SQLiteDatabase): Promise<void> {
-  try {
-    // Add deliveryType column if missing (existing installs)
-    await database.execAsync(
-      `ALTER TABLE jobs ADD COLUMN deliveryType TEXT NOT NULL DEFAULT 'pickup'`
-    );
-  } catch (_) {}
-  try {
-    await database.execAsync(`ALTER TABLE jobs ADD COLUMN deliveryAddress TEXT`);
-  } catch (_) {}
-  try {
-    await database.execAsync(`ALTER TABLE jobs ADD COLUMN customerPhone TEXT`);
-  } catch (_) {}
-  try {
-    await database.execAsync(`ALTER TABLE customers ADD COLUMN whatsappPhone TEXT`);
-  } catch (_) {}
+  const migrations = [
+    `ALTER TABLE jobs ADD COLUMN deliveryType TEXT NOT NULL DEFAULT 'pickup'`,
+    `ALTER TABLE jobs ADD COLUMN deliveryAddress TEXT`,
+    `ALTER TABLE jobs ADD COLUMN customerPhone TEXT`,
+    `ALTER TABLE customers ADD COLUMN whatsappPhone TEXT`,
+    `ALTER TABLE jobs ADD COLUMN photoUris TEXT`,
+  ];
+  for (const sql of migrations) {
+    try { await database.execAsync(sql); } catch (_) {}
+  }
+}
+
+// ─── Row Parser ───────────────────────────────────────────────────────────────
+
+function parseJobRow(row: any): Job {
+  let photoUris: string[] = [];
+  if (row.photoUris) {
+    try { photoUris = JSON.parse(row.photoUris); } catch (_) {}
+  } else if (row.samplePhotoUri) {
+    photoUris = [row.samplePhotoUri];
+  }
+  const { samplePhotoUri: _ignored, ...rest } = row;
+  return { ...rest, photoUris };
 }
 
 // ─── Settings Operations ──────────────────────────────────────────────────────
@@ -118,6 +126,9 @@ const DEFAULT_SETTINGS: TailorSettings = {
   phone: '',
   location: '',
   currency: '₦',
+  workDays: '["Mon","Tue","Wed","Thu","Fri","Sat"]',
+  defaultApparel: '',
+  onboardingComplete: '0',
 };
 
 export async function getSettings(): Promise<TailorSettings> {
@@ -133,6 +144,9 @@ export async function getSettings(): Promise<TailorSettings> {
     phone: map['phone'] ?? DEFAULT_SETTINGS.phone,
     location: map['location'] ?? DEFAULT_SETTINGS.location,
     currency: map['currency'] ?? DEFAULT_SETTINGS.currency,
+    workDays: map['workDays'] ?? DEFAULT_SETTINGS.workDays,
+    defaultApparel: map['defaultApparel'] ?? DEFAULT_SETTINGS.defaultApparel,
+    onboardingComplete: map['onboardingComplete'] ?? DEFAULT_SETTINGS.onboardingComplete,
   };
 }
 
@@ -141,7 +155,7 @@ export async function saveSettings(settings: TailorSettings): Promise<void> {
   for (const [key, value] of Object.entries(settings)) {
     await database.runAsync(
       'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',
-      [key, value]
+      [key, String(value)]
     );
   }
 }
@@ -205,20 +219,22 @@ export async function searchCustomers(query: string): Promise<Customer[]> {
 
 export async function getAllJobs(): Promise<Job[]> {
   const database = await getDatabase();
-  return database.getAllAsync<Job>('SELECT * FROM jobs ORDER BY deliveryDate ASC');
+  const rows = await database.getAllAsync<any>('SELECT * FROM jobs ORDER BY deliveryDate ASC');
+  return rows.map(parseJobRow);
 }
 
 export async function getJobsByCustomer(customerId: string): Promise<Job[]> {
   const database = await getDatabase();
-  return database.getAllAsync<Job>(
+  const rows = await database.getAllAsync<any>(
     'SELECT * FROM jobs WHERE customerId = ? ORDER BY createdAt DESC', [customerId]
   );
+  return rows.map(parseJobRow);
 }
 
 export async function getJobById(id: string): Promise<Job | null> {
   const database = await getDatabase();
-  const result = await database.getFirstAsync<Job>('SELECT * FROM jobs WHERE id = ?', [id]);
-  return result || null;
+  const row = await database.getFirstAsync<any>('SELECT * FROM jobs WHERE id = ?', [id]);
+  return row ? parseJobRow(row) : null;
 }
 
 export async function createJob(job: Job): Promise<void> {
@@ -226,14 +242,15 @@ export async function createJob(job: Job): Promise<void> {
   await database.runAsync(
     `INSERT INTO jobs (id, customerId, customerName, customerPhone, outfitType, style, fabric,
       deliveryDate, deliveryType, deliveryAddress, price, deposit, balance, status,
-      measurementId, samplePhotoUri, notes, createdAt, updatedAt)
+      measurementId, photoUris, notes, createdAt, updatedAt)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       job.id, job.customerId, job.customerName, job.customerPhone || null,
       job.outfitType, job.style || null, job.fabric || null,
       job.deliveryDate, job.deliveryType || 'pickup', job.deliveryAddress || null,
       job.price, job.deposit, job.balance, job.status,
-      job.measurementId || null, job.samplePhotoUri || null,
+      job.measurementId || null,
+      job.photoUris?.length ? JSON.stringify(job.photoUris) : null,
       job.notes || null, job.createdAt, job.updatedAt,
     ]
   );
@@ -244,14 +261,15 @@ export async function updateJob(job: Job): Promise<void> {
   await database.runAsync(
     `UPDATE jobs SET customerId=?, customerName=?, customerPhone=?, outfitType=?, style=?,
       fabric=?, deliveryDate=?, deliveryType=?, deliveryAddress=?, price=?, deposit=?,
-      balance=?, status=?, measurementId=?, samplePhotoUri=?, notes=?, updatedAt=?
+      balance=?, status=?, measurementId=?, photoUris=?, notes=?, updatedAt=?
      WHERE id=?`,
     [
       job.customerId, job.customerName, job.customerPhone || null,
       job.outfitType, job.style || null, job.fabric || null,
       job.deliveryDate, job.deliveryType || 'pickup', job.deliveryAddress || null,
       job.price, job.deposit, job.balance, job.status,
-      job.measurementId || null, job.samplePhotoUri || null,
+      job.measurementId || null,
+      job.photoUris?.length ? JSON.stringify(job.photoUris) : null,
       job.notes || null, job.updatedAt, job.id,
     ]
   );
@@ -272,55 +290,79 @@ export async function deleteJob(id: string): Promise<void> {
 export async function getJobsDueToday(): Promise<Job[]> {
   const database = await getDatabase();
   const today = getTodayLocal();
-  return database.getAllAsync<Job>(
+  const rows = await database.getAllAsync<any>(
     `SELECT * FROM jobs WHERE DATE(deliveryDate) = ? AND status NOT IN ('Delivered')
      ORDER BY deliveryDate ASC`,
     [today]
   );
+  return rows.map(parseJobRow);
 }
 
 export async function getOverdueJobs(): Promise<Job[]> {
   const database = await getDatabase();
   const today = getTodayLocal();
-  return database.getAllAsync<Job>(
+  const rows = await database.getAllAsync<any>(
     `SELECT * FROM jobs WHERE DATE(deliveryDate) < ? AND status NOT IN ('Delivered', 'Ready')
      ORDER BY deliveryDate ASC`,
     [today]
   );
+  return rows.map(parseJobRow);
 }
 
 export async function getPendingJobs(): Promise<Job[]> {
   const database = await getDatabase();
   const today = getTodayLocal();
-  return database.getAllAsync<Job>(
+  const rows = await database.getAllAsync<any>(
     `SELECT * FROM jobs WHERE status NOT IN ('Delivered') AND DATE(deliveryDate) >= ?
      ORDER BY deliveryDate ASC`,
     [today]
   );
+  return rows.map(parseJobRow);
 }
 
 export async function getReadyJobs(): Promise<Job[]> {
   const database = await getDatabase();
-  return database.getAllAsync<Job>(
+  const rows = await database.getAllAsync<any>(
     `SELECT * FROM jobs WHERE status = 'Ready' ORDER BY deliveryDate ASC`
   );
+  return rows.map(parseJobRow);
 }
 
 export async function getRecentJobs(limit = 10): Promise<Job[]> {
   const database = await getDatabase();
-  return database.getAllAsync<Job>(
+  const rows = await database.getAllAsync<any>(
     'SELECT * FROM jobs ORDER BY updatedAt DESC LIMIT ?', [limit]
   );
+  return rows.map(parseJobRow);
+}
+
+export async function getPendingWaybills(): Promise<Job[]> {
+  const database = await getDatabase();
+  const rows = await database.getAllAsync<any>(
+    `SELECT * FROM jobs WHERE deliveryType = 'waybill' AND status = 'Ready'
+     ORDER BY deliveryDate ASC`
+  );
+  return rows.map(parseJobRow);
+}
+
+export async function getOutstandingBalances(): Promise<Job[]> {
+  const database = await getDatabase();
+  const rows = await database.getAllAsync<any>(
+    `SELECT * FROM jobs WHERE status = 'Delivered' AND balance > 0
+     ORDER BY updatedAt DESC`
+  );
+  return rows.map(parseJobRow);
 }
 
 export async function searchJobs(query: string): Promise<Job[]> {
   const database = await getDatabase();
   const pattern = `%${query}%`;
-  return database.getAllAsync<Job>(
+  const rows = await database.getAllAsync<any>(
     `SELECT * FROM jobs WHERE customerName LIKE ? OR outfitType LIKE ? OR status LIKE ?
      ORDER BY deliveryDate ASC`,
     [pattern, pattern, pattern]
   );
+  return rows.map(parseJobRow);
 }
 
 // ─── Measurements Operations ──────────────────────────────────────────────────

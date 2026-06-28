@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../../constants/theme';
 import { Avatar } from '../../../components/common/UI';
+import ContactPickerButton from '../../../components/common/ContactPickerButton';
 import { useStore } from '../../../context/store';
 import { Customer } from '../../../types';
 import { OrderDraft } from './index';
@@ -30,7 +31,6 @@ const StepCustomer: React.FC<Props> = ({ draft, onChange, onNext, prefilledCusto
   const [newName, setNewName] = useState(draft.newCustomerName);
   const [newPhone, setNewPhone] = useState(draft.newCustomerPhone);
 
-  // Auto-select if prefilled
   useEffect(() => {
     if (prefilledCustomerId) {
       const c = getCustomer(prefilledCustomerId);
@@ -203,7 +203,15 @@ const StepCustomer: React.FC<Props> = ({ draft, onChange, onNext, prefilledCusto
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Phone Number *</Text>
+        <View style={styles.labelRow}>
+          <Text style={styles.inputLabel}>Phone Number *</Text>
+          <ContactPickerButton
+            onSelect={(name, phone) => {
+              if (name && !newName) setNewName(name);
+              setNewPhone(phone);
+            }}
+          />
+        </View>
         <TextInput
           style={styles.input}
           placeholder="e.g. 0811 234 5678"
@@ -302,25 +310,24 @@ const styles = StyleSheet.create({
   customerName: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textPrimary },
   customerPhone: { fontSize: Typography.sm, color: Colors.textSecondary, marginTop: 2 },
   checkCircle: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 26, height: 26, borderRadius: 13,
     backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
   },
   checkMark: { color: Colors.white, fontSize: 14, fontWeight: Typography.bold },
-  emptySearch: {
-    padding: Spacing.xxl,
-    alignItems: 'center',
-  },
+  emptySearch: { padding: Spacing.xxl, alignItems: 'center' },
   emptySearchText: { fontSize: Typography.base, color: Colors.textSecondary },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.sm,
+  },
   inputGroup: { paddingHorizontal: Spacing.base, marginBottom: Spacing.lg },
   inputLabel: {
     fontSize: Typography.sm,
     fontWeight: Typography.semibold,
     color: Colors.textSecondary,
-    marginBottom: Spacing.sm,
   },
   input: {
     backgroundColor: Colors.surface,

@@ -44,13 +44,13 @@ const StepReview: React.FC<Props> = ({ draft, onDone }) => {
   const balance = Math.max(0, price - deposit);
 
   const hasMeasurements = !!(draft.measurementId || draft.draftMeasurement);
+  const photoCount = draft.photoUris?.length || 0;
 
   const handleCreate = async () => {
     setIsCreating(true);
     try {
       let resolvedCustomer = draft.customer;
 
-      // Create new customer if needed
       if (draft.isNewCustomer) {
         resolvedCustomer = await addCustomer({
           name: draft.newCustomerName,
@@ -65,7 +65,6 @@ const StepReview: React.FC<Props> = ({ draft, onDone }) => {
         return;
       }
 
-      // Create inline measurements if recorded during the flow
       let resolvedMeasurementId = draft.measurementId || undefined;
       if (!resolvedMeasurementId && draft.draftMeasurement) {
         const m = await addMeasurement({
@@ -92,6 +91,7 @@ const StepReview: React.FC<Props> = ({ draft, onDone }) => {
         balance,
         status: 'Pending',
         measurementId: resolvedMeasurementId,
+        photoUris: draft.photoUris?.length ? draft.photoUris : undefined,
         notes: draft.notes || undefined,
       });
 
@@ -131,6 +131,11 @@ const StepReview: React.FC<Props> = ({ draft, onDone }) => {
           <ReviewRow label="Type" value={draft.outfitType || '—'} />
           {draft.style ? <ReviewRow label="Style" value={draft.style} /> : null}
           {draft.fabric ? <ReviewRow label="Fabric" value={draft.fabric} /> : null}
+          <ReviewRow
+            label="Photos"
+            value={photoCount > 0 ? `${photoCount} photo${photoCount > 1 ? 's' : ''} attached` : 'None'}
+            valueColor={photoCount > 0 ? Colors.ready : Colors.textTertiary}
+          />
         </ReviewSection>
 
         <View style={styles.divider} />
@@ -184,7 +189,7 @@ const StepReview: React.FC<Props> = ({ draft, onDone }) => {
         ) : null}
       </View>
 
-      {/* ─── AI Suggestion (simulated, visible-inert) ─── */}
+      {/* ─── AI Suggestion ─── */}
       <View style={styles.aiCard}>
         <Text style={styles.aiLabel}>AI Suggestion</Text>
         <Text style={styles.aiText}>
@@ -217,10 +222,7 @@ const StepReview: React.FC<Props> = ({ draft, onDone }) => {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-const ReviewSection: React.FC<{ title: string; children: React.ReactNode }> = ({
-  title,
-  children,
-}) => (
+const ReviewSection: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <View style={styles.reviewSection}>
     <Text style={styles.reviewSectionTitle}>{title}</Text>
     {children}
@@ -264,7 +266,6 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   subtitle: { fontSize: Typography.base, color: Colors.textSecondary },
-
   card: {
     marginHorizontal: Spacing.base,
     backgroundColor: Colors.surface,
@@ -306,7 +307,6 @@ const styles = StyleSheet.create({
   newBadgeText: { fontSize: Typography.xs, color: Colors.primary, fontWeight: Typography.medium },
   divider: { height: 1, backgroundColor: Colors.borderLight, marginVertical: Spacing.md },
   notesText: { fontSize: Typography.sm, color: Colors.textSecondary, lineHeight: 20 },
-
   aiCard: {
     marginHorizontal: Spacing.base,
     marginTop: Spacing.lg,
@@ -329,7 +329,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontStyle: 'italic',
   },
-
   footer: {
     padding: Spacing.base,
     paddingTop: Spacing.xl,

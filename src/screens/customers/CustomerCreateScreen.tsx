@@ -15,6 +15,7 @@ import { useStore } from '../../context/store';
 import { Colors, Typography, Spacing, Radius } from '../../constants/theme';
 import { BackIcon, CustomersIcon } from '../../components/common/Icons';
 import { Button, InputField, Avatar } from '../../components/common/UI';
+import ContactPickerButton from '../../components/common/ContactPickerButton';
 import { isValidName, isValidPhone, getAvatarColor } from '../../utils/helpers';
 
 const CustomerCreateScreen: React.FC = () => {
@@ -114,15 +115,25 @@ const CustomerCreateScreen: React.FC = () => {
               autoCapitalize="words"
             />
 
-            <InputField
-              label="Phone Number *"
-              value={phone}
-              onChangeText={setPhone}
-              placeholder="e.g. 0803 123 4567"
-              keyboardType="phone-pad"
-              error={errors.phone}
-              autoCapitalize="none"
-            />
+            <View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                <Text style={{ fontSize: 14, color: Colors.textSecondary, fontWeight: '600' }}>Phone Number *</Text>
+                <ContactPickerButton
+                  onSelect={(contactName, contactPhone) => {
+                    if (contactName && !name) setName(contactName);
+                    setPhone(contactPhone);
+                  }}
+                />
+              </View>
+              <InputField
+                value={phone}
+                onChangeText={setPhone}
+                placeholder="e.g. 0803 123 4567"
+                keyboardType="phone-pad"
+                error={errors.phone}
+                autoCapitalize="none"
+              />
+            </View>
 
             <InputField
               label="Notes (optional)"

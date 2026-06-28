@@ -10,8 +10,10 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { Colors, Typography, Spacing, Radius } from '../../../constants/theme';
 import { BackIcon } from '../../../components/common/Icons';
 import { Customer, DeliveryType, MeasurementTemplate, OutfitType } from '../../../types';
+import { useStore } from '../../../context/store';
 import StepCustomer from './StepCustomer';
 import StepGarment from './StepGarment';
+import StepPhotos from './StepPhotos';
 import StepMeasurements from './StepMeasurements';
 import StepDelivery from './StepDelivery';
 import StepPayment from './StepPayment';
@@ -33,6 +35,7 @@ export interface OrderDraft {
   outfitType: OutfitType | '';
   style: string;
   fabric: string;
+  photoUris: string[];
   deliveryDate: string;
   deliveryType: DeliveryType;
   deliveryAddress: string;
@@ -43,38 +46,36 @@ export interface OrderDraft {
   draftMeasurement: DraftMeasurement | null;
 }
 
-const INITIAL_DRAFT: OrderDraft = {
-  customer: null,
-  isNewCustomer: false,
-  newCustomerName: '',
-  newCustomerPhone: '',
-  outfitType: '',
-  style: '',
-  fabric: '',
-  deliveryDate: '',
-  deliveryType: 'pickup',
-  deliveryAddress: '',
-  price: '',
-  deposit: '',
-  notes: '',
-  measurementId: '',
-  draftMeasurement: null,
-};
-
-const STEPS = ['Customer', 'Garment', 'Measurements', 'Delivery', 'Payment', 'Review'];
+const STEPS = ['Customer', 'Garment', 'Photos', 'Measurements', 'Delivery', 'Payment', 'Review'];
 
 // ─── NewOrderFlow ─────────────────────────────────────────────────────────────
 
 const NewOrderFlow: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const { settings } = useStore();
 
   const initialStep = route.params?.step ?? 0;
   const prefilledCustomerId = route.params?.customerId;
 
   const [step, setStep] = useState(initialStep);
   const [draft, setDraft] = useState<OrderDraft>(() => ({
-    ...INITIAL_DRAFT,
+    customer: null,
+    isNewCustomer: false,
+    newCustomerName: '',
+    newCustomerPhone: '',
+    outfitType: (settings.defaultApparel as OutfitType) || '',
+    style: '',
+    fabric: '',
+    photoUris: [],
+    deliveryDate: '',
+    deliveryType: 'pickup',
+    deliveryAddress: '',
+    price: '',
+    deposit: '',
+    notes: '',
+    measurementId: '',
+    draftMeasurement: null,
   }));
 
   const updateDraft = (patch: Partial<OrderDraft>) => {
@@ -110,17 +111,21 @@ const NewOrderFlow: React.FC = () => {
         );
       case 2:
         return (
-          <StepMeasurements draft={draft} onChange={updateDraft} onNext={goNext} />
+          <StepPhotos draft={draft} onChange={updateDraft} onNext={goNext} />
         );
       case 3:
         return (
-          <StepDelivery draft={draft} onChange={updateDraft} onNext={goNext} />
+          <StepMeasurements draft={draft} onChange={updateDraft} onNext={goNext} />
         );
       case 4:
         return (
-          <StepPayment draft={draft} onChange={updateDraft} onNext={goNext} />
+          <StepDelivery draft={draft} onChange={updateDraft} onNext={goNext} />
         );
       case 5:
+        return (
+          <StepPayment draft={draft} onChange={updateDraft} onNext={goNext} />
+        );
+      case 6:
         return (
           <StepReview
             draft={draft}

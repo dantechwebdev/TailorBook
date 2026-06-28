@@ -28,6 +28,9 @@ export async function getDatabase(): Promise<any> { return {}; }
 
 const DEFAULT_SETTINGS: TailorSettings = {
   tailorName: '', shopName: '', phone: '', location: '', currency: '₦',
+  workDays: '["Mon","Tue","Wed","Thu","Fri","Sat"]',
+  defaultApparel: '',
+  onboardingComplete: '0',
 };
 
 export async function getSettings(): Promise<TailorSettings> {
@@ -39,12 +42,15 @@ export async function getSettings(): Promise<TailorSettings> {
     phone: s['phone'] ?? DEFAULT_SETTINGS.phone,
     location: s['location'] ?? DEFAULT_SETTINGS.location,
     currency: s['currency'] ?? DEFAULT_SETTINGS.currency,
+    workDays: s['workDays'] ?? DEFAULT_SETTINGS.workDays,
+    defaultApparel: s['defaultApparel'] ?? DEFAULT_SETTINGS.defaultApparel,
+    onboardingComplete: s['onboardingComplete'] ?? DEFAULT_SETTINGS.onboardingComplete,
   };
 }
 
 export async function saveSettings(settings: TailorSettings): Promise<void> {
   const db = load();
-  db.settings = settings as any;
+  db.settings = { ...db.settings, ...settings } as any;
   save(db);
 }
 
@@ -152,6 +158,16 @@ export async function getReadyJobs(): Promise<Job[]> {
 
 export async function getRecentJobs(limit = 10): Promise<Job[]> {
   return load().jobs.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, limit);
+}
+
+export async function getPendingWaybills(): Promise<Job[]> {
+  return load().jobs.filter((j) => j.deliveryType === 'waybill' && j.status === 'Ready')
+    .sort((a, b) => a.deliveryDate.localeCompare(b.deliveryDate));
+}
+
+export async function getOutstandingBalances(): Promise<Job[]> {
+  return load().jobs.filter((j) => j.status === 'Delivered' && j.balance > 0)
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
 export async function searchJobs(query: string): Promise<Job[]> {
