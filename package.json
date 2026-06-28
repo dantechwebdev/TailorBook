@@ -7,9 +7,13 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "build:web": "expo export:web",
+    "serve:web": "npx serve web-build -l 5000 -s",
+    "start:web": "npm run build:web && npm run serve:web",
     "lint": "eslint src --ext .ts,.tsx"
   },
   "dependencies": {
+    "@expo/webpack-config": "^19.0.1",
     "@react-native-async-storage/async-storage": "1.23.1",
     "@react-navigation/bottom-tabs": "^6.5.20",
     "@react-navigation/drawer": "^6.6.15",
@@ -42,6 +46,7 @@
     "@typescript-eslint/parser": "^7.0.0",
     "babel-plugin-module-resolver": "^5.0.3",
     "eslint": "^8.57.0",
+    "serve": "^14.2.6",
     "typescript": "~5.3.3"
   },
   "private": true
