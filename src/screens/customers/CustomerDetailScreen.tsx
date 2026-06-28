@@ -192,16 +192,42 @@ const CustomerDetailScreen: React.FC = () => {
         {/* ─── Measurements ─── */}
         {measurements.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Saved Measurements</Text>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>Saved Measurements</Text>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('MeasurementForm', { customerId, jobId: undefined })}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={styles.addMeasurementText}>+ Add New</Text>
+              </TouchableOpacity>
+            </View>
             {measurements.map((m) => (
-              <Card key={m.id} style={{ marginBottom: Spacing.sm }}>
-                <Text style={{ fontWeight: Typography.semibold, color: Colors.textPrimary }}>
-                  {m.label || m.template}
-                </Text>
-                <Text style={{ fontSize: Typography.xs, color: Colors.textTertiary, marginTop: 2 }}>
-                  {new Date(m.createdAt).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}
-                </Text>
-              </Card>
+              <TouchableOpacity
+                key={m.id}
+                activeOpacity={0.85}
+                onPress={() => navigation.navigate('MeasurementForm', {
+                  customerId,
+                  jobId: undefined,
+                  existingMeasurementId: m.id,
+                })}
+              >
+                <Card style={{ marginBottom: Spacing.sm }}>
+                  <View style={styles.measureRowHeader}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontWeight: Typography.semibold, color: Colors.textPrimary }}>
+                        {m.label || m.template}
+                      </Text>
+                      <Text style={{ fontSize: Typography.xs, color: Colors.textTertiary, marginTop: 2 }}>
+                        {Object.keys(m.data).length} fields · {new Date(m.createdAt).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </Text>
+                    </View>
+                    <View style={styles.editMeasureBtn}>
+                      <EditIcon size={14} color={Colors.primary} />
+                      <Text style={styles.editMeasureBtnText}>Edit</Text>
+                    </View>
+                  </View>
+                </Card>
+              </TouchableOpacity>
             ))}
           </View>
         )}
@@ -368,11 +394,40 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: Spacing.xl,
   },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.md,
+  },
   sectionTitle: {
     fontSize: Typography.md,
     fontWeight: Typography.bold,
     color: Colors.textPrimary,
-    marginBottom: Spacing.md,
+  },
+  addMeasurementText: {
+    fontSize: Typography.sm,
+    color: Colors.primary,
+    fontWeight: Typography.semibold,
+  },
+  measureRowHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  editMeasureBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Colors.primaryFaint,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 5,
+    borderRadius: Radius.full,
+  },
+  editMeasureBtnText: {
+    fontSize: Typography.xs,
+    color: Colors.primary,
+    fontWeight: Typography.semibold,
   },
   jobList: {
     backgroundColor: Colors.surface,

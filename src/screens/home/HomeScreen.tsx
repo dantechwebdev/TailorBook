@@ -10,16 +10,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { useStore } from '../../context/store';
-import { Colors, Typography, Spacing, Radius, Shadow, JOB_STATUS_CONFIG } from '../../constants/theme';
+import { Colors, Typography, Spacing, Radius, Shadow } from '../../constants/theme';
 import {
   MenuIcon,
   NotificationsIcon,
   ChevronRightIcon,
-  JobsIcon,
 } from '../../components/common/Icons';
-import { Avatar, StatusBadge } from '../../components/common/UI';
 import { getFirstName, formatNaira } from '../../utils/helpers';
-import { Job } from '../../types';
 
 // ─── Task derivation ─────────────────────────────────────────────────────────
 
@@ -136,12 +133,9 @@ const HomeScreen: React.FC = () => {
   const {
     dueToday,
     overdueJobs,
-    pendingJobs,
     readyJobs,
-    recentJobs,
     unreadNotificationCount,
     settings,
-    isLoading,
     initialize,
     refreshJobs,
     loadSettings,
@@ -276,55 +270,33 @@ const HomeScreen: React.FC = () => {
           )}
         </View>
 
-        {/* ─── Active Jobs Summary ─── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Workbench</Text>
-          <View style={styles.summaryRow}>
-            <SummaryTile
-              count={pendingJobs.length}
-              label="In Progress"
-              color={Colors.primary}
-              bgColor={Colors.primaryFaint}
-              onPress={() => navigation.navigate('JobsStack', { screen: 'JobList' })}
-            />
-            <SummaryTile
-              count={readyJobs.length}
-              label="Ready"
-              color={Colors.ready}
-              bgColor={Colors.readyLight}
-              onPress={() => navigation.navigate('JobsStack', { screen: 'JobList' })}
-            />
-            <SummaryTile
-              count={overdueJobs.length}
-              label="Overdue"
-              color={Colors.overdue}
-              bgColor={Colors.overdueLight}
-              onPress={() => navigation.navigate('JobsStack', { screen: 'JobList' })}
-            />
-          </View>
+        {/* ─── Quick Links ─── */}
+        <View style={styles.quickRow}>
+          <TouchableOpacity
+            style={styles.quickBtn}
+            onPress={() => navigation.navigate('ScheduleScreen')}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.quickBtnLabel}>Schedule</Text>
+            <Text style={styles.quickBtnSub}>Today · Week</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.quickBtn}
+            onPress={() => navigation.navigate('CustomersStack')}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.quickBtnLabel}>Customers</Text>
+            <Text style={styles.quickBtnSub}>Memory system</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.quickBtn}
+            onPress={() => navigation.navigate('JobsStack', { screen: 'JobList' })}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.quickBtnLabel}>All Jobs</Text>
+            <Text style={styles.quickBtnSub}>Workbench</Text>
+          </TouchableOpacity>
         </View>
-
-        {/* ─── Recent Activity ─── */}
-        {recentJobs.length > 0 && (
-          <View style={[styles.section, { marginBottom: Spacing.xxxl }]}>
-            <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>Recent Jobs</Text>
-              <TouchableOpacity onPress={() => navigation.navigate('JobsStack')}>
-                <Text style={styles.viewAllText}>View all</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.recentList}>
-              {recentJobs.slice(0, 4).map((job, idx) => (
-                <RecentJobRow
-                  key={job.id}
-                  job={job}
-                  isLast={idx === Math.min(recentJobs.length, 4) - 1}
-                  onPress={() => goToJob(job.id)}
-                />
-              ))}
-            </View>
-          </View>
-        )}
 
         <View style={{ height: Spacing.xxxl }} />
       </ScrollView>
@@ -369,50 +341,6 @@ const TaskCard: React.FC<{ task: Task; isLast: boolean; onPress: () => void }> =
   );
 };
 
-// ─── SummaryTile ──────────────────────────────────────────────────────────────
-
-const SummaryTile: React.FC<{
-  count: number;
-  label: string;
-  color: string;
-  bgColor: string;
-  onPress: () => void;
-}> = ({ count, label, color, bgColor, onPress }) => (
-  <TouchableOpacity
-    onPress={onPress}
-    activeOpacity={0.85}
-    style={[styles.summaryTile, { backgroundColor: bgColor }]}
-  >
-    <Text style={[styles.summaryCount, { color }]}>{count}</Text>
-    <Text style={[styles.summaryLabel, { color }]}>{label}</Text>
-  </TouchableOpacity>
-);
-
-// ─── RecentJobRow ─────────────────────────────────────────────────────────────
-
-const RecentJobRow: React.FC<{ job: Job; isLast: boolean; onPress: () => void }> = ({
-  job,
-  isLast,
-  onPress,
-}) => {
-  const config = JOB_STATUS_CONFIG[job.status];
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.8}
-      style={[styles.recentRow, !isLast && styles.recentRowBorder]}
-    >
-      <Avatar name={job.customerName} size={38} />
-      <View style={styles.recentContent}>
-        <Text style={styles.recentName} numberOfLines={1}>
-          {getFirstName(job.customerName)}'s {job.outfitType}
-        </Text>
-        <StatusBadge status={job.status} size="sm" />
-      </View>
-      <ChevronRightIcon size={16} color={Colors.textTertiary} />
-    </TouchableOpacity>
-  );
-};
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
@@ -579,51 +507,32 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  // Summary tiles
-  summaryRow: { flexDirection: 'row', gap: Spacing.md },
-  summaryTile: {
+  // Quick Links
+  quickRow: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    marginBottom: Spacing.xxl,
+  },
+  quickBtn: {
     flex: 1,
+    backgroundColor: Colors.surface,
     borderRadius: Radius.lg,
     padding: Spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 80,
+    minHeight: 72,
     ...Shadow.sm,
   },
-  summaryCount: {
-    fontSize: Typography.xxl,
-    fontWeight: Typography.extrabold,
-    lineHeight: 32,
-  },
-  summaryLabel: {
-    fontSize: Typography.xs,
-    fontWeight: Typography.semibold,
-    marginTop: 2,
-    textAlign: 'center',
-  },
-
-  // Recent
-  recentList: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    overflow: 'hidden',
-    ...Shadow.sm,
-  },
-  recentRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.md,
-    gap: Spacing.md,
-  },
-  recentRowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.borderLight,
-  },
-  recentContent: { flex: 1, gap: 4 },
-  recentName: {
-    fontSize: Typography.base,
-    fontWeight: Typography.semibold,
+  quickBtnLabel: {
+    fontSize: Typography.sm,
+    fontWeight: Typography.bold,
     color: Colors.textPrimary,
+    marginBottom: 2,
+  },
+  quickBtnSub: {
+    fontSize: Typography.xs,
+    color: Colors.textSecondary,
+    textAlign: 'center',
   },
 });
 

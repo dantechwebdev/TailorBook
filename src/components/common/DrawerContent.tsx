@@ -14,6 +14,7 @@ import {
   CustomersIcon,
   JobsIcon,
   NotificationsIcon,
+  ClockIcon,
   AccountIcon,
   SubscriptionIcon,
   HelpIcon,
@@ -53,6 +54,13 @@ const DrawerContent: React.FC<DrawerContentComponentProps> = (props) => {
       label: 'Jobs',
       icon: (active: boolean) => (
         <JobsIcon size={20} color={active ? Colors.primaryLight : Colors.drawerTextMuted} />
+      ),
+    },
+    {
+      key: 'ScheduleScreen',
+      label: 'Schedule',
+      icon: (active: boolean) => (
+        <ClockIcon size={20} color={active ? Colors.primaryLight : Colors.drawerTextMuted} />
       ),
     },
     {

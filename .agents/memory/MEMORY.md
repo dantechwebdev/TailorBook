@@ -1,0 +1,3 @@
+- [Build workflow](build-workflow.md) — must run `npx expo export:web` then restart "Start application" workflow after every code change
+- [NewOrderFlow steps](neworderflow-steps.md) — 6 steps: Customer→Garment→Measurements→Delivery→Payment→Review; OrderDraft has draftMeasurement field
+- [Build prompt authority](build-prompt.md) — attached_assets/Build_prompt_1782663196572.md is constitutional; vision always wins over code

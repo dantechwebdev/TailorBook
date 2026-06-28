@@ -15,6 +15,7 @@ import NewOrderFlow from '../screens/jobs/NewOrderFlow/index';
 import JobEditScreen from '../screens/jobs/JobEditScreen';
 import MeasurementFormScreen from '../screens/measurements/MeasurementFormScreen';
 import NotificationsScreen from '../screens/notifications/NotificationsScreen';
+import ScheduleScreen from '../screens/schedule/ScheduleScreen';
 import AccountScreen from '../screens/settings/AccountScreen';
 import SubscriptionScreen from '../screens/settings/SubscriptionScreen';
 import HelpScreen from '../screens/settings/HelpScreen';
@@ -75,6 +76,7 @@ const AppNavigator: React.FC = () => {
       <Drawer.Screen name="HomeTab" component={HomeStackNav} />
       <Drawer.Screen name="CustomersStack" component={CustomerStackNav} />
       <Drawer.Screen name="JobsStack" component={JobStackNav} />
+      <Drawer.Screen name="ScheduleScreen" component={ScheduleScreen} />
       <Drawer.Screen name="NotificationsScreen" component={NotificationsScreen} />
       <Drawer.Screen name="AccountScreen" component={AccountScreen} />
       <Drawer.Screen name="SubscriptionScreen" component={SubscriptionScreen} />

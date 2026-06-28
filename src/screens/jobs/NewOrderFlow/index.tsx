@@ -9,14 +9,21 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Colors, Typography, Spacing, Radius } from '../../../constants/theme';
 import { BackIcon } from '../../../components/common/Icons';
-import { Customer, DeliveryType, OutfitType } from '../../../types';
+import { Customer, DeliveryType, MeasurementTemplate, OutfitType } from '../../../types';
 import StepCustomer from './StepCustomer';
 import StepGarment from './StepGarment';
+import StepMeasurements from './StepMeasurements';
 import StepDelivery from './StepDelivery';
 import StepPayment from './StepPayment';
 import StepReview from './StepReview';
 
 // ─── Flow State ───────────────────────────────────────────────────────────────
+
+export interface DraftMeasurement {
+  template: MeasurementTemplate;
+  data: Record<string, string>;
+  label: string;
+}
 
 export interface OrderDraft {
   customer: Customer | null;
@@ -33,6 +40,7 @@ export interface OrderDraft {
   deposit: string;
   notes: string;
   measurementId: string;
+  draftMeasurement: DraftMeasurement | null;
 }
 
 const INITIAL_DRAFT: OrderDraft = {
@@ -50,9 +58,10 @@ const INITIAL_DRAFT: OrderDraft = {
   deposit: '',
   notes: '',
   measurementId: '',
+  draftMeasurement: null,
 };
 
-const STEPS = ['Customer', 'Garment', 'Delivery', 'Payment', 'Review'];
+const STEPS = ['Customer', 'Garment', 'Measurements', 'Delivery', 'Payment', 'Review'];
 
 // ─── NewOrderFlow ─────────────────────────────────────────────────────────────
 
@@ -101,13 +110,17 @@ const NewOrderFlow: React.FC = () => {
         );
       case 2:
         return (
-          <StepDelivery draft={draft} onChange={updateDraft} onNext={goNext} />
+          <StepMeasurements draft={draft} onChange={updateDraft} onNext={goNext} />
         );
       case 3:
         return (
-          <StepPayment draft={draft} onChange={updateDraft} onNext={goNext} />
+          <StepDelivery draft={draft} onChange={updateDraft} onNext={goNext} />
         );
       case 4:
+        return (
+          <StepPayment draft={draft} onChange={updateDraft} onNext={goNext} />
+        );
+      case 5:
         return (
           <StepReview
             draft={draft}

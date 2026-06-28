@@ -29,7 +29,7 @@ function formatDate(iso: string): string {
 }
 
 const StepReview: React.FC<Props> = ({ draft, onDone }) => {
-  const { addCustomer, addJob } = useStore();
+  const { addCustomer, addJob, addMeasurement } = useStore();
   const [isCreating, setIsCreating] = useState(false);
 
   const customerName = draft.isNewCustomer
@@ -42,6 +42,8 @@ const StepReview: React.FC<Props> = ({ draft, onDone }) => {
   const price = parseFloat(draft.price.replace(/,/g, '')) || 0;
   const deposit = parseFloat(draft.deposit.replace(/,/g, '')) || 0;
   const balance = Math.max(0, price - deposit);
+
+  const hasMeasurements = !!(draft.measurementId || draft.draftMeasurement);
 
   const handleCreate = async () => {
     setIsCreating(true);
@@ -63,6 +65,18 @@ const StepReview: React.FC<Props> = ({ draft, onDone }) => {
         return;
       }
 
+      // Create inline measurements if recorded during the flow
+      let resolvedMeasurementId = draft.measurementId || undefined;
+      if (!resolvedMeasurementId && draft.draftMeasurement) {
+        const m = await addMeasurement({
+          customerId: resolvedCustomer.id,
+          template: draft.draftMeasurement.template,
+          data: draft.draftMeasurement.data,
+          label: draft.draftMeasurement.label,
+        });
+        resolvedMeasurementId = m.id;
+      }
+
       const job = await addJob({
         customerId: resolvedCustomer.id,
         customerName: resolvedCustomer.name,
@@ -77,7 +91,7 @@ const StepReview: React.FC<Props> = ({ draft, onDone }) => {
         deposit,
         balance,
         status: 'Pending',
-        measurementId: draft.measurementId || undefined,
+        measurementId: resolvedMeasurementId,
         notes: draft.notes || undefined,
       });
 
@@ -121,11 +135,25 @@ const StepReview: React.FC<Props> = ({ draft, onDone }) => {
 
         <View style={styles.divider} />
 
+        <ReviewSection title="Measurements">
+          {hasMeasurements ? (
+            <ReviewRow
+              label="Status"
+              value={draft.draftMeasurement ? `Recorded (${draft.draftMeasurement.label})` : 'Selected from saved'}
+              valueColor={Colors.ready}
+            />
+          ) : (
+            <ReviewRow label="Status" value="Not recorded — add later" valueColor={Colors.textTertiary} />
+          )}
+        </ReviewSection>
+
+        <View style={styles.divider} />
+
         <ReviewSection title="Delivery">
           <ReviewRow label="Due Date" value={formatDate(draft.deliveryDate)} />
           <ReviewRow
             label="Method"
-            value={draft.deliveryType === 'waybill' ? '📦 Waybill' : '🏪 Pickup'}
+            value={draft.deliveryType === 'waybill' ? 'Waybill' : 'Pickup from Shop'}
           />
           {draft.deliveryType === 'waybill' && draft.deliveryAddress ? (
             <ReviewRow label="Destination" value={draft.deliveryAddress} />
@@ -158,13 +186,13 @@ const StepReview: React.FC<Props> = ({ draft, onDone }) => {
 
       {/* ─── AI Suggestion (simulated, visible-inert) ─── */}
       <View style={styles.aiCard}>
-        <Text style={styles.aiLabel}>🤖 AI Suggestion</Text>
+        <Text style={styles.aiLabel}>AI Suggestion</Text>
         <Text style={styles.aiText}>
-          Based on {draft.outfitType} orders of similar value, typical completion time is{' '}
+          Based on {draft.outfitType || 'this garment'} orders of similar value, typical completion time is{' '}
           <Text style={{ fontWeight: Typography.bold }}>10–14 days</Text>. Delivery looks
           achievable on schedule.
         </Text>
-        <Text style={styles.aiDisclaimer}>AI insights · Coming fully in next update</Text>
+        <Text style={styles.aiDisclaimer}>AI insights · Simulated — full AI coming in next update</Text>
       </View>
 
       {/* ─── Create Button ─── */}
@@ -178,7 +206,7 @@ const StepReview: React.FC<Props> = ({ draft, onDone }) => {
           {isCreating ? (
             <ActivityIndicator color={Colors.white} />
           ) : (
-            <Text style={styles.createBtnText}>✓ Create Order</Text>
+            <Text style={styles.createBtnText}>Create Order</Text>
           )}
         </TouchableOpacity>
         <Text style={styles.footerHint}>Job will appear in your workbench immediately</Text>
@@ -279,7 +307,6 @@ const styles = StyleSheet.create({
   divider: { height: 1, backgroundColor: Colors.borderLight, marginVertical: Spacing.md },
   notesText: { fontSize: Typography.sm, color: Colors.textSecondary, lineHeight: 20 },
 
-  // AI Card
   aiCard: {
     marginHorizontal: Spacing.base,
     marginTop: Spacing.lg,
