@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "sr2UmreNqukNR1aAMgbDS"
+uri = "file://TAILORBOOK_ENGINEERING_BIBLE.txt"
+type = "text"
+title = "TailorBook Engineering Bible v1.0"

@@ -1,0 +1,98 @@
+PRODUCT_VISION.txt
+
+TAILORBOOK — PRODUCT VISION
+
+1. CORE IDENTITY
+TailorBook is an offline-first workshop assistant for tailors.
+It is NOT a marketplace.
+It is NOT a customer-facing platform.
+It is a private operational tool for tailoring businesses.
+
+2. CORE PRINCIPLE
+The tailor should never struggle to remember what to do next.
+TailorBook exists to reduce memory load and decision fatigue.
+
+3. CUSTOMER STRATEGY
+Customers never install TailorBook.
+All customer communication happens through WhatsApp or external channels.
+TailorBook remains invisible to customers.
+
+4. UX PHILOSOPHY
+- Touch more than type
+- Guided workflows instead of forms
+- One primary action per screen
+- Progressive disclosure (show only what is needed now)
+- Context before action
+
+5. HOME SCREEN ROLE
+The Home screen is a launch pad.
+It shows today's tasks, not analytics or clutter.
+It exists to orient the tailor quickly.
+
+6. JOB SCREEN ROLE
+The Job screen is the workspace.
+It is where execution happens:
+- Status updates
+- Measurements
+- Payments
+- Notifications
+- Delivery actions
+
+7. WORKFLOW PHILOSOPHY
+Everything is guided.
+No overwhelming forms.
+No unnecessary inputs.
+The system leads the tailor step-by-step.
+
+8. DELIVERY MODEL
+Two delivery types:
+- Pick up from shop
+- Waybill delivery (courier/transport)
+
+Notifications and workflows adapt automatically based on selection.
+
+9. NOTIFICATION PHILOSOPHY
+Notifications are instructions, not reminders.
+They tell the tailor exactly what to do:
+Example:
+"📦 Waybill Daniel → Port Harcourt Today"
+
+One action only: OPEN
+
+10. WHATSAPP INTEGRATION
+WhatsApp is the customer communication layer.
+TailorBook generates messages.
+The tailor sends them.
+Customers never need the app.
+
+11. MEMORY ASSUMPTION
+Tailors forget details frequently.
+The system must always surface:
+- Who
+- What
+- When
+- Where
+- Delivery type
+
+12. DESIGN PHILOSOPHY
+- Minimal UI
+- No clutter
+- Clean spacing
+- Action-first design
+- Calm Home screen, focused Job screen
+
+13. PRODUCT GOAL
+To become the operating system for tailoring businesses:
+- Manage work
+- Reduce forgetfulness
+- Improve delivery accuracy
+- Increase customer satisfaction
+
+14. FUTURE DIRECTION
+- AI design assistant (optional premium)
+- Outfit generation from past work
+- Mannequin-based visualization
+- Smart recommendations
+- Cloud backup (optional)
+
+END
