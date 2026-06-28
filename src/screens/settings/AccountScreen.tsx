@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,16 +7,50 @@ import {
   ScrollView,
   Alert,
   Switch,
+  TextInput,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../constants/theme';
-import { AccountIcon, NotificationsIcon, HelpIcon, LogoutIcon, SubscriptionIcon } from '../../components/common/Icons';
-import { Avatar, Card, Divider } from '../../components/common/UI';
+import { LogoutIcon } from '../../components/common/Icons';
+import { Avatar, Card, Divider, Button } from '../../components/common/UI';
 import { useStore } from '../../context/store';
+import { TailorSettings } from '../../types';
 
 const AccountScreen: React.FC = () => {
-  const { jobs, customers } = useStore();
+  const { jobs, customers, settings, loadSettings, saveSettings } = useStore();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [editingProfile, setEditingProfile] = useState(false);
+
+  const [form, setForm] = useState<TailorSettings>({
+    tailorName: '',
+    shopName: '',
+    phone: '',
+    location: '',
+    currency: '₦',
+  });
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  useEffect(() => {
+    if (settings) {
+      setForm({
+        tailorName: settings.tailorName || '',
+        shopName: settings.shopName || '',
+        phone: settings.phone || '',
+        location: settings.location || '',
+        currency: settings.currency || '₦',
+      });
+    }
+  }, [settings]);
+
+  const handleSaveProfile = async () => {
+    await saveSettings(form);
+    setEditingProfile(false);
+    Alert.alert('Saved', 'Your profile has been updated.');
+  };
 
   const handleLogout = () => {
     Alert.alert('Log out', 'Are you sure you want to log out?', [
@@ -25,6 +59,10 @@ const AccountScreen: React.FC = () => {
     ]);
   };
 
+  const displayName = settings?.shopName || settings?.tailorName || 'My Shop';
+  const displayRole = settings?.tailorName || 'Tailor';
+  const displayLocation = settings?.location || 'Nigeria';
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
@@ -32,15 +70,21 @@ const AccountScreen: React.FC = () => {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-        {/* ─── Profile ─── */}
+        {/* ─── Profile Card ─── */}
         <Card style={styles.profileCard}>
           <View style={styles.profileRow}>
-            <Avatar name="Tunde Stitches" size={60} />
+            <Avatar name={displayName} size={60} />
             <View style={styles.profileInfo}>
-              <Text style={styles.profileName}>Tunde Stitches</Text>
-              <Text style={styles.profileRole}>Independent Tailor</Text>
-              <Text style={styles.profileLocation}>Lagos, Nigeria</Text>
+              <Text style={styles.profileName}>{displayName}</Text>
+              <Text style={styles.profileRole}>{displayRole}</Text>
+              <Text style={styles.profileLocation}>{displayLocation}</Text>
             </View>
+            <TouchableOpacity
+              onPress={() => setEditingProfile(true)}
+              style={styles.editProfileBtn}
+            >
+              <Text style={styles.editProfileText}>Edit</Text>
+            </TouchableOpacity>
           </View>
           <Divider style={{ marginVertical: Spacing.md }} />
           <View style={styles.statsRow}>
@@ -55,7 +99,7 @@ const AccountScreen: React.FC = () => {
           </View>
         </Card>
 
-        {/* ─── Settings Sections ─── */}
+        {/* ─── Preferences ─── */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Preferences</Text>
           <Card padding={0}>
@@ -80,6 +124,7 @@ const AccountScreen: React.FC = () => {
           </Card>
         </View>
 
+        {/* ─── Subscription ─── */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Subscription</Text>
           <Card>
@@ -98,6 +143,7 @@ const AccountScreen: React.FC = () => {
           </Card>
         </View>
 
+        {/* ─── Support ─── */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Support</Text>
           <Card padding={0}>
@@ -125,16 +171,68 @@ const AccountScreen: React.FC = () => {
         </View>
 
         <Text style={styles.versionText}>TailorBook v1.0.0 · Made for African tailors</Text>
-
         <View style={{ height: Spacing.xxxl }} />
       </ScrollView>
+
+      {/* ─── Edit Profile Modal ─── */}
+      <Modal visible={editingProfile} animationType="slide" presentationStyle="pageSheet">
+        <SafeAreaView style={styles.modalContainer} edges={['top', 'bottom']}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setEditingProfile(false)}>
+              <Text style={styles.modalCancel}>Cancel</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Edit Profile</Text>
+            <TouchableOpacity onPress={handleSaveProfile}>
+              <Text style={styles.modalSave}>Save</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalScroll} keyboardShouldPersistTaps="handled">
+            <View style={styles.modalHint}>
+              <Text style={styles.modalHintText}>
+                Your name will appear on the home screen and drawer menu.
+              </Text>
+            </View>
+
+            <ProfileField
+              label="Your Name"
+              placeholder="e.g. Tunde Balogun"
+              value={form.tailorName}
+              onChangeText={(v) => setForm((f) => ({ ...f, tailorName: v }))}
+            />
+            <ProfileField
+              label="Shop Name"
+              placeholder="e.g. Tunde Stitches"
+              value={form.shopName}
+              onChangeText={(v) => setForm((f) => ({ ...f, shopName: v }))}
+            />
+            <ProfileField
+              label="Phone Number"
+              placeholder="e.g. 0811 234 5678"
+              value={form.phone}
+              onChangeText={(v) => setForm((f) => ({ ...f, phone: v }))}
+              keyboardType="phone-pad"
+            />
+            <ProfileField
+              label="Location"
+              placeholder="e.g. Lagos, Nigeria"
+              value={form.location}
+              onChangeText={(v) => setForm((f) => ({ ...f, location: v }))}
+            />
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 };
 
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
 const StatItem: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <View style={{ alignItems: 'center', flex: 1 }}>
-    <Text style={{ fontSize: Typography.xl, fontWeight: Typography.bold, color: Colors.primary }}>{value}</Text>
+    <Text style={{ fontSize: Typography.xl, fontWeight: Typography.bold, color: Colors.primary }}>
+      {value}
+    </Text>
     <Text style={{ fontSize: Typography.xs, color: Colors.textTertiary, marginTop: 2 }}>{label}</Text>
   </View>
 );
@@ -159,30 +257,51 @@ const SettingRow: React.FC<{
   </TouchableOpacity>
 );
 
+const ProfileField: React.FC<{
+  label: string;
+  placeholder: string;
+  value: string;
+  onChangeText: (v: string) => void;
+  keyboardType?: any;
+}> = ({ label, placeholder, value, onChangeText, keyboardType }) => (
+  <View style={styles.profileField}>
+    <Text style={styles.fieldLabel}>{label}</Text>
+    <TextInput
+      style={styles.fieldInput}
+      placeholder={placeholder}
+      placeholderTextColor={Colors.textTertiary}
+      value={value}
+      onChangeText={onChangeText}
+      keyboardType={keyboardType || 'default'}
+      autoCapitalize="words"
+    />
+  </View>
+);
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.md,
-  },
-  headerTitle: {
-    fontSize: Typography.xl,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-  },
+  header: { paddingHorizontal: Spacing.base, paddingVertical: Spacing.md },
+  headerTitle: { fontSize: Typography.xl, fontWeight: Typography.bold, color: Colors.textPrimary },
   scroll: { paddingHorizontal: Spacing.base },
+
   profileCard: { marginBottom: Spacing.xl },
   profileRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   profileInfo: { flex: 1 },
-  profileName: {
-    fontSize: Typography.lg,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-  },
+  profileName: { fontSize: Typography.lg, fontWeight: Typography.bold, color: Colors.textPrimary },
   profileRole: { fontSize: Typography.sm, color: Colors.textSecondary, marginTop: 2 },
   profileLocation: { fontSize: Typography.xs, color: Colors.textTertiary, marginTop: 2 },
+  editProfileBtn: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radius.lg,
+    backgroundColor: Colors.primaryFaint,
+  },
+  editProfileText: { fontSize: Typography.sm, color: Colors.primary, fontWeight: Typography.semibold },
   statsRow: { flexDirection: 'row' },
   statDivider: { width: 1, backgroundColor: Colors.borderLight },
+
   section: { marginBottom: Spacing.xl },
   sectionLabel: {
     fontSize: Typography.xs,
@@ -198,47 +317,65 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: Spacing.base,
   },
-  settingLabel: {
-    fontSize: Typography.base,
-    color: Colors.textPrimary,
-    fontWeight: Typography.medium,
-  },
-  settingSubtitle: {
-    fontSize: Typography.xs,
-    color: Colors.textTertiary,
-    marginTop: 2,
-  },
+  settingLabel: { fontSize: Typography.base, color: Colors.textPrimary, fontWeight: Typography.medium },
+  settingSubtitle: { fontSize: Typography.xs, color: Colors.textTertiary, marginTop: 2 },
+
   planRow: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.md },
   planBadge: {
-    backgroundColor: Colors.borderLight,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: Radius.full,
+    backgroundColor: Colors.borderLight, paddingHorizontal: 10,
+    paddingVertical: 4, borderRadius: Radius.full,
   },
-  planBadgeText: {
-    fontSize: Typography.xs,
-    fontWeight: Typography.bold,
-    color: Colors.textSecondary,
-    letterSpacing: 1,
-  },
+  planBadgeText: { fontSize: Typography.xs, fontWeight: Typography.bold, color: Colors.textSecondary, letterSpacing: 1 },
   planName: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textPrimary },
   planDesc: { fontSize: Typography.xs, color: Colors.textTertiary, marginTop: 2 },
   upgradeBtn: {
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.md,
-    paddingVertical: 12,
-    alignItems: 'center',
+    backgroundColor: Colors.primary, borderRadius: Radius.md,
+    paddingVertical: 12, alignItems: 'center',
   },
-  upgradeText: {
-    color: Colors.white,
+  upgradeText: { color: Colors.white, fontSize: Typography.sm, fontWeight: Typography.semibold },
+
+  versionText: {
+    textAlign: 'center', fontSize: Typography.xs,
+    color: Colors.textTertiary, marginBottom: Spacing.md,
+  },
+
+  // Edit modal
+  modalContainer: { flex: 1, backgroundColor: Colors.background },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  modalTitle: { fontSize: Typography.md, fontWeight: Typography.bold, color: Colors.textPrimary },
+  modalCancel: { fontSize: Typography.base, color: Colors.textSecondary },
+  modalSave: { fontSize: Typography.base, color: Colors.primary, fontWeight: Typography.bold },
+  modalScroll: { flex: 1, padding: Spacing.base },
+  modalHint: {
+    backgroundColor: Colors.primaryFaint,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.xl,
+  },
+  modalHintText: { fontSize: Typography.sm, color: Colors.primary, lineHeight: 20 },
+  profileField: { marginBottom: Spacing.lg },
+  fieldLabel: {
     fontSize: Typography.sm,
     fontWeight: Typography.semibold,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.sm,
   },
-  versionText: {
-    textAlign: 'center',
-    fontSize: Typography.xs,
-    color: Colors.textTertiary,
-    marginBottom: Spacing.md,
+  fieldInput: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.lg,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.md,
+    fontSize: Typography.base,
+    color: Colors.textPrimary,
+    ...Shadow.sm,
   },
 });
 

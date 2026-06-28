@@ -7,11 +7,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
-import {
-  DrawerContentScrollView,
-  DrawerContentComponentProps,
-} from '@react-navigation/drawer';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { DrawerContentComponentProps } from '@react-navigation/drawer';
 import { Colors, Typography, Spacing, Radius } from '../../constants/theme';
 import {
   HomeIcon,
@@ -30,14 +26,17 @@ import { useStore } from '../../context/store';
 
 const DrawerContent: React.FC<DrawerContentComponentProps> = (props) => {
   const { navigation, state } = props;
-  const { unreadNotificationCount } = useStore();
+  const { unreadNotificationCount, settings } = useStore();
 
   const currentRoute = state.routeNames[state.index];
+
+  const shopName = settings?.shopName || 'My Shop';
+  const tailorName = settings?.tailorName || 'Tailor';
 
   const navItems = [
     {
       key: 'HomeTab',
-      label: 'Dashboard',
+      label: 'Home',
       icon: (active: boolean) => (
         <HomeIcon size={20} color={active ? Colors.primaryLight : Colors.drawerTextMuted} />
       ),
@@ -102,16 +101,17 @@ const DrawerContent: React.FC<DrawerContentComponentProps> = (props) => {
           <ScissorsIcon size={28} color={Colors.white} />
         </View>
         <View style={styles.headerText}>
-          <Text style={styles.shopName}>Tunde Stitches</Text>
-          <Text style={styles.shopRole}>Tailor</Text>
+          <Text style={styles.shopName} numberOfLines={1}>
+            {shopName}
+          </Text>
+          <Text style={styles.shopRole} numberOfLines={1}>
+            {tailorName}
+          </Text>
         </View>
       </View>
 
       {/* ─── Navigation Items ─── */}
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.navList}
-      >
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.navList}>
         {navItems.map((item) => {
           const isActive = currentRoute === item.key;
           return (
@@ -134,10 +134,8 @@ const DrawerContent: React.FC<DrawerContentComponentProps> = (props) => {
           );
         })}
 
-        {/* ─── Divider ─── */}
         <View style={styles.divider} />
 
-        {/* ─── Logout ─── */}
         <TouchableOpacity onPress={handleLogout} activeOpacity={0.8} style={styles.navItem}>
           <LogoutIcon size={20} color="#FF6B6B" />
           <Text style={[styles.navLabel, { color: '#FF6B6B' }]}>Log out</Text>
@@ -147,17 +145,14 @@ const DrawerContent: React.FC<DrawerContentComponentProps> = (props) => {
       {/* ─── Footer ─── */}
       <View style={styles.footer}>
         <Text style={styles.footerText}>TailorBook v1.0</Text>
-        <Text style={styles.footerSub}>Your digital customer book</Text>
+        <Text style={styles.footerSub}>Your digital workshop assistant</Text>
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.drawerBg,
-  },
+  container: { flex: 1, backgroundColor: Colors.drawerBg },
   header: {
     paddingTop: 60,
     paddingBottom: Spacing.xl,
@@ -169,87 +164,31 @@ const styles = StyleSheet.create({
     borderBottomColor: '#FFFFFF15',
   },
   avatarWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 52, height: 52, borderRadius: 26,
     backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
   },
-  headerText: {
-    flex: 1,
-  },
-  shopName: {
-    color: Colors.drawerText,
-    fontSize: Typography.md,
-    fontWeight: Typography.bold,
-  },
-  shopRole: {
-    color: Colors.drawerTextMuted,
-    fontSize: Typography.sm,
-    marginTop: 2,
-  },
-  navList: {
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.md,
-  },
+  headerText: { flex: 1 },
+  shopName: { color: Colors.drawerText, fontSize: Typography.md, fontWeight: Typography.bold },
+  shopRole: { color: Colors.drawerTextMuted, fontSize: Typography.sm, marginTop: 2 },
+  navList: { paddingVertical: Spacing.md, paddingHorizontal: Spacing.md },
   navItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 13,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Radius.md,
-    marginBottom: 2,
-    gap: Spacing.md,
+    flexDirection: 'row', alignItems: 'center',
+    paddingVertical: 13, paddingHorizontal: Spacing.md,
+    borderRadius: Radius.md, marginBottom: 2, gap: Spacing.md,
   },
-  navItemActive: {
-    backgroundColor: Colors.drawerActive,
-  },
-  navLabel: {
-    flex: 1,
-    fontSize: Typography.base,
-    color: Colors.drawerTextMuted,
-    fontWeight: Typography.medium,
-  },
-  navLabelActive: {
-    color: Colors.drawerText,
-    fontWeight: Typography.semibold,
-  },
+  navItemActive: { backgroundColor: Colors.drawerActive },
+  navLabel: { flex: 1, fontSize: Typography.base, color: Colors.drawerTextMuted, fontWeight: Typography.medium },
+  navLabelActive: { color: Colors.drawerText, fontWeight: Typography.semibold },
   navBadge: {
-    backgroundColor: Colors.overdue,
-    minWidth: 20,
-    height: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 6,
+    backgroundColor: Colors.overdue, minWidth: 20, height: 20,
+    borderRadius: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6,
   },
-  navBadgeText: {
-    color: Colors.white,
-    fontSize: 11,
-    fontWeight: Typography.bold,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#FFFFFF15',
-    marginVertical: Spacing.md,
-  },
-  footer: {
-    padding: Spacing.base,
-    borderTopWidth: 1,
-    borderTopColor: '#FFFFFF10',
-    paddingBottom: 32,
-  },
-  footerText: {
-    color: Colors.drawerTextMuted,
-    fontSize: Typography.xs,
-    fontWeight: Typography.medium,
-  },
-  footerSub: {
-    color: '#FFFFFF30',
-    fontSize: 10,
-    marginTop: 2,
-  },
+  navBadgeText: { color: Colors.white, fontSize: 11, fontWeight: Typography.bold },
+  divider: { height: 1, backgroundColor: '#FFFFFF15', marginVertical: Spacing.md },
+  footer: { padding: Spacing.base, borderTopWidth: 1, borderTopColor: '#FFFFFF10', paddingBottom: 32 },
+  footerText: { color: Colors.drawerTextMuted, fontSize: Typography.xs, fontWeight: Typography.medium },
+  footerSub: { color: '#FFFFFF30', fontSize: 10, marginTop: 2 },
 });
 
 export default DrawerContent;

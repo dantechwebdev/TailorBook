@@ -11,7 +11,7 @@ import CustomerCreateScreen from '../screens/customers/CustomerCreateScreen';
 import CustomerEditScreen from '../screens/customers/CustomerEditScreen';
 import JobListScreen from '../screens/jobs/JobListScreen';
 import JobDetailScreen from '../screens/jobs/JobDetailScreen';
-import JobCreateScreen from '../screens/jobs/JobCreateScreen';
+import NewOrderFlow from '../screens/jobs/NewOrderFlow/index';
 import JobEditScreen from '../screens/jobs/JobEditScreen';
 import MeasurementFormScreen from '../screens/measurements/MeasurementFormScreen';
 import NotificationsScreen from '../screens/notifications/NotificationsScreen';
@@ -41,7 +41,7 @@ const CustomerStackNav = () => (
     <CustomerStack.Screen name="CustomerDetail" component={CustomerDetailScreen} />
     <CustomerStack.Screen name="CustomerCreate" component={CustomerCreateScreen} />
     <CustomerStack.Screen name="CustomerEdit" component={CustomerEditScreen} />
-    <CustomerStack.Screen name="JobCreate" component={JobCreateScreen} />
+    <CustomerStack.Screen name="NewOrderFlow" component={NewOrderFlow} />
     <CustomerStack.Screen name="JobDetail" component={JobDetailScreen} />
     <CustomerStack.Screen name="MeasurementForm" component={MeasurementFormScreen} />
   </CustomerStack.Navigator>
@@ -51,7 +51,7 @@ const JobStackNav = () => (
   <JobStack.Navigator screenOptions={{ headerShown: false }}>
     <JobStack.Screen name="JobList" component={JobListScreen} />
     <JobStack.Screen name="JobDetail" component={JobDetailScreen} />
-    <JobStack.Screen name="JobCreate" component={JobCreateScreen} />
+    <JobStack.Screen name="NewOrderFlow" component={NewOrderFlow} />
     <JobStack.Screen name="JobEdit" component={JobEditScreen} />
     <JobStack.Screen name="CustomerDetail" component={CustomerDetailScreen} />
     <JobStack.Screen name="MeasurementForm" component={MeasurementFormScreen} />

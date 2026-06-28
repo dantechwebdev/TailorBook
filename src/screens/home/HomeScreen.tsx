@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -6,51 +6,152 @@ import {
   TouchableOpacity,
   StyleSheet,
   RefreshControl,
-  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { useStore } from '../../context/store';
-import { Colors, Typography, Spacing, Radius, Shadow } from '../../constants/theme';
+import { Colors, Typography, Spacing, Radius, Shadow, JOB_STATUS_CONFIG } from '../../constants/theme';
 import {
   MenuIcon,
   NotificationsIcon,
-  UserPlusIcon,
-  BriefcasePlusIcon,
-  ClockIcon,
-  JobsIcon,
   ChevronRightIcon,
+  JobsIcon,
 } from '../../components/common/Icons';
-import { Avatar, StatusBadge, SectionHeader, EmptyState } from '../../components/common/UI';
-import {
-  getGreeting,
-  formatDeliveryDate,
-  getFirstName,
-  formatNaira,
-} from '../../utils/helpers';
-import { JOB_STATUS_CONFIG } from '../../constants/theme';
+import { Avatar, StatusBadge } from '../../components/common/UI';
+import { getFirstName, formatNaira } from '../../utils/helpers';
 import { Job } from '../../types';
 
-// ─── Home Screen ───────────────────────────────────────────────────────────────
+// ─── Task derivation ─────────────────────────────────────────────────────────
+
+interface Task {
+  id: string;
+  label: string;
+  subLabel?: string;
+  urgency: 'critical' | 'warning' | 'action' | 'info';
+  job: Job;
+}
+
+function buildTodayTasks(
+  overdueJobs: Job[],
+  dueToday: Job[],
+  readyJobs: Job[]
+): Task[] {
+  const tasks: Task[] = [];
+  const seen = new Set<string>();
+
+  // 1. Overdue — most urgent
+  for (const job of overdueJobs) {
+    if (seen.has(job.id)) continue;
+    seen.add(job.id);
+    tasks.push({
+      id: job.id,
+      label: `${getFirstName(job.customerName)}'s ${job.outfitType} is overdue`,
+      subLabel: 'Resolve immediately',
+      urgency: 'critical',
+      job,
+    });
+  }
+
+  // 2. Due today — in progress
+  for (const job of dueToday) {
+    if (seen.has(job.id)) continue;
+    seen.add(job.id);
+
+    if (job.status === 'Ready') {
+      if (job.deliveryType === 'waybill') {
+        tasks.push({
+          id: job.id,
+          label: `Dispatch ${getFirstName(job.customerName)}'s ${job.outfitType}`,
+          subLabel: `Waybill → ${job.deliveryAddress || 'destination'}`,
+          urgency: 'action',
+          job,
+        });
+      } else {
+        tasks.push({
+          id: job.id,
+          label: `${getFirstName(job.customerName)} Pickup Today`,
+          subLabel: `${job.outfitType} is ready`,
+          urgency: 'action',
+          job,
+        });
+      }
+    } else {
+      tasks.push({
+        id: job.id,
+        label: `Finish ${getFirstName(job.customerName)}'s ${job.outfitType}`,
+        subLabel: `Due today · ${job.status}`,
+        urgency: 'warning',
+        job,
+      });
+    }
+  }
+
+  // 3. Ready jobs not in today's due list
+  for (const job of readyJobs) {
+    if (seen.has(job.id)) continue;
+    seen.add(job.id);
+
+    if (job.deliveryType === 'waybill') {
+      tasks.push({
+        id: job.id,
+        label: `Dispatch ${getFirstName(job.customerName)}'s ${job.outfitType}`,
+        subLabel: `Waybill ready to send`,
+        urgency: 'action',
+        job,
+      });
+    } else {
+      tasks.push({
+        id: job.id,
+        label: `Notify ${getFirstName(job.customerName)} — ready for pickup`,
+        subLabel: `${job.outfitType} · ${job.balance > 0 ? formatNaira(job.balance) + ' balance' : 'Fully paid'}`,
+        urgency: 'action',
+        job,
+      });
+    }
+  }
+
+  // 4. Balance collection reminders (ready with outstanding balance — deduplicated)
+  for (const job of readyJobs) {
+    if (job.balance > 0) {
+      const balId = `bal_${job.id}`;
+      if (seen.has(balId)) continue;
+      seen.add(balId);
+      tasks.push({
+        id: balId,
+        label: `Collect ${formatNaira(job.balance)} from ${getFirstName(job.customerName)}`,
+        subLabel: `Balance on ${job.outfitType}`,
+        urgency: 'info',
+        job,
+      });
+    }
+  }
+
+  return tasks;
+}
+
+// ─── Home Screen ─────────────────────────────────────────────────────────────
 
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const {
-    customers,
     dueToday,
     overdueJobs,
     pendingJobs,
+    readyJobs,
     recentJobs,
     unreadNotificationCount,
+    settings,
     isLoading,
     initialize,
     refreshJobs,
+    loadSettings,
   } = useStore();
 
   const [refreshing, setRefreshing] = React.useState(false);
 
   useEffect(() => {
     initialize();
+    loadSettings();
   }, []);
 
   const onRefresh = useCallback(async () => {
@@ -59,8 +160,23 @@ const HomeScreen: React.FC = () => {
     setRefreshing(false);
   }, []);
 
-  // Get first customer name for greeting (placeholder)
-  const tailorName = 'Chinedu'; // In production: pull from settings
+  const tasks = useMemo(
+    () => buildTodayTasks(overdueJobs, dueToday, readyJobs),
+    [overdueJobs, dueToday, readyJobs]
+  );
+
+  const tailorName = settings?.tailorName || 'Tailor';
+  const today = new Date().toLocaleDateString('en-NG', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
+
+  const goToJob = (jobId: string) =>
+    navigation.navigate('JobsStack', { screen: 'JobDetail', params: { jobId } });
+
+  const startNewOrder = () =>
+    navigation.navigate('JobsStack', { screen: 'NewOrderFlow', params: {} });
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -73,6 +189,10 @@ const HomeScreen: React.FC = () => {
         >
           <MenuIcon size={22} color={Colors.textPrimary} />
         </TouchableOpacity>
+
+        <View style={styles.topBarCenter}>
+          <Text style={styles.topBarDate}>{today}</Text>
+        </View>
 
         <TouchableOpacity
           onPress={() => navigation.navigate('NotificationsScreen')}
@@ -93,216 +213,203 @@ const HomeScreen: React.FC = () => {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={Colors.primary}
+          />
+        }
       >
         {/* ─── Greeting ─── */}
         <View style={styles.greetingBlock}>
-          <Text style={styles.greetingTop}>{getGreeting()},</Text>
-          <Text style={styles.greetingName}>{tailorName} 👋</Text>
-          <Text style={styles.greetingSubtext}>Let's get some jobs done.</Text>
+          <Text style={styles.greetingName}>
+            {tailorName.split(' ')[0]} 👋
+          </Text>
+          <Text style={styles.greetingSubtext}>
+            {tasks.length === 0
+              ? "You're all caught up. Great work!"
+              : `You have ${tasks.length} thing${tasks.length === 1 ? '' : 's'} to handle today.`}
+          </Text>
         </View>
 
-        {/* ─── Quick Action Cards ─── */}
-        <View style={styles.actionRow}>
-          <QuickActionCard
-            icon={<UserPlusIcon size={28} color={Colors.primary} />}
-            label="Register New Customer"
-            color={Colors.primaryFaint}
-            onPress={() => navigation.navigate('CustomersStack', { screen: 'CustomerCreate' })}
-          />
-          <QuickActionCard
-            icon={<BriefcasePlusIcon size={28} color={Colors.accent} />}
-            label="Create New Job"
-            color="#FFF8EC"
-            onPress={() => navigation.navigate('JobsStack', { screen: 'JobCreate' })}
-          />
-        </View>
+        {/* ─── Primary CTA ─── */}
+        <TouchableOpacity
+          onPress={startNewOrder}
+          activeOpacity={0.88}
+          style={styles.newOrderBtn}
+        >
+          <Text style={styles.newOrderPlus}>+</Text>
+          <Text style={styles.newOrderLabel}>Start New Order</Text>
+        </TouchableOpacity>
 
-        {/* ─── Due Today ─── */}
+        {/* ─── Today's Tasks ─── */}
         <View style={styles.section}>
-          <SectionHeader
-            title={`Due Today (${dueToday.length})`}
-            action={
-              dueToday.length > 3
-                ? { label: 'View all', onPress: () => navigation.navigate('JobsStack') }
-                : undefined
-            }
-            style={styles.sectionHeader}
-          />
-          {dueToday.length === 0 ? (
-            <View style={styles.emptyCard}>
-              <Text style={styles.emptyCardText}>No deliveries due today 🎉</Text>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>Today's Tasks</Text>
+            {tasks.length > 0 && (
+              <View style={styles.taskCountBadge}>
+                <Text style={styles.taskCountText}>{tasks.length}</Text>
+              </View>
+            )}
+          </View>
+
+          {tasks.length === 0 ? (
+            <View style={styles.emptyTaskCard}>
+              <Text style={styles.emptyTaskEmoji}>🎉</Text>
+              <Text style={styles.emptyTaskTitle}>Nothing urgent today</Text>
+              <Text style={styles.emptyTaskSubtext}>
+                All jobs are on track. Start a new order when ready.
+              </Text>
             </View>
           ) : (
-            <View style={styles.listCard}>
-              {dueToday.slice(0, 3).map((job, idx) => (
-                <DueTodayItem
-                  key={job.id}
-                  job={job}
-                  last={idx === Math.min(dueToday.length, 3) - 1}
-                  onPress={() =>
-                    navigation.navigate('JobsStack', { screen: 'JobDetail', params: { jobId: job.id } })
-                  }
+            <View style={styles.taskList}>
+              {tasks.map((task, idx) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  isLast={idx === tasks.length - 1}
+                  onPress={() => goToJob(task.job.id)}
                 />
               ))}
             </View>
           )}
         </View>
 
-        {/* ─── Pending Jobs ─── */}
+        {/* ─── Active Jobs Summary ─── */}
         <View style={styles.section}>
-          <SectionHeader title="Pending Jobs" style={styles.sectionHeader} />
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={() => navigation.navigate('JobsStack')}
-            style={[styles.statCard, { backgroundColor: '#FFF8EC' }]}
-          >
-            <BriefcasePlusIcon size={24} color={Colors.accent} />
-            <Text style={[styles.statCount, { color: Colors.accent }]}>{pendingJobs.length} jobs</Text>
-            <ChevronRightIcon size={18} color={Colors.accent} />
-          </TouchableOpacity>
+          <Text style={styles.sectionTitle}>Workbench</Text>
+          <View style={styles.summaryRow}>
+            <SummaryTile
+              count={pendingJobs.length}
+              label="In Progress"
+              color={Colors.primary}
+              bgColor={Colors.primaryFaint}
+              onPress={() => navigation.navigate('JobsStack', { screen: 'JobList' })}
+            />
+            <SummaryTile
+              count={readyJobs.length}
+              label="Ready"
+              color={Colors.ready}
+              bgColor={Colors.readyLight}
+              onPress={() => navigation.navigate('JobsStack', { screen: 'JobList' })}
+            />
+            <SummaryTile
+              count={overdueJobs.length}
+              label="Overdue"
+              color={Colors.overdue}
+              bgColor={Colors.overdueLight}
+              onPress={() => navigation.navigate('JobsStack', { screen: 'JobList' })}
+            />
+          </View>
         </View>
 
-        {/* ─── Overdue Jobs ─── */}
-        {overdueJobs.length > 0 && (
-          <View style={styles.section}>
-            <SectionHeader title="Overdue Jobs" style={styles.sectionHeader} />
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={() => navigation.navigate('JobsStack')}
-              style={[styles.statCard, { backgroundColor: Colors.overdueLight }]}
-            >
-              <ClockIcon size={24} color={Colors.overdue} />
-              <Text style={[styles.statCount, { color: Colors.overdue }]}>
-                {overdueJobs.length} {overdueJobs.length === 1 ? 'job' : 'jobs'}
-              </Text>
-              <ChevronRightIcon size={18} color={Colors.overdue} />
-            </TouchableOpacity>
+        {/* ─── Recent Activity ─── */}
+        {recentJobs.length > 0 && (
+          <View style={[styles.section, { marginBottom: Spacing.xxxl }]}>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>Recent Jobs</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('JobsStack')}>
+                <Text style={styles.viewAllText}>View all</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.recentList}>
+              {recentJobs.slice(0, 4).map((job, idx) => (
+                <RecentJobRow
+                  key={job.id}
+                  job={job}
+                  isLast={idx === Math.min(recentJobs.length, 4) - 1}
+                  onPress={() => goToJob(job.id)}
+                />
+              ))}
+            </View>
           </View>
         )}
 
-        {/* ─── Recent Jobs ─── */}
-        <View style={[styles.section, { marginBottom: Spacing.xxxl }]}>
-          <SectionHeader
-            title="Recent Jobs"
-            action={{ label: 'View all', onPress: () => navigation.navigate('JobsStack') }}
-            style={styles.sectionHeader}
-          />
-          {recentJobs.length === 0 ? (
-            <EmptyState
-              icon={<JobsIcon size={32} color={Colors.primary} />}
-              title="No jobs yet"
-              subtitle="Create your first job to get started"
-              action={{
-                label: 'Create Job',
-                onPress: () => navigation.navigate('JobsStack', { screen: 'JobCreate' }),
-              }}
-            />
-          ) : (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingRight: Spacing.base }}
-            >
-              {recentJobs.map((job) => (
-                <RecentJobCard
-                  key={job.id}
-                  job={job}
-                  onPress={() =>
-                    navigation.navigate('JobsStack', {
-                      screen: 'JobDetail',
-                      params: { jobId: job.id },
-                    })
-                  }
-                />
-              ))}
-            </ScrollView>
-          )}
-        </View>
+        <View style={{ height: Spacing.xxxl }} />
       </ScrollView>
     </SafeAreaView>
   );
 };
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// ─── TaskCard ─────────────────────────────────────────────────────────────────
 
-interface QuickActionCardProps {
-  icon: React.ReactNode;
-  label: string;
-  color: string;
-  onPress: () => void;
-}
+const URGENCY_CONFIG = {
+  critical: { border: Colors.overdue, bg: Colors.overdueLight, dot: Colors.overdue },
+  warning: { border: Colors.dueSoon, bg: Colors.dueSoonLight, dot: Colors.dueSoon },
+  action: { border: Colors.ready, bg: Colors.readyLight, dot: Colors.ready },
+  info: { border: Colors.primary, bg: Colors.primaryFaint, dot: Colors.primary },
+};
 
-const QuickActionCard: React.FC<QuickActionCardProps> = ({ icon, label, color, onPress }) => (
-  <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={[styles.actionCard, { backgroundColor: color }]}>
-    <View style={styles.actionCardIcon}>{icon}</View>
-    <Text style={styles.actionCardLabel}>{label}</Text>
-  </TouchableOpacity>
-);
-
-interface DueTodayItemProps {
-  job: Job;
-  last: boolean;
-  onPress: () => void;
-}
-
-const DueTodayItem: React.FC<DueTodayItemProps> = ({ job, last, onPress }) => {
-  const config = JOB_STATUS_CONFIG[job.status];
+const TaskCard: React.FC<{ task: Task; isLast: boolean; onPress: () => void }> = ({
+  task,
+  isLast,
+  onPress,
+}) => {
+  const cfg = URGENCY_CONFIG[task.urgency];
   return (
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.8}
-      style={[styles.dueTodayItem, !last && styles.dueTodayItemBorder]}
+      style={[
+        styles.taskCard,
+        { borderLeftColor: cfg.border },
+        !isLast && styles.taskCardBorder,
+      ]}
     >
-      <Avatar name={job.customerName} size={40} />
-      <View style={styles.dueTodayContent}>
-        <Text style={styles.dueTodayName}>{job.customerName}'s {job.outfitType}</Text>
-        <Text style={styles.dueTodayTime}>Due today by 6:00 PM</Text>
+      <View style={[styles.taskDot, { backgroundColor: cfg.dot }]} />
+      <View style={styles.taskContent}>
+        <Text style={styles.taskLabel}>{task.label}</Text>
+        {task.subLabel && (
+          <Text style={styles.taskSubLabel}>{task.subLabel}</Text>
+        )}
       </View>
-      <StatusBadge status={job.status} size="sm" />
       <ChevronRightIcon size={16} color={Colors.textTertiary} />
     </TouchableOpacity>
   );
 };
 
-interface RecentJobCardProps {
-  job: Job;
+// ─── SummaryTile ──────────────────────────────────────────────────────────────
+
+const SummaryTile: React.FC<{
+  count: number;
+  label: string;
+  color: string;
+  bgColor: string;
   onPress: () => void;
-}
+}> = ({ count, label, color, bgColor, onPress }) => (
+  <TouchableOpacity
+    onPress={onPress}
+    activeOpacity={0.85}
+    style={[styles.summaryTile, { backgroundColor: bgColor }]}
+  >
+    <Text style={[styles.summaryCount, { color }]}>{count}</Text>
+    <Text style={[styles.summaryLabel, { color }]}>{label}</Text>
+  </TouchableOpacity>
+);
 
-const OUTFIT_PLACEHOLDERS: Record<string, string> = {
-  Agbada: '🫱',
-  Senator: '👘',
-  Suit: '🤵',
-  Shirt: '👔',
-  Trouser: '👖',
-  Gown: '👗',
-  Kaftan: '🧥',
-  Skirt: '👗',
-  Blouse: '👚',
-  Other: '🪡',
-};
+// ─── RecentJobRow ─────────────────────────────────────────────────────────────
 
-const RecentJobCard: React.FC<RecentJobCardProps> = ({ job, onPress }) => {
+const RecentJobRow: React.FC<{ job: Job; isLast: boolean; onPress: () => void }> = ({
+  job,
+  isLast,
+  onPress,
+}) => {
   const config = JOB_STATUS_CONFIG[job.status];
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={styles.recentCard}>
-      {job.samplePhotoUri ? (
-        <Image source={{ uri: job.samplePhotoUri }} style={styles.recentCardPhoto} />
-      ) : (
-        <View style={[styles.recentCardPhoto, styles.recentCardPlaceholder]}>
-          <Text style={{ fontSize: 32 }}>{OUTFIT_PLACEHOLDERS[job.outfitType] || '🪡'}</Text>
-        </View>
-      )}
-      <View style={styles.recentCardInfo}>
-        <Text style={styles.recentCardName} numberOfLines={1}>
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.8}
+      style={[styles.recentRow, !isLast && styles.recentRowBorder]}
+    >
+      <Avatar name={job.customerName} size={38} />
+      <View style={styles.recentContent}>
+        <Text style={styles.recentName} numberOfLines={1}>
           {getFirstName(job.customerName)}'s {job.outfitType}
         </Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-          <View style={[styles.statusDot, { backgroundColor: config.color }]} />
-          <Text style={[styles.recentCardStatus, { color: config.color }]}>{job.status}</Text>
-        </View>
+        <StatusBadge status={job.status} size="sm" />
       </View>
+      <ChevronRightIcon size={16} color={Colors.textTertiary} />
     </TouchableOpacity>
   );
 };
@@ -310,22 +417,21 @@ const RecentJobCard: React.FC<RecentJobCardProps> = ({ job, onPress }) => {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
+  container: { flex: 1, backgroundColor: Colors.background },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.md,
-    backgroundColor: Colors.background,
   },
-  iconBtn: {
-    position: 'relative',
-    padding: Spacing.xs,
+  topBarCenter: { flex: 1, alignItems: 'center' },
+  topBarDate: {
+    fontSize: Typography.sm,
+    color: Colors.textSecondary,
+    fontWeight: Typography.medium,
   },
+  iconBtn: { position: 'relative', padding: Spacing.xs },
   badge: {
     position: 'absolute',
     top: 0,
@@ -340,157 +446,184 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: Colors.background,
   },
-  badgeText: {
-    color: Colors.white,
-    fontSize: 10,
-    fontWeight: Typography.bold,
-  },
-  scroll: {
-    paddingHorizontal: Spacing.base,
-    paddingBottom: Spacing.xl,
-  },
-  greetingBlock: {
-    marginBottom: Spacing.xl,
-    paddingTop: Spacing.sm,
-  },
-  greetingTop: {
-    fontSize: Typography.xl,
-    color: Colors.textPrimary,
-    fontWeight: Typography.regular,
-    lineHeight: 30,
-  },
+  badgeText: { color: Colors.white, fontSize: 10, fontWeight: Typography.bold },
+  scroll: { paddingHorizontal: Spacing.base, paddingBottom: Spacing.xxl },
+
+  // Greeting
+  greetingBlock: { paddingTop: Spacing.sm, marginBottom: Spacing.xl },
   greetingName: {
     fontSize: Typography.xxl,
     fontWeight: Typography.extrabold,
     color: Colors.textPrimary,
-    lineHeight: 36,
+    marginBottom: 4,
   },
   greetingSubtext: {
-    fontSize: Typography.sm,
+    fontSize: Typography.base,
     color: Colors.textSecondary,
-    marginTop: 4,
-    lineHeight: 20,
+    lineHeight: 22,
   },
-  actionRow: {
+
+  // New Order Button
+  newOrderBtn: {
     flexDirection: 'row',
-    gap: Spacing.md,
-    marginBottom: Spacing.xl,
-  },
-  actionCard: {
-    flex: 1,
-    borderRadius: Radius.lg,
-    padding: Spacing.base,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 110,
-    ...Shadow.sm,
+    backgroundColor: Colors.primary,
+    borderRadius: Radius.xl,
+    paddingVertical: Spacing.lg,
+    marginBottom: Spacing.xxl,
+    gap: Spacing.md,
+    ...Shadow.md,
   },
-  actionCardIcon: {
-    marginBottom: Spacing.sm,
+  newOrderPlus: {
+    fontSize: 28,
+    fontWeight: Typography.bold,
+    color: Colors.white,
+    lineHeight: 30,
+    marginTop: -2,
   },
-  actionCardLabel: {
-    fontSize: Typography.sm,
-    fontWeight: Typography.semibold,
-    color: Colors.textPrimary,
-    textAlign: 'center',
-    lineHeight: 18,
+  newOrderLabel: {
+    fontSize: Typography.lg,
+    fontWeight: Typography.bold,
+    color: Colors.white,
+    letterSpacing: 0.2,
   },
-  section: {
-    marginBottom: Spacing.xl,
-  },
-  sectionHeader: {
+
+  // Section
+  section: { marginBottom: Spacing.xxl },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: Spacing.md,
   },
-  listCard: {
+  sectionTitle: {
+    fontSize: Typography.md,
+    fontWeight: Typography.bold,
+    color: Colors.textPrimary,
+  },
+  viewAllText: {
+    fontSize: Typography.sm,
+    color: Colors.primary,
+    fontWeight: Typography.medium,
+  },
+  taskCountBadge: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  taskCountText: { color: Colors.white, fontSize: 11, fontWeight: Typography.bold },
+
+  // Task List
+  taskList: {
     backgroundColor: Colors.surface,
     borderRadius: Radius.lg,
     overflow: 'hidden',
     ...Shadow.sm,
   },
-  emptyCard: {
+  taskCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    paddingLeft: Spacing.base,
+    borderLeftWidth: 3,
+    gap: Spacing.md,
+    backgroundColor: Colors.surface,
+  },
+  taskCardBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.borderLight,
+  },
+  taskDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    flexShrink: 0,
+  },
+  taskContent: { flex: 1 },
+  taskLabel: {
+    fontSize: Typography.base,
+    fontWeight: Typography.semibold,
+    color: Colors.textPrimary,
+    lineHeight: 20,
+  },
+  taskSubLabel: {
+    fontSize: Typography.sm,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+
+  // Empty Tasks
+  emptyTaskCard: {
     backgroundColor: Colors.surface,
     borderRadius: Radius.lg,
-    padding: Spacing.base,
+    padding: Spacing.xl,
     alignItems: 'center',
     ...Shadow.sm,
   },
-  emptyCardText: {
+  emptyTaskEmoji: { fontSize: 32, marginBottom: Spacing.md },
+  emptyTaskTitle: {
+    fontSize: Typography.md,
+    fontWeight: Typography.bold,
+    color: Colors.textPrimary,
+    marginBottom: 4,
+  },
+  emptyTaskSubtext: {
     fontSize: Typography.sm,
     color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
   },
-  dueTodayItem: {
+
+  // Summary tiles
+  summaryRow: { flexDirection: 'row', gap: Spacing.md },
+  summaryTile: {
+    flex: 1,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 80,
+    ...Shadow.sm,
+  },
+  summaryCount: {
+    fontSize: Typography.xxl,
+    fontWeight: Typography.extrabold,
+    lineHeight: 32,
+  },
+  summaryLabel: {
+    fontSize: Typography.xs,
+    fontWeight: Typography.semibold,
+    marginTop: 2,
+    textAlign: 'center',
+  },
+
+  // Recent
+  recentList: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.lg,
+    overflow: 'hidden',
+    ...Shadow.sm,
+  },
+  recentRow: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.md,
     gap: Spacing.md,
   },
-  dueTodayItemBorder: {
+  recentRowBorder: {
     borderBottomWidth: 1,
     borderBottomColor: Colors.borderLight,
   },
-  dueTodayContent: {
-    flex: 1,
-  },
-  dueTodayName: {
+  recentContent: { flex: 1, gap: 4 },
+  recentName: {
     fontSize: Typography.base,
     fontWeight: Typography.semibold,
     color: Colors.textPrimary,
-    marginBottom: 2,
-  },
-  dueTodayTime: {
-    fontSize: Typography.xs,
-    color: Colors.overdue,
-    fontWeight: Typography.medium,
-  },
-  statCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.base,
-    borderRadius: Radius.lg,
-    gap: Spacing.md,
-    ...Shadow.sm,
-  },
-  statCount: {
-    flex: 1,
-    fontSize: Typography.md,
-    fontWeight: Typography.bold,
-  },
-  recentCard: {
-    width: 130,
-    marginRight: Spacing.md,
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    overflow: 'hidden',
-    ...Shadow.sm,
-  },
-  recentCardPhoto: {
-    width: '100%',
-    height: 110,
-    resizeMode: 'cover',
-  },
-  recentCardPlaceholder: {
-    backgroundColor: Colors.borderLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  recentCardInfo: {
-    padding: Spacing.sm,
-    paddingBottom: Spacing.md,
-  },
-  recentCardName: {
-    fontSize: Typography.sm,
-    fontWeight: Typography.semibold,
-    color: Colors.textPrimary,
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 4,
-  },
-  recentCardStatus: {
-    fontSize: Typography.xs,
-    fontWeight: Typography.medium,
   },
 });
 

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Customer, Job, Measurements, AppNotification, JobStatus } from '../types';
+import { Customer, Job, Measurements, AppNotification, JobStatus, TailorSettings } from '../types';
 import * as db from '../utils/database';
 import { generateId } from '../utils/helpers';
 import { seedDemoDataIfEmpty } from '../utils/seedData';
@@ -18,7 +18,11 @@ interface TailorBookState {
   overdueJobs: Job[];
   pendingJobs: Job[];
   recentJobs: Job[];
+  readyJobs: Job[];
   unreadNotificationCount: number;
+
+  // Settings
+  settings: TailorSettings;
 
   // Loading states
   isLoading: boolean;
@@ -30,6 +34,10 @@ interface TailorBookState {
   refreshJobs: () => Promise<void>;
   refreshCustomers: () => Promise<void>;
   refreshNotifications: () => Promise<void>;
+
+  // Settings actions
+  loadSettings: () => Promise<void>;
+  saveSettings: (settings: TailorSettings) => Promise<void>;
 
   // Customer actions
   addCustomer: (customer: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Customer>;
@@ -56,6 +64,16 @@ interface TailorBookState {
   addNotification: (n: Omit<AppNotification, 'id' | 'createdAt' | 'read'>) => Promise<void>;
 }
 
+// ─── Defaults ─────────────────────────────────────────────────────────────────
+
+const DEFAULT_SETTINGS: TailorSettings = {
+  tailorName: '',
+  shopName: '',
+  phone: '',
+  location: '',
+  currency: '₦',
+};
+
 // ─── Store Implementation ─────────────────────────────────────────────────────
 
 export const useStore = create<TailorBookState>((set, get) => ({
@@ -67,37 +85,39 @@ export const useStore = create<TailorBookState>((set, get) => ({
   overdueJobs: [],
   pendingJobs: [],
   recentJobs: [],
+  readyJobs: [],
   unreadNotificationCount: 0,
+  settings: DEFAULT_SETTINGS,
   isLoading: false,
   isInitialized: false,
 
   initialize: async () => {
     set({ isLoading: true });
     try {
-      // Initialize DB (creates tables on first run)
       await db.getDatabase();
-
-      // Seed demo data on first launch
       await seedDemoDataIfEmpty();
 
-      const [customers, jobs, notifications] = await Promise.all([
+      const [customers, jobs, notifications, settings] = await Promise.all([
         db.getAllCustomers(),
         db.getAllJobs(),
         db.getAllNotifications(),
+        db.getSettings(),
       ]);
 
-      // Load all measurements for loaded customers
-      const measurementPromises = customers.map((c) =>
-        db.getMeasurementsByCustomer(c.id)
+      const measurementArrays = await Promise.all(
+        customers.map((c) => db.getMeasurementsByCustomer(c.id))
       );
-      const measurementArrays = await Promise.all(measurementPromises);
       const measurements = measurementArrays.flat();
 
-      const dueToday = await db.getJobsDueToday();
-      const overdueJobs = await db.getOverdueJobs();
-      const pendingJobs = await db.getPendingJobs();
-      const recentJobs = await db.getRecentJobs(10);
-      const unreadNotificationCount = await db.getUnreadNotificationCount();
+      const [dueToday, overdueJobs, pendingJobs, recentJobs, readyJobs, unreadNotificationCount] =
+        await Promise.all([
+          db.getJobsDueToday(),
+          db.getOverdueJobs(),
+          db.getPendingJobs(),
+          db.getRecentJobs(10),
+          db.getReadyJobs(),
+          db.getUnreadNotificationCount(),
+        ]);
 
       set({
         customers,
@@ -108,7 +128,9 @@ export const useStore = create<TailorBookState>((set, get) => ({
         overdueJobs,
         pendingJobs,
         recentJobs,
+        readyJobs,
         unreadNotificationCount,
+        settings,
         isLoading: false,
         isInitialized: true,
       });
@@ -119,14 +141,15 @@ export const useStore = create<TailorBookState>((set, get) => ({
   },
 
   refreshJobs: async () => {
-    const [jobs, dueToday, overdueJobs, pendingJobs, recentJobs] = await Promise.all([
+    const [jobs, dueToday, overdueJobs, pendingJobs, recentJobs, readyJobs] = await Promise.all([
       db.getAllJobs(),
       db.getJobsDueToday(),
       db.getOverdueJobs(),
       db.getPendingJobs(),
       db.getRecentJobs(10),
+      db.getReadyJobs(),
     ]);
-    set({ jobs, dueToday, overdueJobs, pendingJobs, recentJobs });
+    set({ jobs, dueToday, overdueJobs, pendingJobs, recentJobs, readyJobs });
   },
 
   refreshCustomers: async () => {
@@ -140,6 +163,18 @@ export const useStore = create<TailorBookState>((set, get) => ({
       db.getUnreadNotificationCount(),
     ]);
     set({ notifications, unreadNotificationCount });
+  },
+
+  // ─── Settings ──────────────────────────────────────────────────────────────
+
+  loadSettings: async () => {
+    const settings = await db.getSettings();
+    set({ settings });
+  },
+
+  saveSettings: async (settings) => {
+    await db.saveSettings(settings);
+    set({ settings });
   },
 
   // ─── Customer Actions ──────────────────────────────────────────────────────
@@ -188,11 +223,10 @@ export const useStore = create<TailorBookState>((set, get) => ({
     };
     await db.createJob(job);
 
-    // Add an in-app notification
     await get().addNotification({
       type: 'system',
-      title: 'New job created',
-      message: `${job.outfitType} for ${job.customerName} — due ${job.deliveryDate}`,
+      title: 'New order created',
+      message: `${job.outfitType} for ${job.customerName} — due ${formatDate(job.deliveryDate)}`,
       jobId: job.id,
       customerId: job.customerId,
     });
@@ -212,14 +246,28 @@ export const useStore = create<TailorBookState>((set, get) => ({
     await db.updateJobStatus(jobId, status, now);
 
     const job = get().jobs.find((j) => j.id === jobId);
-    if (job && status === 'Ready') {
-      await get().addNotification({
-        type: 'completed',
-        title: 'Job is ready!',
-        message: `${job.outfitType} for ${job.customerName} is ready for pickup.`,
-        jobId: job.id,
-        customerId: job.customerId,
-      });
+    if (job) {
+      if (status === 'Ready') {
+        const deliveryNote =
+          job.deliveryType === 'waybill'
+            ? `Ready to dispatch to ${job.deliveryAddress || 'customer'}`
+            : 'Ready for pickup';
+        await get().addNotification({
+          type: 'completed',
+          title: `${job.outfitType} is ready!`,
+          message: `${job.customerName}'s ${job.outfitType} — ${deliveryNote}`,
+          jobId: job.id,
+          customerId: job.customerId,
+        });
+      } else if (status === 'Delivered') {
+        await get().addNotification({
+          type: 'system',
+          title: 'Order delivered',
+          message: `${job.customerName}'s ${job.outfitType} has been delivered.`,
+          jobId: job.id,
+          customerId: job.customerId,
+        });
+      }
     }
 
     await get().refreshJobs();
@@ -293,3 +341,11 @@ export const useStore = create<TailorBookState>((set, get) => ({
     }));
   },
 }));
+
+function formatDate(isoDate: string): string {
+  try {
+    return new Date(isoDate).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' });
+  } catch {
+    return isoDate;
+  }
+}

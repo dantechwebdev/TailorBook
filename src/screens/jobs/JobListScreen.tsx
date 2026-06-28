@@ -90,7 +90,7 @@ const JobListScreen: React.FC = () => {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Jobs</Text>
         <TouchableOpacity
-          onPress={() => navigation.navigate('JobCreate')}
+          onPress={() => navigation.navigate('NewOrderFlow', {})}
           style={styles.addBtn}
         >
           <PlusIcon size={18} color={Colors.white} />
@@ -154,8 +154,8 @@ const JobListScreen: React.FC = () => {
             action={
               !search && filterStatus === 'All'
                 ? {
-                    label: 'Create Job',
-                    onPress: () => navigation.navigate('JobCreate'),
+                    label: 'Start New Order',
+                    onPress: () => navigation.navigate('NewOrderFlow', {}),
                   }
                 : undefined
             }

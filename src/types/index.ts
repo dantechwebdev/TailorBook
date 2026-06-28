@@ -4,9 +4,10 @@ export interface Customer {
   id: string;
   name: string;
   phone: string;
+  whatsappPhone?: string;
   notes?: string;
-  avatar?: string; // initials-based color stored
-  createdAt: string; // ISO date string
+  avatar?: string;
+  createdAt: string;
   updatedAt: string;
 }
 
@@ -21,36 +22,6 @@ export type MeasurementTemplate =
   | 'trouser'
   | 'custom';
 
-export interface MensSenatorMeasurements {
-  chest?: string;
-  shoulder?: string;
-  sleeveLength?: string;
-  topLength?: string;
-  trouserWaist?: string;
-  hip?: string;
-  trouserLength?: string;
-  thigh?: string;
-  knee?: string;
-  ankle?: string;
-}
-
-export interface AgbadaMeasurements extends MensSenatorMeasurements {
-  agbadaLength?: string;
-  agbadaSleeve?: string;
-  innerwearLength?: string;
-}
-
-export interface WomensGownMeasurements {
-  bust?: string;
-  waist?: string;
-  hip?: string;
-  shoulderWidth?: string;
-  sleeveLength?: string;
-  gownLength?: string;
-  neckSize?: string;
-  armhole?: string;
-}
-
 export interface Measurements {
   id: string;
   customerId: string;
@@ -58,7 +29,7 @@ export interface Measurements {
   data: Record<string, string>;
   createdAt: string;
   updatedAt: string;
-  label?: string; // e.g. "Last taken May 2024"
+  label?: string;
 }
 
 // ─── Job Types ────────────────────────────────────────────────────────────────
@@ -83,14 +54,19 @@ export type JobStatus =
   | 'Ready'
   | 'Delivered';
 
+export type DeliveryType = 'pickup' | 'waybill';
+
 export interface Job {
   id: string;
   customerId: string;
-  customerName: string; // denormalized for fast display
+  customerName: string;
+  customerPhone?: string;
   outfitType: OutfitType;
   style?: string;
   fabric?: string;
-  deliveryDate: string; // ISO date string
+  deliveryDate: string;
+  deliveryType: DeliveryType;
+  deliveryAddress?: string;
   price: number;
   deposit: number;
   balance: number;
@@ -123,13 +99,35 @@ export interface AppNotification {
   createdAt: string;
 }
 
-// ─── Navigation Types ─────────────────────────────────────────────────────────
+// ─── Settings Types ───────────────────────────────────────────────────────────
 
-export type RootStackParamList = {
-  Splash: undefined;
-  Onboarding: undefined;
-  Main: undefined;
-};
+export interface TailorSettings {
+  tailorName: string;
+  shopName: string;
+  phone: string;
+  location: string;
+  currency: string;
+}
+
+// ─── Today Task (derived from jobs for Home screen) ────────────────────────
+
+export type TaskType =
+  | 'pickup_today'
+  | 'waybill_today'
+  | 'overdue'
+  | 'balance_due'
+  | 'ready_notify'
+  | 'in_progress';
+
+export interface TodayTask {
+  id: string;
+  type: TaskType;
+  label: string;
+  subLabel?: string;
+  job: Job;
+}
+
+// ─── Navigation Types ─────────────────────────────────────────────────────────
 
 export type DrawerParamList = {
   HomeTab: undefined;
@@ -155,8 +153,9 @@ export type CustomerStackParamList = {
 export type JobStackParamList = {
   JobList: undefined;
   JobDetail: { jobId: string };
-  JobCreate: { customerId?: string };
+  NewOrderFlow: { customerId?: string; step?: number };
   JobEdit: { jobId: string };
+  CustomerDetail: { customerId: string };
   MeasurementForm: {
     customerId: string;
     jobId?: string;

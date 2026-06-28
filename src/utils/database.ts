@@ -1,5 +1,5 @@
 import * as SQLite from 'expo-sqlite';
-import { Customer, Job, Measurements, AppNotification } from '../types';
+import { Customer, Job, Measurements, AppNotification, TailorSettings } from '../types';
 
 // ─── Database Singleton ────────────────────────────────────────────────────────
 
@@ -24,6 +24,7 @@ async function initializeDatabase(database: SQLite.SQLiteDatabase): Promise<void
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       phone TEXT NOT NULL,
+      whatsappPhone TEXT,
       notes TEXT,
       avatar TEXT,
       createdAt TEXT NOT NULL,
@@ -45,10 +46,13 @@ async function initializeDatabase(database: SQLite.SQLiteDatabase): Promise<void
       id TEXT PRIMARY KEY,
       customerId TEXT NOT NULL,
       customerName TEXT NOT NULL,
+      customerPhone TEXT,
       outfitType TEXT NOT NULL,
       style TEXT,
       fabric TEXT,
       deliveryDate TEXT NOT NULL,
+      deliveryType TEXT NOT NULL DEFAULT 'pickup',
+      deliveryAddress TEXT,
       price REAL NOT NULL DEFAULT 0,
       deposit REAL NOT NULL DEFAULT 0,
       balance REAL NOT NULL DEFAULT 0,
@@ -72,29 +76,87 @@ async function initializeDatabase(database: SQLite.SQLiteDatabase): Promise<void
       createdAt TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
+
     CREATE INDEX IF NOT EXISTS idx_jobs_customerId ON jobs(customerId);
     CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
     CREATE INDEX IF NOT EXISTS idx_jobs_deliveryDate ON jobs(deliveryDate);
     CREATE INDEX IF NOT EXISTS idx_measurements_customerId ON measurements(customerId);
     CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(read);
   `);
+
+  // Run migrations for existing installs
+  await runMigrations(database);
+}
+
+async function runMigrations(database: SQLite.SQLiteDatabase): Promise<void> {
+  try {
+    // Add deliveryType column if missing (existing installs)
+    await database.execAsync(
+      `ALTER TABLE jobs ADD COLUMN deliveryType TEXT NOT NULL DEFAULT 'pickup'`
+    );
+  } catch (_) {}
+  try {
+    await database.execAsync(`ALTER TABLE jobs ADD COLUMN deliveryAddress TEXT`);
+  } catch (_) {}
+  try {
+    await database.execAsync(`ALTER TABLE jobs ADD COLUMN customerPhone TEXT`);
+  } catch (_) {}
+  try {
+    await database.execAsync(`ALTER TABLE customers ADD COLUMN whatsappPhone TEXT`);
+  } catch (_) {}
+}
+
+// ─── Settings Operations ──────────────────────────────────────────────────────
+
+const DEFAULT_SETTINGS: TailorSettings = {
+  tailorName: '',
+  shopName: '',
+  phone: '',
+  location: '',
+  currency: '₦',
+};
+
+export async function getSettings(): Promise<TailorSettings> {
+  const database = await getDatabase();
+  const rows = await database.getAllAsync<{ key: string; value: string }>(
+    'SELECT key, value FROM settings'
+  );
+  const map: Record<string, string> = {};
+  rows.forEach((r) => { map[r.key] = r.value; });
+  return {
+    tailorName: map['tailorName'] ?? DEFAULT_SETTINGS.tailorName,
+    shopName: map['shopName'] ?? DEFAULT_SETTINGS.shopName,
+    phone: map['phone'] ?? DEFAULT_SETTINGS.phone,
+    location: map['location'] ?? DEFAULT_SETTINGS.location,
+    currency: map['currency'] ?? DEFAULT_SETTINGS.currency,
+  };
+}
+
+export async function saveSettings(settings: TailorSettings): Promise<void> {
+  const database = await getDatabase();
+  for (const [key, value] of Object.entries(settings)) {
+    await database.runAsync(
+      'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',
+      [key, value]
+    );
+  }
 }
 
 // ─── Customer Operations ──────────────────────────────────────────────────────
 
 export async function getAllCustomers(): Promise<Customer[]> {
   const database = await getDatabase();
-  const result = await database.getAllAsync<Customer>(
-    'SELECT * FROM customers ORDER BY name ASC'
-  );
-  return result;
+  return database.getAllAsync<Customer>('SELECT * FROM customers ORDER BY name ASC');
 }
 
 export async function getCustomerById(id: string): Promise<Customer | null> {
   const database = await getDatabase();
   const result = await database.getFirstAsync<Customer>(
-    'SELECT * FROM customers WHERE id = ?',
-    [id]
+    'SELECT * FROM customers WHERE id = ?', [id]
   );
   return result || null;
 }
@@ -102,16 +164,12 @@ export async function getCustomerById(id: string): Promise<Customer | null> {
 export async function createCustomer(customer: Customer): Promise<void> {
   const database = await getDatabase();
   await database.runAsync(
-    `INSERT INTO customers (id, name, phone, notes, avatar, createdAt, updatedAt)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO customers (id, name, phone, whatsappPhone, notes, avatar, createdAt, updatedAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [
-      customer.id,
-      customer.name,
-      customer.phone,
-      customer.notes || null,
-      customer.avatar || null,
-      customer.createdAt,
-      customer.updatedAt,
+      customer.id, customer.name, customer.phone,
+      customer.whatsappPhone || null, customer.notes || null,
+      customer.avatar || null, customer.createdAt, customer.updatedAt,
     ]
   );
 }
@@ -119,15 +177,12 @@ export async function createCustomer(customer: Customer): Promise<void> {
 export async function updateCustomer(customer: Customer): Promise<void> {
   const database = await getDatabase();
   await database.runAsync(
-    `UPDATE customers SET name = ?, phone = ?, notes = ?, avatar = ?, updatedAt = ?
-     WHERE id = ?`,
+    `UPDATE customers SET name=?, phone=?, whatsappPhone=?, notes=?, avatar=?, updatedAt=?
+     WHERE id=?`,
     [
-      customer.name,
-      customer.phone,
-      customer.notes || null,
-      customer.avatar || null,
-      customer.updatedAt,
-      customer.id,
+      customer.name, customer.phone, customer.whatsappPhone || null,
+      customer.notes || null, customer.avatar || null,
+      customer.updatedAt, customer.id,
     ]
   );
 }
@@ -140,64 +195,46 @@ export async function deleteCustomer(id: string): Promise<void> {
 export async function searchCustomers(query: string): Promise<Customer[]> {
   const database = await getDatabase();
   const pattern = `%${query}%`;
-  const result = await database.getAllAsync<Customer>(
+  return database.getAllAsync<Customer>(
     'SELECT * FROM customers WHERE name LIKE ? OR phone LIKE ? ORDER BY name ASC',
     [pattern, pattern]
   );
-  return result;
 }
 
 // ─── Job Operations ───────────────────────────────────────────────────────────
 
 export async function getAllJobs(): Promise<Job[]> {
   const database = await getDatabase();
-  const result = await database.getAllAsync<Job>(
-    'SELECT * FROM jobs ORDER BY deliveryDate ASC'
-  );
-  return result;
+  return database.getAllAsync<Job>('SELECT * FROM jobs ORDER BY deliveryDate ASC');
 }
 
 export async function getJobsByCustomer(customerId: string): Promise<Job[]> {
   const database = await getDatabase();
-  const result = await database.getAllAsync<Job>(
-    'SELECT * FROM jobs WHERE customerId = ? ORDER BY createdAt DESC',
-    [customerId]
+  return database.getAllAsync<Job>(
+    'SELECT * FROM jobs WHERE customerId = ? ORDER BY createdAt DESC', [customerId]
   );
-  return result;
 }
 
 export async function getJobById(id: string): Promise<Job | null> {
   const database = await getDatabase();
-  const result = await database.getFirstAsync<Job>(
-    'SELECT * FROM jobs WHERE id = ?',
-    [id]
-  );
+  const result = await database.getFirstAsync<Job>('SELECT * FROM jobs WHERE id = ?', [id]);
   return result || null;
 }
 
 export async function createJob(job: Job): Promise<void> {
   const database = await getDatabase();
   await database.runAsync(
-    `INSERT INTO jobs (id, customerId, customerName, outfitType, style, fabric, deliveryDate,
-      price, deposit, balance, status, measurementId, samplePhotoUri, notes, createdAt, updatedAt)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO jobs (id, customerId, customerName, customerPhone, outfitType, style, fabric,
+      deliveryDate, deliveryType, deliveryAddress, price, deposit, balance, status,
+      measurementId, samplePhotoUri, notes, createdAt, updatedAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
-      job.id,
-      job.customerId,
-      job.customerName,
-      job.outfitType,
-      job.style || null,
-      job.fabric || null,
-      job.deliveryDate,
-      job.price,
-      job.deposit,
-      job.balance,
-      job.status,
-      job.measurementId || null,
-      job.samplePhotoUri || null,
-      job.notes || null,
-      job.createdAt,
-      job.updatedAt,
+      job.id, job.customerId, job.customerName, job.customerPhone || null,
+      job.outfitType, job.style || null, job.fabric || null,
+      job.deliveryDate, job.deliveryType || 'pickup', job.deliveryAddress || null,
+      job.price, job.deposit, job.balance, job.status,
+      job.measurementId || null, job.samplePhotoUri || null,
+      job.notes || null, job.createdAt, job.updatedAt,
     ]
   );
 }
@@ -205,26 +242,17 @@ export async function createJob(job: Job): Promise<void> {
 export async function updateJob(job: Job): Promise<void> {
   const database = await getDatabase();
   await database.runAsync(
-    `UPDATE jobs SET customerId = ?, customerName = ?, outfitType = ?, style = ?, fabric = ?,
-      deliveryDate = ?, price = ?, deposit = ?, balance = ?, status = ?, measurementId = ?,
-      samplePhotoUri = ?, notes = ?, updatedAt = ?
-     WHERE id = ?`,
+    `UPDATE jobs SET customerId=?, customerName=?, customerPhone=?, outfitType=?, style=?,
+      fabric=?, deliveryDate=?, deliveryType=?, deliveryAddress=?, price=?, deposit=?,
+      balance=?, status=?, measurementId=?, samplePhotoUri=?, notes=?, updatedAt=?
+     WHERE id=?`,
     [
-      job.customerId,
-      job.customerName,
-      job.outfitType,
-      job.style || null,
-      job.fabric || null,
-      job.deliveryDate,
-      job.price,
-      job.deposit,
-      job.balance,
-      job.status,
-      job.measurementId || null,
-      job.samplePhotoUri || null,
-      job.notes || null,
-      job.updatedAt,
-      job.id,
+      job.customerId, job.customerName, job.customerPhone || null,
+      job.outfitType, job.style || null, job.fabric || null,
+      job.deliveryDate, job.deliveryType || 'pickup', job.deliveryAddress || null,
+      job.price, job.deposit, job.balance, job.status,
+      job.measurementId || null, job.samplePhotoUri || null,
+      job.notes || null, job.updatedAt, job.id,
     ]
   );
 }
@@ -232,8 +260,7 @@ export async function updateJob(job: Job): Promise<void> {
 export async function updateJobStatus(id: string, status: string, updatedAt: string): Promise<void> {
   const database = await getDatabase();
   await database.runAsync(
-    'UPDATE jobs SET status = ?, updatedAt = ? WHERE id = ?',
-    [status, updatedAt, id]
+    'UPDATE jobs SET status = ?, updatedAt = ? WHERE id = ?', [status, updatedAt, id]
   );
 }
 
@@ -244,55 +271,56 @@ export async function deleteJob(id: string): Promise<void> {
 
 export async function getJobsDueToday(): Promise<Job[]> {
   const database = await getDatabase();
-  const today = new Date().toISOString().split('T')[0];
-  const result = await database.getAllAsync<Job>(
+  const today = getTodayLocal();
+  return database.getAllAsync<Job>(
     `SELECT * FROM jobs WHERE DATE(deliveryDate) = ? AND status NOT IN ('Delivered')
      ORDER BY deliveryDate ASC`,
     [today]
   );
-  return result;
 }
 
 export async function getOverdueJobs(): Promise<Job[]> {
   const database = await getDatabase();
-  const today = new Date().toISOString().split('T')[0];
-  const result = await database.getAllAsync<Job>(
+  const today = getTodayLocal();
+  return database.getAllAsync<Job>(
     `SELECT * FROM jobs WHERE DATE(deliveryDate) < ? AND status NOT IN ('Delivered', 'Ready')
      ORDER BY deliveryDate ASC`,
     [today]
   );
-  return result;
 }
 
 export async function getPendingJobs(): Promise<Job[]> {
   const database = await getDatabase();
-  const today = new Date().toISOString().split('T')[0];
-  const result = await database.getAllAsync<Job>(
+  const today = getTodayLocal();
+  return database.getAllAsync<Job>(
     `SELECT * FROM jobs WHERE status NOT IN ('Delivered') AND DATE(deliveryDate) >= ?
      ORDER BY deliveryDate ASC`,
     [today]
   );
-  return result;
+}
+
+export async function getReadyJobs(): Promise<Job[]> {
+  const database = await getDatabase();
+  return database.getAllAsync<Job>(
+    `SELECT * FROM jobs WHERE status = 'Ready' ORDER BY deliveryDate ASC`
+  );
 }
 
 export async function getRecentJobs(limit = 10): Promise<Job[]> {
   const database = await getDatabase();
-  const result = await database.getAllAsync<Job>(
-    'SELECT * FROM jobs ORDER BY updatedAt DESC LIMIT ?',
-    [limit]
+  return database.getAllAsync<Job>(
+    'SELECT * FROM jobs ORDER BY updatedAt DESC LIMIT ?', [limit]
   );
-  return result;
 }
 
 export async function searchJobs(query: string): Promise<Job[]> {
   const database = await getDatabase();
   const pattern = `%${query}%`;
-  const result = await database.getAllAsync<Job>(
+  return database.getAllAsync<Job>(
     `SELECT * FROM jobs WHERE customerName LIKE ? OR outfitType LIKE ? OR status LIKE ?
      ORDER BY deliveryDate ASC`,
     [pattern, pattern, pattern]
   );
-  return result;
 }
 
 // ─── Measurements Operations ──────────────────────────────────────────────────
@@ -300,20 +328,21 @@ export async function searchJobs(query: string): Promise<Job[]> {
 export async function getMeasurementsByCustomer(customerId: string): Promise<Measurements[]> {
   const database = await getDatabase();
   const rows = await database.getAllAsync<any>(
-    'SELECT * FROM measurements WHERE customerId = ? ORDER BY createdAt DESC',
-    [customerId]
+    'SELECT * FROM measurements WHERE customerId = ? ORDER BY createdAt DESC', [customerId]
   );
-  return rows.map((row) => ({ ...row, data: JSON.parse(row.data) }));
+  return rows.map((row) => ({
+    ...row,
+    data: (() => { try { return JSON.parse(row.data); } catch { return {}; } })(),
+  }));
 }
 
 export async function getMeasurementById(id: string): Promise<Measurements | null> {
   const database = await getDatabase();
   const row = await database.getFirstAsync<any>(
-    'SELECT * FROM measurements WHERE id = ?',
-    [id]
+    'SELECT * FROM measurements WHERE id = ?', [id]
   );
   if (!row) return null;
-  return { ...row, data: JSON.parse(row.data) };
+  return { ...row, data: (() => { try { return JSON.parse(row.data); } catch { return {}; } })() };
 }
 
 export async function createMeasurement(measurement: Measurements): Promise<void> {
@@ -322,13 +351,9 @@ export async function createMeasurement(measurement: Measurements): Promise<void
     `INSERT INTO measurements (id, customerId, template, data, label, createdAt, updatedAt)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
     [
-      measurement.id,
-      measurement.customerId,
-      measurement.template,
-      JSON.stringify(measurement.data),
-      measurement.label || null,
-      measurement.createdAt,
-      measurement.updatedAt,
+      measurement.id, measurement.customerId, measurement.template,
+      JSON.stringify(measurement.data), measurement.label || null,
+      measurement.createdAt, measurement.updatedAt,
     ]
   );
 }
@@ -336,14 +361,10 @@ export async function createMeasurement(measurement: Measurements): Promise<void
 export async function updateMeasurement(measurement: Measurements): Promise<void> {
   const database = await getDatabase();
   await database.runAsync(
-    `UPDATE measurements SET template = ?, data = ?, label = ?, updatedAt = ?
-     WHERE id = ?`,
+    `UPDATE measurements SET template=?, data=?, label=?, updatedAt=? WHERE id=?`,
     [
-      measurement.template,
-      JSON.stringify(measurement.data),
-      measurement.label || null,
-      measurement.updatedAt,
-      measurement.id,
+      measurement.template, JSON.stringify(measurement.data),
+      measurement.label || null, measurement.updatedAt, measurement.id,
     ]
   );
 }
@@ -372,14 +393,9 @@ export async function createNotification(notification: AppNotification): Promise
     `INSERT INTO notifications (id, type, title, message, jobId, customerId, read, createdAt)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [
-      notification.id,
-      notification.type,
-      notification.title,
-      notification.message,
-      notification.jobId || null,
-      notification.customerId || null,
-      0,
-      notification.createdAt,
+      notification.id, notification.type, notification.title, notification.message,
+      notification.jobId || null, notification.customerId || null,
+      0, notification.createdAt,
     ]
   );
 }
@@ -392,4 +408,14 @@ export async function markNotificationRead(id: string): Promise<void> {
 export async function markAllNotificationsRead(): Promise<void> {
   const database = await getDatabase();
   await database.runAsync('UPDATE notifications SET read = 1');
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function getTodayLocal(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
