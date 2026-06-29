@@ -6,3 +6,9 @@ id = "sr2UmreNqukNR1aAMgbDS"
 uri = "file://TAILORBOOK_ENGINEERING_BIBLE.txt"
 type = "text"
 title = "TailorBook Engineering Bible v1.0"
+
+[[outputs]]
+id = "3-qGLLsZGbnp1FRR6z5Jk"
+uri = "file://tailorbook-website-summary.txt"
+type = "text"
+title = "TailorBook Website — Project Summary & Assessment"
