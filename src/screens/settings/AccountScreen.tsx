@@ -124,9 +124,9 @@ const AccountScreen: React.FC = () => {
   };
 
   const handleLogout = () => {
-    Alert.alert('Log out', 'Are you sure you want to log out?', [
+    Alert.alert('Exit', 'Are you sure you want to exit?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Log out', style: 'destructive', onPress: () => {} },
+      { text: 'Exit', style: 'destructive', onPress: () => {} },
     ]);
   };
 
@@ -280,7 +280,7 @@ const AccountScreen: React.FC = () => {
             >
               <LogoutIcon size={18} color={Colors.overdue} />
               <Text style={{ fontSize: Typography.base, color: Colors.overdue, fontWeight: Typography.medium }}>
-                Log out
+                Exit
               </Text>
             </TouchableOpacity>
           </Card>

@@ -97,9 +97,9 @@ const DrawerContent: React.FC<DrawerContentComponentProps> = (props) => {
   ];
 
   const handleLogout = () => {
-    Alert.alert('Log out', 'Are you sure you want to log out?', [
+    Alert.alert('Exit', 'Are you sure you want to exit?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Log out', style: 'destructive', onPress: () => {} },
+      { text: 'Exit', style: 'destructive', onPress: () => {} },
     ]);
   };
 
@@ -156,7 +156,7 @@ const DrawerContent: React.FC<DrawerContentComponentProps> = (props) => {
 
         <TouchableOpacity onPress={handleLogout} activeOpacity={0.8} style={styles.navItem}>
           <LogoutIcon size={20} color="#FF6B6B" />
-          <Text style={[styles.navLabel, { color: '#FF6B6B' }]}>Log out</Text>
+          <Text style={[styles.navLabel, { color: '#FF6B6B' }]}>Exit</Text>
         </TouchableOpacity>
       </ScrollView>
 
