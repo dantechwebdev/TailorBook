@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -6,48 +6,79 @@ import {
   TouchableOpacity,
   StyleSheet,
   TextInput,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { useStore } from '../../context/store';
 import { Colors, Typography, Spacing, Radius, Shadow, JOB_STATUS_CONFIG, JOB_STATUSES } from '../../constants/theme';
-import { SearchIcon, PlusIcon, JobsIcon, ChevronRightIcon, MenuIcon } from '../../components/common/Icons';
+import { SearchIcon, PlusIcon, JobsIcon, ChevronRightIcon, MenuIcon, CheckIcon } from '../../components/common/Icons';
 import { Avatar, StatusBadge, Chip, EmptyState } from '../../components/common/UI';
 import { formatDeliveryDate, getDeliveryUrgency } from '../../utils/helpers';
 import { Job, JobStatus } from '../../types';
-import * as db from '../../utils/database';
+
+type SortKey = 'urgency' | 'date_asc' | 'date_desc' | 'name_asc';
+
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: 'urgency',   label: 'Urgency (overdue first)' },
+  { key: 'date_asc',  label: 'Delivery date ↑ (earliest)' },
+  { key: 'date_desc', label: 'Delivery date ↓ (latest)' },
+  { key: 'name_asc',  label: 'Customer name A–Z' },
+];
+
+const URGENCY_ORDER = { overdue: 0, today: 1, soon: 2, normal: 3 } as const;
+
+function sortJobs(jobs: Job[], key: SortKey): Job[] {
+  const list = [...jobs];
+  switch (key) {
+    case 'urgency':
+      return list.sort((a, b) => {
+        const ua = URGENCY_ORDER[getDeliveryUrgency(a.deliveryDate)];
+        const ub = URGENCY_ORDER[getDeliveryUrgency(b.deliveryDate)];
+        if (ua !== ub) return ua - ub;
+        return a.deliveryDate.localeCompare(b.deliveryDate);
+      });
+    case 'date_asc':
+      return list.sort((a, b) => a.deliveryDate.localeCompare(b.deliveryDate));
+    case 'date_desc':
+      return list.sort((a, b) => b.deliveryDate.localeCompare(a.deliveryDate));
+    case 'name_asc':
+      return list.sort((a, b) => a.customerName.localeCompare(b.customerName));
+  }
+}
 
 const JobListScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { jobs } = useStore();
+
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<JobStatus | 'All'>('All');
-  const [searchResults, setSearchResults] = useState<Job[] | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>('urgency');
+  const [showSortModal, setShowSortModal] = useState(false);
 
-  const handleSearch = async (text: string) => {
-    setSearch(text);
-    if (text.trim().length === 0) {
-      setSearchResults(null);
-      return;
-    }
-    const results = await db.searchJobs(text.trim());
-    setSearchResults(results);
-  };
+  const filteredJobs = useMemo(() => {
+    const q = search.trim().toLowerCase();
 
-  const baseList = searchResults ?? jobs;
-  const filteredJobs =
-    filterStatus === 'All'
-      ? baseList
-      : baseList.filter((j) => j.status === filterStatus);
+    let list = jobs.filter((j) => {
+      const matchesSearch =
+        !q ||
+        j.customerName.toLowerCase().includes(q) ||
+        j.outfitType.toLowerCase().includes(q) ||
+        (j.fabric || '').toLowerCase().includes(q) ||
+        (j.style || '').toLowerCase().includes(q) ||
+        (j.notes || '').toLowerCase().includes(q) ||
+        j.status.toLowerCase().includes(q);
 
-  // Sort: overdue first, then by delivery date
-  const sortedJobs = [...filteredJobs].sort((a, b) => {
-    const ua = getDeliveryUrgency(a.deliveryDate);
-    const ub = getDeliveryUrgency(b.deliveryDate);
-    const urgencyOrder = { overdue: 0, today: 1, soon: 2, normal: 3 };
-    if (urgencyOrder[ua] !== urgencyOrder[ub]) return urgencyOrder[ua] - urgencyOrder[ub];
-    return a.deliveryDate.localeCompare(b.deliveryDate);
-  });
+      const matchesStatus = filterStatus === 'All' || j.status === filterStatus;
+
+      return matchesSearch && matchesStatus;
+    });
+
+    return sortJobs(list, sortKey);
+  }, [jobs, search, filterStatus, sortKey]);
+
+  const currentSortLabel = SORT_OPTIONS.find((o) => o.key === sortKey)?.label ?? '';
 
   const renderItem = ({ item }: { item: Job }) => {
     const urgency = getDeliveryUrgency(item.deliveryDate);
@@ -108,39 +139,58 @@ const JobListScreen: React.FC = () => {
         <SearchIcon size={18} color={Colors.textTertiary} />
         <TextInput
           value={search}
-          onChangeText={handleSearch}
-          placeholder="Search jobs..."
+          onChangeText={setSearch}
+          placeholder="Search by name, garment, fabric..."
           placeholderTextColor={Colors.textTertiary}
           style={styles.searchInput}
           autoCapitalize="words"
+          clearButtonMode="while-editing"
         />
       </View>
 
-      {/* ─── Status Filter ─── */}
-      <FlatList
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        data={['All', ...JOB_STATUSES] as (JobStatus | 'All')[]}
-        keyExtractor={(item) => item}
-        contentContainerStyle={styles.filterList}
-        renderItem={({ item }) => (
-          <Chip
-            label={item}
-            selected={filterStatus === item}
-            onPress={() => setFilterStatus(item)}
-          />
-        )}
-        style={styles.filterScroll}
-      />
+      {/* ─── Filters Row ─── */}
+      <View style={styles.filtersRow}>
+        <FlatList
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          data={['All', ...JOB_STATUSES] as (JobStatus | 'All')[]}
+          keyExtractor={(item) => item}
+          contentContainerStyle={styles.filterList}
+          renderItem={({ item }) => (
+            <Chip
+              label={item}
+              selected={filterStatus === item}
+              onPress={() => setFilterStatus(item)}
+            />
+          )}
+          style={styles.filterScroll}
+        />
 
-      {/* ─── Job Count ─── */}
-      <Text style={styles.resultCount}>
-        {sortedJobs.length} {sortedJobs.length === 1 ? 'job' : 'jobs'}
-      </Text>
+        {/* Sort Button */}
+        <TouchableOpacity
+          onPress={() => setShowSortModal(true)}
+          style={styles.sortBtn}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.sortBtnText}>⇅</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* ─── Result Summary ─── */}
+      <View style={styles.summaryRow}>
+        <Text style={styles.resultCount}>
+          {filteredJobs.length} {filteredJobs.length === 1 ? 'job' : 'jobs'}
+        </Text>
+        <TouchableOpacity onPress={() => setShowSortModal(true)} activeOpacity={0.7}>
+          <Text style={styles.sortLabel} numberOfLines={1}>
+            {currentSortLabel}
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       {/* ─── List ─── */}
       <FlatList
-        data={sortedJobs}
+        data={filteredJobs}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
@@ -168,6 +218,43 @@ const JobListScreen: React.FC = () => {
           />
         }
       />
+
+      {/* ─── Sort Modal ─── */}
+      <Modal
+        visible={showSortModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowSortModal(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowSortModal(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <Text style={styles.modalTitle}>Sort jobs by</Text>
+            {SORT_OPTIONS.map((opt) => (
+              <TouchableOpacity
+                key={opt.key}
+                style={[styles.modalOption, sortKey === opt.key && styles.modalOptionSelected]}
+                onPress={() => {
+                  setSortKey(opt.key);
+                  setShowSortModal(false);
+                }}
+                activeOpacity={0.8}
+              >
+                <Text
+                  style={[
+                    styles.modalOptionText,
+                    sortKey === opt.key && styles.modalOptionTextSelected,
+                  ]}
+                >
+                  {opt.label}
+                </Text>
+                {sortKey === opt.key && (
+                  <CheckIcon size={16} color={Colors.primary} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -201,7 +288,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderRadius: Radius.lg,
     marginHorizontal: Spacing.base,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
     paddingHorizontal: Spacing.md,
     paddingVertical: 12,
     gap: Spacing.sm,
@@ -213,17 +300,51 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     padding: 0,
   },
-  filterScroll: { flexGrow: 0 },
+  filtersRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  filterScroll: { flexGrow: 0, flex: 1 },
   filterList: {
     paddingHorizontal: Spacing.base,
-    paddingBottom: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  sortBtn: {
+    marginRight: Spacing.base,
+    marginLeft: Spacing.sm,
+    width: 34,
+    height: 34,
+    borderRadius: Radius.lg,
+    backgroundColor: Colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    ...Shadow.sm,
+  },
+  sortBtnText: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+    fontWeight: Typography.bold,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.base,
+    marginBottom: Spacing.sm,
   },
   resultCount: {
     fontSize: Typography.xs,
     color: Colors.textTertiary,
-    paddingHorizontal: Spacing.base,
-    marginBottom: Spacing.sm,
     fontWeight: Typography.medium,
+  },
+  sortLabel: {
+    fontSize: Typography.xs,
+    color: Colors.primary,
+    fontWeight: Typography.medium,
+    maxWidth: 180,
   },
   list: {
     paddingHorizontal: Spacing.base,
@@ -253,6 +374,47 @@ const styles = StyleSheet.create({
   overdueTag: {
     fontSize: Typography.xs,
     color: Colors.overdue,
+    fontWeight: Typography.semibold,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.xl,
+  },
+  modalCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.xl,
+    padding: Spacing.lg,
+    width: '100%',
+    ...Shadow.md,
+  },
+  modalTitle: {
+    fontSize: Typography.base,
+    fontWeight: Typography.bold,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.md,
+  },
+  modalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radius.lg,
+    marginBottom: Spacing.sm,
+  },
+  modalOptionSelected: {
+    backgroundColor: Colors.primaryFaint,
+  },
+  modalOptionText: {
+    fontSize: Typography.sm,
+    color: Colors.textSecondary,
+    fontWeight: Typography.medium,
+  },
+  modalOptionTextSelected: {
+    color: Colors.primary,
     fontWeight: Typography.semibold,
   },
 });
