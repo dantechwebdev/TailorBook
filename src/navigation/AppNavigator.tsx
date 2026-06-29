@@ -19,6 +19,7 @@ import ScheduleScreen from '../screens/schedule/ScheduleScreen';
 import AccountScreen from '../screens/settings/AccountScreen';
 import SubscriptionScreen from '../screens/settings/SubscriptionScreen';
 import HelpScreen from '../screens/settings/HelpScreen';
+import FinancialsScreen from '../screens/financials/FinancialsScreen';
 import DrawerContent from '../components/common/DrawerContent';
 
 // ─── Navigator Instances ──────────────────────────────────────────────────────
@@ -77,6 +78,7 @@ const AppNavigator: React.FC = () => {
       <Drawer.Screen name="CustomersStack" component={CustomerStackNav} />
       <Drawer.Screen name="JobsStack" component={JobStackNav} />
       <Drawer.Screen name="ScheduleScreen" component={ScheduleScreen} />
+      <Drawer.Screen name="FinancialsScreen" component={FinancialsScreen} />
       <Drawer.Screen name="NotificationsScreen" component={NotificationsScreen} />
       <Drawer.Screen name="AccountScreen" component={AccountScreen} />
       <Drawer.Screen name="SubscriptionScreen" component={SubscriptionScreen} />

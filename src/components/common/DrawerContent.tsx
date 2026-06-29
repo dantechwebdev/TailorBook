@@ -20,6 +20,7 @@ import {
   SubscriptionIcon,
   HelpIcon,
   LogoutIcon,
+  ReportsIcon,
 } from '../common/Icons';
 import { useStore } from '../../context/store';
 import { getInitials, getAvatarColor } from '../../utils/helpers';
@@ -63,6 +64,13 @@ const DrawerContent: React.FC<DrawerContentComponentProps> = (props) => {
       label: 'Schedule',
       icon: (active: boolean) => (
         <ClockIcon size={20} color={active ? Colors.primaryLight : Colors.drawerTextMuted} />
+      ),
+    },
+    {
+      key: 'FinancialsScreen',
+      label: 'Financials',
+      icon: (active: boolean) => (
+        <ReportsIcon size={20} color={active ? Colors.primaryLight : Colors.drawerTextMuted} />
       ),
     },
     {
