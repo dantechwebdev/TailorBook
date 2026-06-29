@@ -1,4 +1,4 @@
-import { Customer, Job, Measurements, AppNotification, TailorSettings, JobReminder } from '../types';
+import { Customer, Job, Measurements, AppNotification, TailorSettings, JobReminder, ScratchNote } from '../types';
 
 const STORAGE_KEY = 'tailorbook_db';
 
@@ -9,14 +9,15 @@ interface DB {
   notifications: AppNotification[];
   settings: Record<string, string>;
   jobReminders: JobReminder[];
+  scratchNotes: ScratchNote[];
 }
 
 function load(): DB {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return { settings: {}, jobReminders: [], ...JSON.parse(raw) };
+    if (raw) return { settings: {}, jobReminders: [], scratchNotes: [], ...JSON.parse(raw) };
   } catch {}
-  return { customers: [], jobs: [], measurements: [], notifications: [], settings: {}, jobReminders: [] };
+  return { customers: [], jobs: [], measurements: [], notifications: [], settings: {}, jobReminders: [], scratchNotes: [] };
 }
 
 function save(db: DB): void {
@@ -262,5 +263,29 @@ export async function deleteJobReminderRecord(id: string): Promise<void> {
 export async function deleteAllJobRemindersForJob(jobId: string): Promise<void> {
   const db = load();
   db.jobReminders = db.jobReminders.filter((r) => r.jobId !== jobId);
+  save(db);
+}
+
+// ─── Scratch Notes ─────────────────────────────────────────────────────────────
+
+export async function getAllScratchNotes(): Promise<ScratchNote[]> {
+  return (load().scratchNotes || []).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export async function createScratchNote(note: ScratchNote): Promise<void> {
+  const db = load();
+  db.scratchNotes = [note, ...(db.scratchNotes || [])];
+  save(db);
+}
+
+export async function updateScratchNote(note: ScratchNote): Promise<void> {
+  const db = load();
+  db.scratchNotes = (db.scratchNotes || []).map((n) => (n.id === note.id ? note : n));
+  save(db);
+}
+
+export async function deleteScratchNote(id: string): Promise<void> {
+  const db = load();
+  db.scratchNotes = (db.scratchNotes || []).filter((n) => n.id !== id);
   save(db);
 }

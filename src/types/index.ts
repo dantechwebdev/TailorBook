@@ -144,6 +144,18 @@ export interface JobReminder {
   createdAt: string;
 }
 
+// ─── Scratch Note Types ───────────────────────────────────────────────────────
+
+export interface ScratchNote {
+  id: string;
+  text: string;
+  reminderAt?: string;       // ISO datetime — when to fire the push notification
+  notifIdentifier?: string;  // expo-notifications identifier for cancellation
+  isDone: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ─── Navigation Types ─────────────────────────────────────────────────────────
 
 export type DrawerParamList = {

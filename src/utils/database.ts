@@ -1,5 +1,5 @@
 import * as SQLite from 'expo-sqlite';
-import { Customer, Job, Measurements, AppNotification, TailorSettings, JobReminder } from '../types';
+import { Customer, Job, Measurements, AppNotification, TailorSettings, JobReminder, ScratchNote } from '../types';
 
 // ─── Database Singleton ────────────────────────────────────────────────────────
 
@@ -101,6 +101,16 @@ async function initializeDatabase(database: SQLite.SQLiteDatabase): Promise<void
     );
 
     CREATE INDEX IF NOT EXISTS idx_job_reminders_jobId ON job_reminders(jobId);
+
+    CREATE TABLE IF NOT EXISTS scratch_notes (
+      id TEXT PRIMARY KEY,
+      text TEXT NOT NULL,
+      reminderAt TEXT,
+      notifIdentifier TEXT,
+      isDone INTEGER NOT NULL DEFAULT 0,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL
+    );
   `);
 
   await runMigrations(database);
@@ -512,6 +522,38 @@ export async function deleteJobReminderRecord(id: string): Promise<void> {
 export async function deleteAllJobRemindersForJob(jobId: string): Promise<void> {
   const database = await getDatabase();
   await database.runAsync('DELETE FROM job_reminders WHERE jobId = ?', [jobId]);
+}
+
+// ─── Scratch Note Operations ──────────────────────────────────────────────────
+
+export async function getAllScratchNotes(): Promise<ScratchNote[]> {
+  const database = await getDatabase();
+  const rows = await database.getAllAsync<any>('SELECT * FROM scratch_notes ORDER BY createdAt DESC');
+  return rows.map((r) => ({ ...r, isDone: r.isDone === 1 }));
+}
+
+export async function createScratchNote(note: ScratchNote): Promise<void> {
+  const database = await getDatabase();
+  await database.runAsync(
+    `INSERT INTO scratch_notes (id, text, reminderAt, notifIdentifier, isDone, createdAt, updatedAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [note.id, note.text, note.reminderAt ?? null, note.notifIdentifier ?? null,
+     note.isDone ? 1 : 0, note.createdAt, note.updatedAt]
+  );
+}
+
+export async function updateScratchNote(note: ScratchNote): Promise<void> {
+  const database = await getDatabase();
+  await database.runAsync(
+    `UPDATE scratch_notes SET text=?, reminderAt=?, notifIdentifier=?, isDone=?, updatedAt=? WHERE id=?`,
+    [note.text, note.reminderAt ?? null, note.notifIdentifier ?? null,
+     note.isDone ? 1 : 0, note.updatedAt, note.id]
+  );
+}
+
+export async function deleteScratchNote(id: string): Promise<void> {
+  const database = await getDatabase();
+  await database.runAsync('DELETE FROM scratch_notes WHERE id = ?', [id]);
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

@@ -1,9 +1,9 @@
 import { create } from 'zustand';
-import { Customer, Job, Measurements, AppNotification, JobStatus, TailorSettings, JobReminder } from '../types';
+import { Customer, Job, Measurements, AppNotification, JobStatus, TailorSettings, JobReminder, ScratchNote } from '../types';
 import * as db from '../utils/database';
 import { generateId } from '../utils/helpers';
 import { seedDemoDataIfEmpty } from '../utils/seedData';
-import { scheduleCustomJobReminder, cancelCustomJobReminder } from '../utils/notifications';
+import { scheduleCustomJobReminder, cancelCustomJobReminder, scheduleScratchReminder, cancelScratchReminder } from '../utils/notifications';
 
 // ─── Store Interface ──────────────────────────────────────────────────────────
 
@@ -59,6 +59,13 @@ interface TailorBookState {
   addJobReminder: (jobId: string, scheduledAt: Date, label: string, daysBefore?: number) => Promise<void>;
   removeJobReminder: (reminderId: string) => Promise<void>;
   getJobReminders: (jobId: string) => JobReminder[];
+
+  // ── Scratch notes ─────────────────────────────────────────────────────────
+  scratchNotes: ScratchNote[];
+  addScratchNote: (text: string, reminderAt?: Date) => Promise<void>;
+  updateScratchNote: (note: ScratchNote, newReminderAt?: Date | null) => Promise<void>;
+  toggleScratchNote: (id: string) => Promise<void>;
+  deleteScratchNote: (id: string) => Promise<void>;
 }
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
@@ -83,6 +90,7 @@ export const useStore = create<TailorBookState>((set, get) => ({
   measurements: [],
   notifications: [],
   jobReminders: [],
+  scratchNotes: [],
   dueToday: [],
   overdueJobs: [],
   pendingJobs: [],
@@ -101,12 +109,13 @@ export const useStore = create<TailorBookState>((set, get) => ({
       await db.getDatabase();
       await seedDemoDataIfEmpty();
 
-      const [customers, jobs, notifications, settings, jobReminders] = await Promise.all([
+      const [customers, jobs, notifications, settings, jobReminders, scratchNotes] = await Promise.all([
         db.getAllCustomers(),
         db.getAllJobs(),
         db.getAllNotifications(),
         db.getSettings(),
         db.getAllJobReminders(),
+        db.getAllScratchNotes(),
       ]);
 
       const measurementArrays = await Promise.all(
@@ -129,7 +138,7 @@ export const useStore = create<TailorBookState>((set, get) => ({
       ]);
 
       set({
-        customers, jobs, measurements, notifications, jobReminders,
+        customers, jobs, measurements, notifications, jobReminders, scratchNotes,
         dueToday, overdueJobs, pendingJobs, recentJobs, readyJobs,
         pendingWaybills, outstandingBalances,
         unreadNotificationCount, settings,
@@ -372,6 +381,73 @@ export const useStore = create<TailorBookState>((set, get) => ({
   },
 
   getJobReminders: (jobId) => get().jobReminders.filter((r) => r.jobId === jobId),
+
+  // ── Scratch notes ─────────────────────────────────────────────────────────
+
+  addScratchNote: async (text, reminderAt) => {
+    const now = new Date().toISOString();
+    const id = generateId();
+    let notifIdentifier: string | undefined;
+    if (reminderAt) {
+      const identifier = await scheduleScratchReminder(id, reminderAt, text);
+      notifIdentifier = identifier ?? undefined;
+    }
+    const note: ScratchNote = {
+      id, text,
+      reminderAt: reminderAt?.toISOString(),
+      notifIdentifier,
+      isDone: false,
+      createdAt: now, updatedAt: now,
+    };
+    await db.createScratchNote(note);
+    set((state) => ({ scratchNotes: [note, ...state.scratchNotes] }));
+  },
+
+  updateScratchNote: async (note, newReminderAt) => {
+    const now = new Date().toISOString();
+    let updated = { ...note, updatedAt: now };
+
+    if (newReminderAt !== undefined) {
+      if (note.notifIdentifier) await cancelScratchReminder(note.notifIdentifier);
+      if (newReminderAt === null) {
+        updated = { ...updated, reminderAt: undefined, notifIdentifier: undefined };
+      } else {
+        const identifier = await scheduleScratchReminder(note.id, newReminderAt, note.text);
+        updated = {
+          ...updated,
+          reminderAt: newReminderAt.toISOString(),
+          notifIdentifier: identifier ?? undefined,
+        };
+      }
+    }
+
+    await db.updateScratchNote(updated);
+    set((state) => ({
+      scratchNotes: state.scratchNotes.map((n) => (n.id === note.id ? updated : n)),
+    }));
+  },
+
+  toggleScratchNote: async (id) => {
+    const note = get().scratchNotes.find((n) => n.id === id);
+    if (!note) return;
+    const updated = { ...note, isDone: !note.isDone, updatedAt: new Date().toISOString() };
+    if (updated.isDone && note.notifIdentifier) {
+      await cancelScratchReminder(note.notifIdentifier);
+      updated.notifIdentifier = undefined;
+      updated.reminderAt = undefined;
+    }
+    await db.updateScratchNote(updated);
+    set((state) => ({
+      scratchNotes: state.scratchNotes.map((n) => (n.id === id ? updated : n)),
+    }));
+  },
+
+  deleteScratchNote: async (id) => {
+    const note = get().scratchNotes.find((n) => n.id === id);
+    if (note?.notifIdentifier) await cancelScratchReminder(note.notifIdentifier);
+    await db.deleteScratchNote(id);
+    set((state) => ({ scratchNotes: state.scratchNotes.filter((n) => n.id !== id) }));
+  },
 }));
 
 function formatDate(isoDate: string): string {

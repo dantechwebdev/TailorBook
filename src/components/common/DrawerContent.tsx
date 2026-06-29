@@ -19,6 +19,7 @@ import {
   SubscriptionIcon,
   HelpIcon,
   ReportsIcon,
+  NotepadIcon,
 } from '../common/Icons';
 import { useStore } from '../../context/store';
 import { getInitials, getAvatarColor } from '../../utils/helpers';
@@ -69,6 +70,13 @@ const DrawerContent: React.FC<DrawerContentComponentProps> = (props) => {
       label: 'Financials',
       icon: (active: boolean) => (
         <ReportsIcon size={20} color={active ? Colors.primaryLight : Colors.drawerTextMuted} />
+      ),
+    },
+    {
+      key: 'ScratchPadScreen',
+      label: 'Scratch Pad',
+      icon: (active: boolean) => (
+        <NotepadIcon size={20} color={active ? Colors.primaryLight : Colors.drawerTextMuted} />
       ),
     },
     {

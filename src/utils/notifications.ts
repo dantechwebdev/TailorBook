@@ -149,6 +149,46 @@ export async function cancelCustomJobReminder(identifier: string): Promise<void>
   } catch {}
 }
 
+// ─── Scratch Note Reminders ───────────────────────────────────────────────────
+
+export async function scheduleScratchReminder(
+  noteId: string,
+  scheduledAt: Date,
+  text: string
+): Promise<string | null> {
+  const hasPermission = await requestNotificationPermissions();
+  if (!hasPermission) return null;
+
+  const now = new Date();
+  if (scheduledAt <= now) return null;
+
+  const identifier = `scratch-${noteId}`;
+  try {
+    await Notifications.scheduleNotificationAsync({
+      identifier,
+      content: {
+        title: '📝 Scratch Pad Reminder',
+        body: text.length > 80 ? text.slice(0, 77) + '…' : text,
+        data: { noteId, type: 'scratch' },
+        sound: 'default',
+      },
+      trigger: {
+        date: scheduledAt,
+        channelId: 'job-reminders',
+      } as any,
+    });
+    return identifier;
+  } catch {
+    return null;
+  }
+}
+
+export async function cancelScratchReminder(identifier: string): Promise<void> {
+  try {
+    await Notifications.cancelScheduledNotificationAsync(identifier);
+  } catch {}
+}
+
 // ─── Listen for Tap ──────────────────────────────────────────────────────────
 
 export function addNotificationResponseListener(
