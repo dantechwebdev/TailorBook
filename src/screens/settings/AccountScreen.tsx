@@ -17,7 +17,7 @@ import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../constants/theme';
-import { LogoutIcon, MenuIcon } from '../../components/common/Icons';
+import { MenuIcon } from '../../components/common/Icons';
 import { Card, Divider, Button } from '../../components/common/UI';
 import { useStore } from '../../context/store';
 import { TailorSettings } from '../../types';
@@ -121,13 +121,6 @@ const AccountScreen: React.FC = () => {
     await saveSettings(updated);
     setEditingProfile(false);
     Alert.alert('Saved', 'Your profile has been updated.');
-  };
-
-  const handleLogout = () => {
-    Alert.alert('Exit', 'Are you sure you want to exit?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Exit', style: 'destructive', onPress: () => {} },
-    ]);
   };
 
   const displayName = settings?.shopName || settings?.tailorName || 'My Shop';
@@ -268,21 +261,6 @@ const AccountScreen: React.FC = () => {
             <SettingRow label="Send Feedback" onPress={() => {}} />
             <Divider />
             <SettingRow label="Privacy Policy" onPress={() => {}} />
-          </Card>
-        </View>
-
-        <View style={styles.section}>
-          <Card padding={0}>
-            <TouchableOpacity
-              onPress={handleLogout}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md, padding: Spacing.base }}
-              activeOpacity={0.8}
-            >
-              <LogoutIcon size={18} color={Colors.overdue} />
-              <Text style={{ fontSize: Typography.base, color: Colors.overdue, fontWeight: Typography.medium }}>
-                Exit
-              </Text>
-            </TouchableOpacity>
           </Card>
         </View>
 

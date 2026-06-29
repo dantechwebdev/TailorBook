@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Alert,
   Image,
 } from 'react-native';
 import { DrawerContentComponentProps } from '@react-navigation/drawer';
@@ -19,7 +18,6 @@ import {
   AccountIcon,
   SubscriptionIcon,
   HelpIcon,
-  LogoutIcon,
   ReportsIcon,
 } from '../common/Icons';
 import { useStore } from '../../context/store';
@@ -104,13 +102,6 @@ const DrawerContent: React.FC<DrawerContentComponentProps> = (props) => {
     },
   ];
 
-  const handleLogout = () => {
-    Alert.alert('Exit', 'Are you sure you want to exit?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Exit', style: 'destructive', onPress: () => {} },
-    ]);
-  };
-
   return (
     <View style={styles.container}>
       {/* ─── Profile Header ─── */}
@@ -160,12 +151,6 @@ const DrawerContent: React.FC<DrawerContentComponentProps> = (props) => {
           );
         })}
 
-        <View style={styles.divider} />
-
-        <TouchableOpacity onPress={handleLogout} activeOpacity={0.8} style={styles.navItem}>
-          <LogoutIcon size={20} color="#FF6B6B" />
-          <Text style={[styles.navLabel, { color: '#FF6B6B' }]}>Exit</Text>
-        </TouchableOpacity>
       </ScrollView>
 
       {/* ─── Footer ─── */}
