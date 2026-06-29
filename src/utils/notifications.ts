@@ -107,6 +107,48 @@ export async function rescheduleAllJobNotifications(jobs: Job[]): Promise<void> 
   await Promise.all(pending.map((job) => scheduleJobReminders(job)));
 }
 
+// ─── Custom Job Reminders ─────────────────────────────────────────────────────
+
+export async function scheduleCustomJobReminder(
+  reminderId: string,
+  jobId: string,
+  scheduledAt: Date,
+  title: string,
+  body: string
+): Promise<string | null> {
+  const hasPermission = await requestNotificationPermissions();
+  if (!hasPermission) return null;
+
+  const now = new Date();
+  if (scheduledAt <= now) return null;
+
+  const identifier = `${jobId}-custom-${reminderId}`;
+  try {
+    await Notifications.scheduleNotificationAsync({
+      identifier,
+      content: {
+        title,
+        body,
+        data: { jobId, type: 'custom' },
+        sound: 'default',
+      },
+      trigger: {
+        date: scheduledAt,
+        channelId: 'job-reminders',
+      } as any,
+    });
+    return identifier;
+  } catch {
+    return null;
+  }
+}
+
+export async function cancelCustomJobReminder(identifier: string): Promise<void> {
+  try {
+    await Notifications.cancelScheduledNotificationAsync(identifier);
+  } catch {}
+}
+
 // ─── Listen for Tap ──────────────────────────────────────────────────────────
 
 export function addNotificationResponseListener(

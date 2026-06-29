@@ -10,6 +10,7 @@ import {
   Animated,
   Dimensions,
   Linking,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
@@ -160,6 +161,71 @@ const HomeScreen: React.FC = () => {
 
   const goToJob = (jobId: string) =>
     navigation.navigate('JobsStack', { screen: 'JobDetail', params: { jobId } });
+
+  const handleSendDigest = useCallback(() => {
+    const phone = settings?.phone || '';
+    if (!phone) {
+      Alert.alert('Phone not set', 'Add your phone number in Account settings to send yourself the daily digest.');
+      return;
+    }
+    const currency = settings?.currency || '₦';
+    const dateStr = new Date().toLocaleDateString('en-NG', {
+      weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
+    });
+    const msPerDay = 1000 * 60 * 60 * 24;
+    const lines: string[] = [];
+    lines.push(`📋 *TailorBook Daily Digest — ${dateStr}*\n`);
+
+    if (overdueJobs.length > 0) {
+      lines.push(`🚨 *OVERDUE (${overdueJobs.length}):*`);
+      overdueJobs.forEach((j) => {
+        const days = Math.max(0, Math.floor((Date.now() - new Date(j.deliveryDate).getTime()) / msPerDay));
+        lines.push(`• ${j.customerName}'s ${j.outfitType} — ${days}d late`);
+      });
+      lines.push('');
+    }
+
+    if (dueToday.length > 0) {
+      lines.push(`📅 *DUE TODAY (${dueToday.length}):*`);
+      dueToday.forEach((j) => lines.push(`• ${j.customerName}'s ${j.outfitType} [${j.status}]`));
+      lines.push('');
+    }
+
+    if (readyJobs.length > 0) {
+      lines.push(`✅ *READY TO NOTIFY (${readyJobs.length}):*`);
+      readyJobs.forEach((j) =>
+        lines.push(`• ${j.customerName}'s ${j.outfitType} (${j.deliveryType === 'waybill' ? 'waybill' : 'pickup'})`)
+      );
+      lines.push('');
+    }
+
+    if (outstandingBalances.length > 0) {
+      const total = outstandingBalances.reduce((sum, j) => sum + j.balance, 0);
+      lines.push(`💰 *OUTSTANDING BALANCES (${outstandingBalances.length}):*`);
+      outstandingBalances.forEach((j) =>
+        lines.push(`• ${j.customerName} — ${currency}${j.balance.toLocaleString()}`)
+      );
+      lines.push(`Total owed: *${currency}${total.toLocaleString()}*`);
+      lines.push('');
+    }
+
+    if (
+      overdueJobs.length === 0 &&
+      dueToday.length === 0 &&
+      readyJobs.length === 0 &&
+      outstandingBalances.length === 0
+    ) {
+      lines.push('🎉 All clear! No pending items today.');
+      lines.push('');
+    }
+
+    lines.push('_Sent from TailorBook_');
+    const text = lines.join('\n');
+    const clean = phone.replace(/\D/g, '');
+    Linking.openURL(`https://wa.me/${clean}?text=${encodeURIComponent(text)}`).catch(() =>
+      Alert.alert('Error', 'Could not open WhatsApp. Make sure it is installed.')
+    );
+  }, [overdueJobs, dueToday, readyJobs, outstandingBalances, settings]);
 
   const startNewOrder = () =>
     navigation.navigate('JobsStack', { screen: 'NewOrderFlow', params: {} });
@@ -417,6 +483,33 @@ const HomeScreen: React.FC = () => {
             </View>
           </View>
         )}
+
+        {/* ─── WhatsApp Daily Digest ─── */}
+        <TouchableOpacity
+          onPress={handleSendDigest}
+          activeOpacity={0.85}
+          style={styles.digestCard}
+        >
+          <View style={styles.digestLeft}>
+            <Ionicons name="logo-whatsapp" size={26} color="#25D366" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.digestTitle}>Send Daily Digest</Text>
+              <Text style={styles.digestSub}>
+                {(() => {
+                  const total =
+                    overdueJobs.length +
+                    dueToday.length +
+                    readyJobs.length +
+                    outstandingBalances.length;
+                  return total > 0
+                    ? `${total} item${total > 1 ? 's' : ''} — tap to WhatsApp today's summary to yourself`
+                    : 'All clear today — send a status update to yourself';
+                })()}
+              </Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#25D366" />
+        </TouchableOpacity>
 
         {/* ─── Quick Links ─── */}
         <View style={styles.quickRow}>
@@ -815,6 +908,37 @@ const styles = StyleSheet.create({
     width: 36, height: 36, borderRadius: 18,
     backgroundColor: '#E8FFF1', alignItems: 'center', justifyContent: 'center',
     marginLeft: Spacing.sm,
+  },
+
+  digestCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FFF7',
+    borderWidth: 1.5,
+    borderColor: '#25D36640',
+    borderRadius: Radius.lg,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.md,
+    marginHorizontal: Spacing.base,
+    marginBottom: Spacing.md,
+    gap: Spacing.md,
+  },
+  digestLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  digestTitle: {
+    fontSize: Typography.base,
+    fontWeight: Typography.bold,
+    color: '#1a7a3f',
+  },
+  digestSub: {
+    fontSize: Typography.xs,
+    color: '#1a7a3f99',
+    marginTop: 2,
+    lineHeight: 16,
   },
 
   quickRow: {

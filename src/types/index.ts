@@ -131,6 +131,19 @@ export interface TodayTask {
   job: Job;
 }
 
+// ─── Job Reminder Types ───────────────────────────────────────────────────────
+
+export interface JobReminder {
+  id: string;
+  jobId: string;
+  scheduledAt: string;       // ISO datetime
+  label: string;
+  daysBefore?: number;       // set when created from "X days before delivery"
+  repeatEvery?: number;      // 0 = one-time, N = repeat every N days
+  notifIdentifier?: string;  // expo-notifications identifier for cancellation
+  createdAt: string;
+}
+
 // ─── Navigation Types ─────────────────────────────────────────────────────────
 
 export type DrawerParamList = {

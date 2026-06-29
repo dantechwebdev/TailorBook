@@ -1,5 +1,5 @@
 import * as SQLite from 'expo-sqlite';
-import { Customer, Job, Measurements, AppNotification, TailorSettings } from '../types';
+import { Customer, Job, Measurements, AppNotification, TailorSettings, JobReminder } from '../types';
 
 // ─── Database Singleton ────────────────────────────────────────────────────────
 
@@ -87,6 +87,20 @@ async function initializeDatabase(database: SQLite.SQLiteDatabase): Promise<void
     CREATE INDEX IF NOT EXISTS idx_jobs_deliveryDate ON jobs(deliveryDate);
     CREATE INDEX IF NOT EXISTS idx_measurements_customerId ON measurements(customerId);
     CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(read);
+
+    CREATE TABLE IF NOT EXISTS job_reminders (
+      id TEXT PRIMARY KEY,
+      jobId TEXT NOT NULL,
+      scheduledAt TEXT NOT NULL,
+      label TEXT NOT NULL DEFAULT '',
+      daysBefore INTEGER,
+      repeatEvery INTEGER NOT NULL DEFAULT 0,
+      notifIdentifier TEXT,
+      createdAt TEXT NOT NULL,
+      FOREIGN KEY (jobId) REFERENCES jobs(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_job_reminders_jobId ON job_reminders(jobId);
   `);
 
   await runMigrations(database);
@@ -460,6 +474,44 @@ export async function deleteNotificationsByJobId(jobId: string): Promise<void> {
     "DELETE FROM notifications WHERE jobId = ? AND type != 'system'",
     [jobId]
   );
+}
+
+// ─── Job Reminder Operations ──────────────────────────────────────────────────
+
+export async function getAllJobReminders(): Promise<JobReminder[]> {
+  const database = await getDatabase();
+  return database.getAllAsync<JobReminder>('SELECT * FROM job_reminders ORDER BY scheduledAt ASC');
+}
+
+export async function getJobRemindersByJob(jobId: string): Promise<JobReminder[]> {
+  const database = await getDatabase();
+  return database.getAllAsync<JobReminder>(
+    'SELECT * FROM job_reminders WHERE jobId = ? ORDER BY scheduledAt ASC', [jobId]
+  );
+}
+
+export async function addJobReminderRecord(reminder: JobReminder): Promise<void> {
+  const database = await getDatabase();
+  await database.runAsync(
+    `INSERT INTO job_reminders (id, jobId, scheduledAt, label, daysBefore, repeatEvery, notifIdentifier, createdAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      reminder.id, reminder.jobId, reminder.scheduledAt,
+      reminder.label || '', reminder.daysBefore ?? null,
+      reminder.repeatEvery ?? 0, reminder.notifIdentifier || null,
+      reminder.createdAt,
+    ]
+  );
+}
+
+export async function deleteJobReminderRecord(id: string): Promise<void> {
+  const database = await getDatabase();
+  await database.runAsync('DELETE FROM job_reminders WHERE id = ?', [id]);
+}
+
+export async function deleteAllJobRemindersForJob(jobId: string): Promise<void> {
+  const database = await getDatabase();
+  await database.runAsync('DELETE FROM job_reminders WHERE jobId = ?', [jobId]);
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

@@ -1,8 +1,9 @@
 import { create } from 'zustand';
-import { Customer, Job, Measurements, AppNotification, JobStatus, TailorSettings } from '../types';
+import { Customer, Job, Measurements, AppNotification, JobStatus, TailorSettings, JobReminder } from '../types';
 import * as db from '../utils/database';
 import { generateId } from '../utils/helpers';
 import { seedDemoDataIfEmpty } from '../utils/seedData';
+import { scheduleCustomJobReminder, cancelCustomJobReminder } from '../utils/notifications';
 
 // ─── Store Interface ──────────────────────────────────────────────────────────
 
@@ -11,6 +12,7 @@ interface TailorBookState {
   jobs: Job[];
   measurements: Measurements[];
   notifications: AppNotification[];
+  jobReminders: JobReminder[];
 
   dueToday: Job[];
   overdueJobs: Job[];
@@ -52,6 +54,11 @@ interface TailorBookState {
   markNotificationRead: (id: string) => Promise<void>;
   markAllRead: () => Promise<void>;
   addNotification: (n: Omit<AppNotification, 'id' | 'createdAt' | 'read'>) => Promise<void>;
+
+  // ── Per-job custom reminders ──────────────────────────────────────────────
+  addJobReminder: (jobId: string, scheduledAt: Date, label: string, daysBefore?: number) => Promise<void>;
+  removeJobReminder: (reminderId: string) => Promise<void>;
+  getJobReminders: (jobId: string) => JobReminder[];
 }
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
@@ -75,6 +82,7 @@ export const useStore = create<TailorBookState>((set, get) => ({
   jobs: [],
   measurements: [],
   notifications: [],
+  jobReminders: [],
   dueToday: [],
   overdueJobs: [],
   pendingJobs: [],
@@ -93,11 +101,12 @@ export const useStore = create<TailorBookState>((set, get) => ({
       await db.getDatabase();
       await seedDemoDataIfEmpty();
 
-      const [customers, jobs, notifications, settings] = await Promise.all([
+      const [customers, jobs, notifications, settings, jobReminders] = await Promise.all([
         db.getAllCustomers(),
         db.getAllJobs(),
         db.getAllNotifications(),
         db.getSettings(),
+        db.getAllJobReminders(),
       ]);
 
       const measurementArrays = await Promise.all(
@@ -120,7 +129,7 @@ export const useStore = create<TailorBookState>((set, get) => ({
       ]);
 
       set({
-        customers, jobs, measurements, notifications,
+        customers, jobs, measurements, notifications, jobReminders,
         dueToday, overdueJobs, pendingJobs, recentJobs, readyJobs,
         pendingWaybills, outstandingBalances,
         unreadNotificationCount, settings,
@@ -257,8 +266,17 @@ export const useStore = create<TailorBookState>((set, get) => ({
   },
 
   deleteJob: async (id) => {
+    // Cancel all custom reminders for this job
+    const reminders = get().jobReminders.filter((r) => r.jobId === id);
+    await Promise.all(
+      reminders
+        .filter((r) => r.notifIdentifier)
+        .map((r) => cancelCustomJobReminder(r.notifIdentifier!))
+    );
+    await db.deleteAllJobRemindersForJob(id);
     await db.deleteNotificationsByJobId(id);
     await db.deleteJob(id);
+    set((state) => ({ jobReminders: state.jobReminders.filter((r) => r.jobId !== id) }));
     await get().refreshJobs();
     await get().refreshNotifications();
   },
@@ -314,6 +332,46 @@ export const useStore = create<TailorBookState>((set, get) => ({
       unreadNotificationCount: state.unreadNotificationCount + 1,
     }));
   },
+
+  // ── Reminders ──────────────────────────────────────────────────────────────
+
+  addJobReminder: async (jobId, scheduledAt, label, daysBefore) => {
+    const job = get().jobs.find((j) => j.id === jobId);
+    const now = new Date().toISOString();
+    const id = generateId();
+
+    const notifTitle = `Reminder: ${job?.outfitType || 'Job'}`;
+    const notifBody = job
+      ? `${job.customerName}'s ${job.outfitType}${label ? ' — ' + label : ''}`
+      : label || 'Custom reminder';
+
+    const identifier = await scheduleCustomJobReminder(id, jobId, scheduledAt, notifTitle, notifBody);
+
+    const reminder: JobReminder = {
+      id,
+      jobId,
+      scheduledAt: scheduledAt.toISOString(),
+      label: label || '',
+      daysBefore,
+      repeatEvery: 0,
+      notifIdentifier: identifier || undefined,
+      createdAt: now,
+    };
+
+    await db.addJobReminderRecord(reminder);
+    set((state) => ({ jobReminders: [...state.jobReminders, reminder] }));
+  },
+
+  removeJobReminder: async (reminderId) => {
+    const reminder = get().jobReminders.find((r) => r.id === reminderId);
+    if (reminder?.notifIdentifier) {
+      await cancelCustomJobReminder(reminder.notifIdentifier);
+    }
+    await db.deleteJobReminderRecord(reminderId);
+    set((state) => ({ jobReminders: state.jobReminders.filter((r) => r.id !== reminderId) }));
+  },
+
+  getJobReminders: (jobId) => get().jobReminders.filter((r) => r.jobId === jobId),
 }));
 
 function formatDate(isoDate: string): string {
