@@ -1,0 +1,16 @@
+{
+  "name": "TailorBook",
+  "short_name": "TailorBook",
+  "description": "The Operating System for Modern Tailoring Businesses",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0D0B1A",
+  "theme_color": "#4B3FA0",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
