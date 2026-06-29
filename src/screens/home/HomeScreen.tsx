@@ -9,6 +9,7 @@ import {
   Image,
   Animated,
   Dimensions,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
@@ -334,7 +335,7 @@ const HomeScreen: React.FC = () => {
                   onPress={() => goToJob(job.id)}
                   activeOpacity={0.8}
                   style={[
-                    styles.compactRow,
+                    styles.compactRowMain,
                     idx < pendingWaybills.length - 1 && styles.compactRowBorder,
                   ]}
                 >
@@ -369,26 +370,50 @@ const HomeScreen: React.FC = () => {
               </Text>
             </View>
             <View style={styles.taskList}>
-              {outstandingBalances.map((job, idx) => (
-                <TouchableOpacity
-                  key={job.id}
-                  onPress={() => goToJob(job.id)}
-                  activeOpacity={0.8}
-                  style={[
-                    styles.compactRow,
-                    idx < outstandingBalances.length - 1 && styles.compactRowBorder,
-                  ]}
-                >
-                  <View style={[styles.compactDot, { backgroundColor: Colors.overdue }]} />
-                  <View style={styles.compactInfo}>
-                    <Text style={styles.compactLabel}>
-                      {getFirstName(job.customerName)}'s {job.outfitType}
-                    </Text>
-                    <Text style={styles.compactSub}>Delivered · balance owed</Text>
+              {outstandingBalances.map((job, idx) => {
+                const phone = job.customerPhone || '';
+                const canWhatsApp = !!phone;
+                const handleBalanceWhatsApp = () => {
+                  if (!canWhatsApp) { goToJob(job.id); return; }
+                  const clean = phone.replace(/[\s\-()]/g, '').replace(/^0/, '234').replace(/^\+/, '');
+                  const name = getFirstName(job.customerName);
+                  const msg = encodeURIComponent(
+                    `Hello ${name},\n\nThis is a gentle reminder that your balance of *${formatNaira(job.balance)}* is due for your *${job.outfitType}*.\nPlease make payment at your earliest convenience. Thank you! 🙏`
+                  );
+                  Linking.openURL(`https://wa.me/${clean}?text=${msg}`).catch(() => goToJob(job.id));
+                };
+                return (
+                  <View
+                    key={job.id}
+                    style={[
+                      styles.compactRow,
+                      idx < outstandingBalances.length - 1 && styles.compactRowBorder,
+                    ]}
+                  >
+                    <TouchableOpacity
+                      onPress={() => goToJob(job.id)}
+                      activeOpacity={0.8}
+                      style={styles.compactRowMain}
+                    >
+                      <View style={[styles.compactDot, { backgroundColor: Colors.overdue }]} />
+                      <View style={styles.compactInfo}>
+                        <Text style={styles.compactLabel}>
+                          {getFirstName(job.customerName)}'s {job.outfitType}
+                        </Text>
+                        <Text style={styles.compactSub}>Delivered · balance owed</Text>
+                      </View>
+                      <Text style={styles.balanceAmount}>{formatNaira(job.balance)}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={handleBalanceWhatsApp}
+                      style={styles.balanceWaBtn}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
+                    </TouchableOpacity>
                   </View>
-                  <Text style={styles.balanceAmount}>{formatNaira(job.balance)}</Text>
-                </TouchableOpacity>
-              ))}
+                );
+              })}
             </View>
           </View>
         )}
@@ -769,6 +794,10 @@ const styles = StyleSheet.create({
 
   compactRow: {
     flexDirection: 'row', alignItems: 'center',
+    paddingRight: Spacing.md,
+  },
+  compactRowMain: {
+    flex: 1, flexDirection: 'row', alignItems: 'center',
     padding: Spacing.md, gap: Spacing.md,
   },
   compactRowBorder: { borderBottomWidth: 1, borderBottomColor: Colors.borderLight },
@@ -781,6 +810,11 @@ const styles = StyleSheet.create({
   },
   balanceAmount: {
     fontSize: Typography.sm, color: Colors.overdue, fontWeight: Typography.bold,
+  },
+  balanceWaBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: '#E8FFF1', alignItems: 'center', justifyContent: 'center',
+    marginLeft: Spacing.sm,
   },
 
   quickRow: {

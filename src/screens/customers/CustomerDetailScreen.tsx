@@ -16,7 +16,6 @@ import { Colors, Typography, Spacing, Radius, Shadow } from '../../constants/the
 import { BackIcon, EditIcon, PhoneIcon, BriefcasePlusIcon, TrashIcon, MeasurementsIcon, HomeIcon } from '../../components/common/Icons';
 import { Avatar, StatusBadge, Card, Button, EmptyState } from '../../components/common/UI';
 import { formatPhone, formatDeliveryDate } from '../../utils/helpers';
-import { buildWhatsAppUrl } from '../../utils/whatsapp';
 import { Job } from '../../types';
 import { JOB_STATUS_CONFIG } from '../../constants/theme';
 
@@ -123,7 +122,8 @@ const CustomerDetailScreen: React.FC = () => {
                 <Text style={styles.phoneText}>{formatPhone(customer.phone)}</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={handleWhatsApp} style={styles.waBtn}>
-                <Text style={styles.waBtnText}>💬 WhatsApp</Text>
+                <Ionicons name="logo-whatsapp" size={13} color="#25D366" />
+                <Text style={styles.waBtnText}>WhatsApp</Text>
               </TouchableOpacity>
             </View>
               {customer.notes ? (
@@ -353,6 +353,9 @@ const styles = StyleSheet.create({
     fontWeight: Typography.medium,
   },
   waBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     backgroundColor: '#E8FFF0',
     paddingHorizontal: Spacing.sm,
     paddingVertical: 3,
