@@ -11,6 +11,7 @@ import {
   Image,
   Modal,
   FlatList,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -57,7 +58,9 @@ const JobCreateScreen: React.FC = () => {
 
   // ─── Form State ───────────────────────────────────────────────────────────
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>(prefilledCustomerId || '');
-  const [outfitType, setOutfitType] = useState<OutfitType>('Senator');
+  const [outfitType, setOutfitType] = useState<string>('Senator');
+  const [customOutfitType, setCustomOutfitType] = useState('');
+  const [showCustomOutfit, setShowCustomOutfit] = useState(false);
   const [style, setStyle] = useState('');
   const [fabric, setFabric] = useState('');
   const [deliveryDate, setDeliveryDate] = useState(addDaysISO(7));
@@ -131,8 +134,9 @@ const JobCreateScreen: React.FC = () => {
       Alert.alert('Select a customer', 'Please choose a customer for this job.');
       return;
     }
-    if (!outfitType) {
-      Alert.alert('Select outfit type', 'Please pick an outfit type.');
+    const finalOutfitType = outfitType === 'Other' ? customOutfitType.trim() : outfitType;
+    if (!finalOutfitType) {
+      Alert.alert('Select outfit type', 'Please pick an outfit type or enter a custom name.');
       return;
     }
     if (!deliveryDate) {
@@ -148,7 +152,7 @@ const JobCreateScreen: React.FC = () => {
       const job = await addJob({
         customerId: selectedCustomerId,
         customerName: selectedCustomer!.name,
-        outfitType,
+        outfitType: finalOutfitType,
         style: style.trim() || undefined,
         fabric: fabric.trim() || undefined,
         deliveryDate,
@@ -216,10 +220,32 @@ const JobCreateScreen: React.FC = () => {
                   key={type}
                   label={type}
                   selected={outfitType === type}
-                  onPress={() => setOutfitType(type as OutfitType)}
+                  onPress={() => {
+                    setOutfitType(type);
+                    if (type === 'Other') {
+                      setShowCustomOutfit(true);
+                    } else {
+                      setShowCustomOutfit(false);
+                      setCustomOutfitType('');
+                    }
+                  }}
                 />
               ))}
             </View>
+            {showCustomOutfit && (
+              <View style={styles.customOutfitWrap}>
+                <Text style={styles.customOutfitLabel}>Garment name</Text>
+                <TextInput
+                  style={styles.customOutfitInput}
+                  placeholder="e.g. Babariga, Jumpsuit, Corset..."
+                  placeholderTextColor={Colors.textTertiary}
+                  value={customOutfitType}
+                  onChangeText={setCustomOutfitType}
+                  autoCapitalize="words"
+                  autoFocus
+                />
+              </View>
+            )}
           </FormSection>
 
           {/* ─── Style & Fabric ─── */}
@@ -556,6 +582,29 @@ const styles = StyleSheet.create({
   chipWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+  },
+  customOutfitWrap: {
+    marginTop: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.lg,
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+    padding: Spacing.md,
+  },
+  customOutfitLabel: {
+    fontSize: Typography.xs,
+    fontWeight: Typography.semibold,
+    color: Colors.primary,
+    marginBottom: Spacing.sm,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.4,
+  },
+  customOutfitInput: {
+    fontSize: Typography.base,
+    color: Colors.textPrimary,
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
   },
   presetRow: {
     flexDirection: 'row',

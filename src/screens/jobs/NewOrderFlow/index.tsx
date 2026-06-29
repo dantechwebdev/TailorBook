@@ -32,7 +32,7 @@ export interface OrderDraft {
   isNewCustomer: boolean;
   newCustomerName: string;
   newCustomerPhone: string;
-  outfitType: OutfitType | '';
+  outfitType: string;
   style: string;
   fabric: string;
   photoUris: string[];

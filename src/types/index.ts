@@ -61,7 +61,7 @@ export interface Job {
   customerId: string;
   customerName: string;
   customerPhone?: string;
-  outfitType: OutfitType;
+  outfitType: string;
   style?: string;
   fabric?: string;
   deliveryDate: string;

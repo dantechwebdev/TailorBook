@@ -11,6 +11,7 @@ import {
   Image,
   Modal,
   FlatList,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -49,7 +50,10 @@ const JobEditScreen: React.FC = () => {
   const { getJob, updateJob, customers, getMeasurementsByCustomer } = useStore();
   const job = getJob(jobId);
 
-  const [outfitType, setOutfitType] = useState<OutfitType>((job?.outfitType as OutfitType) || 'Senator');
+  const isCustomOutfit = !!job && !OUTFIT_TYPES.includes(job.outfitType as any);
+  const [outfitType, setOutfitType] = useState<string>(isCustomOutfit ? 'Other' : (job?.outfitType || 'Senator'));
+  const [customOutfitType, setCustomOutfitType] = useState(isCustomOutfit ? (job?.outfitType || '') : '');
+  const [showCustomOutfit, setShowCustomOutfit] = useState(isCustomOutfit);
   const [style, setStyle] = useState(job?.style || '');
   const [fabric, setFabric] = useState(job?.fabric || '');
   const [deliveryDate, setDeliveryDate] = useState(job?.deliveryDate || addDaysISO(7));
@@ -113,9 +117,10 @@ const JobEditScreen: React.FC = () => {
       const priceNum = parseNaira(price);
       const depositNum = parseNaira(deposit);
 
+      const finalOutfitType = outfitType === 'Other' ? (customOutfitType.trim() || 'Other') : outfitType;
       await updateJob({
         ...job,
-        outfitType,
+        outfitType: finalOutfitType,
         style: style.trim() || undefined,
         fabric: fabric.trim() || undefined,
         deliveryDate,
@@ -175,10 +180,32 @@ const JobEditScreen: React.FC = () => {
                   key={type}
                   label={type}
                   selected={outfitType === type}
-                  onPress={() => setOutfitType(type as OutfitType)}
+                  onPress={() => {
+                    setOutfitType(type);
+                    if (type === 'Other') {
+                      setShowCustomOutfit(true);
+                    } else {
+                      setShowCustomOutfit(false);
+                      setCustomOutfitType('');
+                    }
+                  }}
                 />
               ))}
             </View>
+            {showCustomOutfit && (
+              <View style={styles.customOutfitWrap}>
+                <Text style={styles.customOutfitLabel}>Garment name</Text>
+                <TextInput
+                  style={styles.customOutfitInput}
+                  placeholder="e.g. Babariga, Jumpsuit, Corset..."
+                  placeholderTextColor={Colors.textTertiary}
+                  value={customOutfitType}
+                  onChangeText={setCustomOutfitType}
+                  autoCapitalize="words"
+                  autoFocus
+                />
+              </View>
+            )}
           </View>
 
           {/* Style & Fabric */}
@@ -334,6 +361,29 @@ const styles = StyleSheet.create({
   },
   selectorValue: { fontSize: Typography.base, color: Colors.textPrimary, fontWeight: Typography.medium },
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap' },
+  customOutfitWrap: {
+    marginTop: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.lg,
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+    padding: Spacing.md,
+  },
+  customOutfitLabel: {
+    fontSize: Typography.xs,
+    fontWeight: Typography.semibold,
+    color: Colors.primary,
+    marginBottom: Spacing.sm,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  customOutfitInput: {
+    fontSize: Typography.base,
+    color: Colors.textPrimary,
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
   presetRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md, flexWrap: 'wrap' },
   presetBtn: {
     paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm,

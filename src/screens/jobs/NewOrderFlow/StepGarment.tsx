@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -30,11 +30,38 @@ const GARMENT_OPTIONS: { type: OutfitType; emoji: string; desc: string }[] = [
   { type: 'Other', emoji: '✂️', desc: 'Custom / other' },
 ];
 
+const KNOWN_TYPES = GARMENT_OPTIONS.map((o) => o.type);
+
 const StepGarment: React.FC<Props> = ({ draft, onChange, onNext }) => {
   const [style, setStyle] = useState(draft.style);
   const [fabric, setFabric] = useState(draft.fabric);
 
+  const isInitiallyCustom =
+    draft.outfitType !== '' && !KNOWN_TYPES.includes(draft.outfitType as OutfitType);
+
+  const [isCustom, setIsCustom] = useState(isInitiallyCustom);
+  const [customTypeText, setCustomTypeText] = useState(isInitiallyCustom ? draft.outfitType : '');
+
+  const customInputRef = useRef<TextInput>(null);
+
   const selected = draft.outfitType;
+
+  const handleSelectOption = (type: OutfitType) => {
+    if (type === 'Other') {
+      setIsCustom(true);
+      onChange({ outfitType: customTypeText.trim() });
+      setTimeout(() => customInputRef.current?.focus(), 100);
+    } else {
+      setIsCustom(false);
+      setCustomTypeText('');
+      onChange({ outfitType: type });
+    }
+  };
+
+  const handleCustomTextChange = (text: string) => {
+    setCustomTypeText(text);
+    onChange({ outfitType: text.trim() });
+  };
 
   const handleNext = () => {
     onChange({ style: style.trim(), fabric: fabric.trim() });
@@ -42,6 +69,12 @@ const StepGarment: React.FC<Props> = ({ draft, onChange, onNext }) => {
   };
 
   const canProceed = !!selected;
+
+  const continueLabel = selected
+    ? `Continue with ${selected} →`
+    : isCustom
+    ? 'Enter garment name to continue'
+    : 'Select a garment to continue';
 
   return (
     <ScrollView
@@ -58,11 +91,11 @@ const StepGarment: React.FC<Props> = ({ draft, onChange, onNext }) => {
       {/* ─── Garment Grid ─── */}
       <View style={styles.grid}>
         {GARMENT_OPTIONS.map((item) => {
-          const isSelected = selected === item.type;
+          const isSelected = item.type === 'Other' ? isCustom : (!isCustom && selected === item.type);
           return (
             <TouchableOpacity
               key={item.type}
-              onPress={() => onChange({ outfitType: item.type })}
+              onPress={() => handleSelectOption(item.type)}
               activeOpacity={0.8}
               style={[styles.garmentCard, isSelected && styles.garmentCardSelected]}
             >
@@ -82,6 +115,26 @@ const StepGarment: React.FC<Props> = ({ draft, onChange, onNext }) => {
           );
         })}
       </View>
+
+      {/* ─── Custom Garment Input ─── */}
+      {isCustom && (
+        <View style={styles.customInputBlock}>
+          <Text style={styles.customInputLabel}>Garment name</Text>
+          <TextInput
+            ref={customInputRef}
+            style={styles.customInput}
+            placeholder="e.g. Babariga, Jumpsuit, Corset..."
+            placeholderTextColor={Colors.textTertiary}
+            value={customTypeText}
+            onChangeText={handleCustomTextChange}
+            autoCapitalize="words"
+            returnKeyType="done"
+          />
+          {customTypeText.trim().length === 0 && (
+            <Text style={styles.customInputHint}>Please enter the garment name to continue</Text>
+          )}
+        </View>
+      )}
 
       {/* ─── Optional fields ─── */}
       <View style={styles.optionalBlock}>
@@ -117,9 +170,7 @@ const StepGarment: React.FC<Props> = ({ draft, onChange, onNext }) => {
           disabled={!canProceed}
           style={[styles.nextBtn, !canProceed && styles.nextBtnDisabled]}
         >
-          <Text style={styles.nextBtnText}>
-            {selected ? `Continue with ${selected} →` : 'Select a garment to continue'}
-          </Text>
+          <Text style={styles.nextBtnText}>{continueLabel}</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -191,6 +242,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tickText: { color: Colors.white, fontSize: 11, fontWeight: Typography.bold },
+  customInputBlock: {
+    marginTop: Spacing.lg,
+    marginHorizontal: Spacing.base,
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.xl,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+    padding: Spacing.base,
+    ...Shadow.sm,
+  },
+  customInputLabel: {
+    fontSize: Typography.sm,
+    fontWeight: Typography.semibold,
+    color: Colors.primary,
+    marginBottom: Spacing.sm,
+  },
+  customInput: {
+    fontSize: Typography.base,
+    color: Colors.textPrimary,
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  customInputHint: {
+    fontSize: Typography.xs,
+    color: Colors.textTertiary,
+    marginTop: Spacing.sm,
+  },
   optionalBlock: {
     marginTop: Spacing.xl,
     paddingHorizontal: Spacing.base,
