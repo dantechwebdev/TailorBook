@@ -27,16 +27,12 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npx serve web-build -l 5000 -s"
+args = "npm run start:web"
 waitForPort = 5000
 
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 19007
-externalPort = 3001
 
 [deployment]
 deploymentTarget = "static"

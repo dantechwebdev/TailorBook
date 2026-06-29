@@ -1,4 +1,4 @@
-import { Customer, Job, Measurements, AppNotification, TailorSettings } from '../types';
+import { Customer, Job, Measurements, AppNotification, TailorSettings, JobReminder } from '../types';
 
 const STORAGE_KEY = 'tailorbook_db';
 
@@ -8,14 +8,15 @@ interface DB {
   measurements: Measurements[];
   notifications: AppNotification[];
   settings: Record<string, string>;
+  jobReminders: JobReminder[];
 }
 
 function load(): DB {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return { settings: {}, ...JSON.parse(raw) };
+    if (raw) return { settings: {}, jobReminders: [], ...JSON.parse(raw) };
   } catch {}
-  return { customers: [], jobs: [], measurements: [], notifications: [], settings: {} };
+  return { customers: [], jobs: [], measurements: [], notifications: [], settings: {}, jobReminders: [] };
 }
 
 function save(db: DB): void {
@@ -232,5 +233,34 @@ export async function markAllNotificationsRead(): Promise<void> {
 export async function deleteNotificationsByJobId(jobId: string): Promise<void> {
   const db = load();
   db.notifications = db.notifications.filter((n) => n.jobId !== jobId || n.type === 'system');
+  save(db);
+}
+
+// ─── Job Reminders ────────────────────────────────────────────────────────────
+
+export async function getAllJobReminders(): Promise<JobReminder[]> {
+  return load().jobReminders.sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt));
+}
+
+export async function getJobRemindersByJob(jobId: string): Promise<JobReminder[]> {
+  return load().jobReminders.filter((r) => r.jobId === jobId)
+    .sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt));
+}
+
+export async function addJobReminderRecord(reminder: JobReminder): Promise<void> {
+  const db = load();
+  db.jobReminders.push(reminder);
+  save(db);
+}
+
+export async function deleteJobReminderRecord(id: string): Promise<void> {
+  const db = load();
+  db.jobReminders = db.jobReminders.filter((r) => r.id !== id);
+  save(db);
+}
+
+export async function deleteAllJobRemindersForJob(jobId: string): Promise<void> {
+  const db = load();
+  db.jobReminders = db.jobReminders.filter((r) => r.jobId !== jobId);
   save(db);
 }
