@@ -16,9 +16,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import {
+  AgbadaIcon,
   BlouseIcon,
   GownIcon,
   KaftanIcon,
+  OtherIcon,
   SenatorIcon,
   ShirtIcon,
   SkirtIcon,
@@ -559,19 +561,16 @@ const HomeScreen: React.FC = () => {
 // ─── RecentJobCard ─────────────────────────────────────────────────────────────
 
 const OUTFIT_ICON_MAP: Record<string, React.FC<IconProps>> = {
+  Agbada:  AgbadaIcon,
+  Blouse:  BlouseIcon,
+  Gown:    GownIcon,
+  Kaftan:  KaftanIcon,
+  Other:   OtherIcon,
   Senator: SenatorIcon,
-  Suit: SuitIcon,
-  Gown: GownIcon,
-  Kaftan: KaftanIcon,
-  Shirt: ShirtIcon,
+  Shirt:   ShirtIcon,
+  Skirt:   SkirtIcon,
+  Suit:    SuitIcon,
   Trouser: TrouserIcon,
-  Blouse: BlouseIcon,
-  Skirt: SkirtIcon,
-};
-// Ionicons fallback for types without a custom icon (Agbada, Other, unknowns)
-const OUTFIT_IONICON_FALLBACK: Record<string, string> = {
-  Agbada: 'shirt-outline',
-  Other: 'cut-outline',
 };
 
 const STATUS_BG: Record<string, string> = {
@@ -603,8 +602,7 @@ const RecentJobCard: React.FC<{ job: Job; onPress: () => void }> = ({ job, onPre
 
   const cfg = JOB_STATUS_CONFIG[job.status as keyof typeof JOB_STATUS_CONFIG];
   const bgColor = STATUS_BG[job.status] || Colors.surface;
-  const OutfitIconCmp = OUTFIT_ICON_MAP[job.outfitType];
-  const outfitIoniconFallback = (OUTFIT_IONICON_FALLBACK[job.outfitType] || 'cut-outline') as any;
+  const OutfitIconCmp = OUTFIT_ICON_MAP[job.outfitType] ?? OtherIcon;
 
   return (
     <TouchableOpacity
@@ -620,10 +618,8 @@ const RecentJobCard: React.FC<{ job: Job; onPress: () => void }> = ({ job, onPre
             style={[styles.recentCardImage, { opacity: fadeAnim }]}
             resizeMode="cover"
           />
-        ) : OutfitIconCmp ? (
-          <OutfitIconCmp size={48} color={Colors.textTertiary} />
         ) : (
-          <Ionicons name={outfitIoniconFallback} size={48} color={Colors.textTertiary} />
+          <OutfitIconCmp size={48} color={Colors.textTertiary} />
         )}
         {/* Status badge */}
         <View style={[styles.recentStatusBadge, { backgroundColor: cfg?.color || Colors.primary }]}>

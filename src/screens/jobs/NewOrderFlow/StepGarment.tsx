@@ -8,9 +8,11 @@ import {
   TextInput,
 } from 'react-native';
 import {
+  AgbadaIcon,
   BlouseIcon,
   GownIcon,
   KaftanIcon,
+  OtherIcon,
   SenatorIcon,
   ShirtIcon,
   SkirtIcon,
@@ -45,8 +47,8 @@ const GARMENT_OPTIONS: GarmentOption[] = [
   { type: 'Trouser', Icon: TrouserIcon, desc: 'Trousers only' },
   { type: 'Blouse',  Icon: BlouseIcon,  desc: 'Blouse / top' },
   { type: 'Skirt',   Icon: SkirtIcon,   desc: 'Skirt' },
-  { type: 'Agbada',  emoji: '🥻',       desc: 'Full Agbada set' },
-  { type: 'Other',   emoji: '✂️',       desc: 'Custom / other' },
+  { type: 'Agbada',  Icon: AgbadaIcon,  desc: 'Full Agbada set' },
+  { type: 'Other',   Icon: OtherIcon,   desc: 'Custom / other' },
 ];
 
 const KNOWN_TYPES = GARMENT_OPTIONS.map((o) => o.type);

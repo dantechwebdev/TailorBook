@@ -15,9 +15,11 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import {
+  AgbadaIcon,
   BlouseIcon,
   GownIcon,
   KaftanIcon,
+  OtherIcon,
   SenatorIcon,
   ShirtIcon,
   SkirtIcon,
@@ -38,7 +40,7 @@ type ApparelOption = { type: OutfitType } & (
 
 const APPARELS: ApparelOption[] = [
   { type: 'Senator', Icon: SenatorIcon },
-  { type: 'Agbada',  ionicon: 'shirt-outline' },
+  { type: 'Agbada',  Icon: AgbadaIcon },
   { type: 'Suit',    Icon: SuitIcon },
   { type: 'Gown',    Icon: GownIcon },
   { type: 'Kaftan',  Icon: KaftanIcon },
@@ -46,7 +48,7 @@ const APPARELS: ApparelOption[] = [
   { type: 'Trouser', Icon: TrouserIcon },
   { type: 'Blouse',  Icon: BlouseIcon },
   { type: 'Skirt',   Icon: SkirtIcon },
-  { type: 'Other',   ionicon: 'cut-outline' },
+  { type: 'Other',   Icon: OtherIcon },
 ];
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];

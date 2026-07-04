@@ -272,14 +272,84 @@ export const TrouserIcon: React.FC<IconProps> = ({
   </Svg>
 );
 
+/**
+ * Agbada — traditional West African outer robe with signature wide batwing sleeves.
+ */
+export const AgbadaIcon: React.FC<IconProps> = ({
+  size = DEFAULT_SIZE,
+  color = DEFAULT_COLOR,
+  ...props
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" {...props}>
+    {/* Wide outer robe body + batwing sleeves */}
+    <Path
+      d="M9,3 C8,3 6.5,4 5.5,5.5 L2,9.5 L2,13.5 L7,11.5 L7,21 L17,21 L17,11.5 L22,13.5 L22,9.5 L18.5,5.5 C17.5,4 16,3 15,3"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    {/* Round neckline */}
+    <Path
+      d="M9,3 Q12,7.5 15,3"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    {/* Embroidery hint at collar */}
+    <Path
+      d="M11,7 L12,9 L13,7"
+      stroke={color}
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+/**
+ * Other — open scissors representing custom / bespoke garments.
+ */
+export const OtherIcon: React.FC<IconProps> = ({
+  size = DEFAULT_SIZE,
+  color = DEFAULT_COLOR,
+  ...props
+}) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" {...props}>
+    {/* Thumb ring */}
+    <Circle cx={6} cy={7} r={2.5} stroke={color} strokeWidth={2} />
+    {/* Finger ring */}
+    <Circle cx={6} cy={17} r={2.5} stroke={color} strokeWidth={2} />
+    {/* Upper blade */}
+    <Path
+      d="M8,5.5 L21,4"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+    />
+    {/* Lower blade (spread open) */}
+    <Path
+      d="M8,8.5 L21,20"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+    />
+    {/* Pivot dot */}
+    <Circle cx={12} cy={12} r={1} fill={color} />
+  </Svg>
+);
+
 export const customIcons = {
+  agbada: AgbadaIcon,
   blouse: BlouseIcon,
-  kaftan: KaftanIcon,
   gown: GownIcon,
+  kaftan: KaftanIcon,
+  other: OtherIcon,
+  senator: SenatorIcon,
   shirt: ShirtIcon,
   skirt: SkirtIcon,
   suit: SuitIcon,
-  senator: SenatorIcon,
   trouser: TrouserIcon,
 };
 
