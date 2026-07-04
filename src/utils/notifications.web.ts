@@ -22,6 +22,16 @@ export async function scheduleCustomJobReminder(
 
 export async function cancelCustomJobReminder(_identifier: string): Promise<void> {}
 
+export async function scheduleScratchReminder(
+  _id: string,
+  _reminderAt: Date,
+  _text: string
+): Promise<string | null> {
+  return null;
+}
+
+export async function cancelScratchReminder(_identifier: string): Promise<void> {}
+
 export function addNotificationResponseListener(
   _handler: (jobId: string) => void
 ): { remove: () => void } {
