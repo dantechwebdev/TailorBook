@@ -1,0 +1,7 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>gown</title>
+  <path d="M7,2 L8.5,5.5 C9.5,7 10.7,7.8 12,7.8 C13.3,7.8 14.5,7 15.5,5.5 L17,2"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M9,7.5 L8,12 C6,15 4,18 3,21 C6,20.3 9,21.5 12,20.7 C15,21.5 18,20.3 21,21 C20,18 18,15 16,12 L15,7.5"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

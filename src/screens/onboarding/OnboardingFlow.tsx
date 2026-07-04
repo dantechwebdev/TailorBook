@@ -14,23 +14,39 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import {
+  BlouseIcon,
+  GownIcon,
+  KaftanIcon,
+  SenatorIcon,
+  ShirtIcon,
+  SkirtIcon,
+  SuitIcon,
+  TrouserIcon,
+  IconProps,
+} from '../../../assets/icons/custom';
 import { useStore } from '../../context/store';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../constants/theme';
 import { OutfitType } from '../../types';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const APPARELS: { type: OutfitType; icon: string }[] = [
-  { type: 'Senator', icon: 'man-outline' },
-  { type: 'Agbada', icon: 'shirt-outline' },
-  { type: 'Suit', icon: 'briefcase-outline' },
-  { type: 'Gown', icon: 'body-outline' },
-  { type: 'Kaftan', icon: 'layers-outline' },
-  { type: 'Shirt', icon: 'shirt-outline' },
-  { type: 'Trouser', icon: 'reorder-two-outline' },
-  { type: 'Blouse', icon: 'contrast-outline' },
-  { type: 'Skirt', icon: 'triangle-outline' },
-  { type: 'Other', icon: 'cut-outline' },
+type ApparelOption = { type: OutfitType } & (
+  | { Icon: React.FC<IconProps>; ionicon?: never }
+  | { Icon?: never; ionicon: string }
+);
+
+const APPARELS: ApparelOption[] = [
+  { type: 'Senator', Icon: SenatorIcon },
+  { type: 'Agbada',  ionicon: 'shirt-outline' },
+  { type: 'Suit',    Icon: SuitIcon },
+  { type: 'Gown',    Icon: GownIcon },
+  { type: 'Kaftan',  Icon: KaftanIcon },
+  { type: 'Shirt',   Icon: ShirtIcon },
+  { type: 'Trouser', Icon: TrouserIcon },
+  { type: 'Blouse',  Icon: BlouseIcon },
+  { type: 'Skirt',   Icon: SkirtIcon },
+  { type: 'Other',   ionicon: 'cut-outline' },
 ];
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -286,12 +302,20 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
                           <Text style={styles.apparelBadgeText}>{orderIdx + 1}</Text>
                         </View>
                       )}
-                      <Ionicons
-                        name={item.icon as any}
-                        size={24}
-                        color={isSelected ? Colors.primary : Colors.textTertiary}
-                        style={{ marginBottom: 4 }}
-                      />
+                      {'Icon' in item && item.Icon ? (
+                        <item.Icon
+                          size={24}
+                          color={isSelected ? Colors.primary : Colors.textTertiary}
+                          style={{ marginBottom: 4 }}
+                        />
+                      ) : 'ionicon' in item ? (
+                        <Ionicons
+                          name={item.ionicon as any}
+                          size={24}
+                          color={isSelected ? Colors.primary : Colors.textTertiary}
+                          style={{ marginBottom: 4 }}
+                        />
+                      ) : null}
                       <Text style={[styles.apparelName, isSelected && { color: Colors.primary }]}>
                         {item.type}
                       </Text>

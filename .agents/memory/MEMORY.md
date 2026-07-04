@@ -6,3 +6,4 @@
 - [Build prompt authority](build-prompt.md) — attached_assets/Build_prompt_1782663196572.md is constitutional; vision always wins over code
 - [Profile photo pattern](profile-photo.md) — profilePhotoUri is optional in TailorSettings; stored as key-value in settings table (no migration needed); use expo-image-picker with Platform.OS check for native permission; blob URI on web won't survive page reload
 - [Seed data](seed-data.md) — seedDemoDataIfEmpty() disabled with early return; file kept for import compatibility; store.ts still imports but function is a no-op
+- [Custom clothing icons](custom-icons.md) — SVG icon components live at assets/icons/custom/index.tsx; import as named exports e.g. { KaftanIcon, SenatorIcon }; Agbada and Other have no custom icon (use emoji/Ionicons fallback)

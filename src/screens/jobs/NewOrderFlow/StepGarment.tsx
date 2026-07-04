@@ -7,6 +7,17 @@ import {
   ScrollView,
   TextInput,
 } from 'react-native';
+import {
+  BlouseIcon,
+  GownIcon,
+  KaftanIcon,
+  SenatorIcon,
+  ShirtIcon,
+  SkirtIcon,
+  SuitIcon,
+  TrouserIcon,
+  IconProps,
+} from '../../../../assets/icons/custom';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../../constants/theme';
 import { OutfitType } from '../../../types';
 import { OrderDraft } from './index';
@@ -17,17 +28,25 @@ interface Props {
   onNext: () => void;
 }
 
-const GARMENT_OPTIONS: { type: OutfitType; emoji: string; desc: string }[] = [
-  { type: 'Agbada', emoji: '🥻', desc: 'Full Agbada set' },
-  { type: 'Senator', emoji: '👘', desc: 'Senator suit' },
-  { type: 'Suit', emoji: '🤵', desc: 'Suit & trousers' },
-  { type: 'Gown', emoji: '👗', desc: "Women's gown" },
-  { type: 'Kaftan', emoji: '🧥', desc: 'Kaftan style' },
-  { type: 'Shirt', emoji: '👔', desc: 'Bespoke shirt' },
-  { type: 'Trouser', emoji: '👖', desc: 'Trousers only' },
-  { type: 'Blouse', emoji: '👚', desc: 'Blouse / top' },
-  { type: 'Skirt', emoji: '🪡', desc: 'Skirt' },
-  { type: 'Other', emoji: '✂️', desc: 'Custom / other' },
+type GarmentOption = {
+  type: OutfitType;
+  desc: string;
+} & (
+  | { Icon: React.FC<IconProps>; emoji?: never }
+  | { Icon?: never; emoji: string }
+);
+
+const GARMENT_OPTIONS: GarmentOption[] = [
+  { type: 'Senator', Icon: SenatorIcon, desc: 'Senator suit' },
+  { type: 'Suit',    Icon: SuitIcon,    desc: 'Suit & trousers' },
+  { type: 'Kaftan',  Icon: KaftanIcon,  desc: 'Kaftan style' },
+  { type: 'Gown',    Icon: GownIcon,    desc: "Women's gown" },
+  { type: 'Shirt',   Icon: ShirtIcon,   desc: 'Bespoke shirt' },
+  { type: 'Trouser', Icon: TrouserIcon, desc: 'Trousers only' },
+  { type: 'Blouse',  Icon: BlouseIcon,  desc: 'Blouse / top' },
+  { type: 'Skirt',   Icon: SkirtIcon,   desc: 'Skirt' },
+  { type: 'Agbada',  emoji: '🥻',       desc: 'Full Agbada set' },
+  { type: 'Other',   emoji: '✂️',       desc: 'Custom / other' },
 ];
 
 const KNOWN_TYPES = GARMENT_OPTIONS.map((o) => o.type);
@@ -99,7 +118,15 @@ const StepGarment: React.FC<Props> = ({ draft, onChange, onNext }) => {
               activeOpacity={0.8}
               style={[styles.garmentCard, isSelected && styles.garmentCardSelected]}
             >
-              <Text style={styles.garmentEmoji}>{item.emoji}</Text>
+              {'Icon' in item && item.Icon ? (
+                <item.Icon
+                  size={30}
+                  color={isSelected ? Colors.primary : Colors.textSecondary}
+                  style={{ marginBottom: Spacing.sm }}
+                />
+              ) : (
+                <Text style={styles.garmentEmoji}>{item.emoji}</Text>
+              )}
               <Text style={[styles.garmentName, isSelected && styles.garmentNameSelected]}>
                 {item.type}
               </Text>

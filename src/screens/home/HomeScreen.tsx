@@ -15,6 +15,17 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import {
+  BlouseIcon,
+  GownIcon,
+  KaftanIcon,
+  SenatorIcon,
+  ShirtIcon,
+  SkirtIcon,
+  SuitIcon,
+  TrouserIcon,
+  IconProps,
+} from '../../../assets/icons/custom';
 import { useStore } from '../../context/store';
 import { Colors, Typography, Spacing, Radius, Shadow, JOB_STATUS_CONFIG } from '../../constants/theme';
 import {
@@ -547,10 +558,19 @@ const HomeScreen: React.FC = () => {
 
 // ─── RecentJobCard ─────────────────────────────────────────────────────────────
 
-const OUTFIT_ICON: Record<string, string> = {
-  Agbada: 'shirt-outline', Senator: 'man-outline', Suit: 'briefcase-outline',
-  Gown: 'body-outline', Kaftan: 'layers-outline', Shirt: 'shirt-outline',
-  Trouser: 'reorder-two-outline', Blouse: 'contrast-outline', Skirt: 'triangle-outline',
+const OUTFIT_ICON_MAP: Record<string, React.FC<IconProps>> = {
+  Senator: SenatorIcon,
+  Suit: SuitIcon,
+  Gown: GownIcon,
+  Kaftan: KaftanIcon,
+  Shirt: ShirtIcon,
+  Trouser: TrouserIcon,
+  Blouse: BlouseIcon,
+  Skirt: SkirtIcon,
+};
+// Ionicons fallback for types without a custom icon (Agbada, Other, unknowns)
+const OUTFIT_IONICON_FALLBACK: Record<string, string> = {
+  Agbada: 'shirt-outline',
   Other: 'cut-outline',
 };
 
@@ -583,7 +603,8 @@ const RecentJobCard: React.FC<{ job: Job; onPress: () => void }> = ({ job, onPre
 
   const cfg = JOB_STATUS_CONFIG[job.status as keyof typeof JOB_STATUS_CONFIG];
   const bgColor = STATUS_BG[job.status] || Colors.surface;
-  const outfitIcon = (OUTFIT_ICON[job.outfitType] || 'cut-outline') as any;
+  const OutfitIconCmp = OUTFIT_ICON_MAP[job.outfitType];
+  const outfitIoniconFallback = (OUTFIT_IONICON_FALLBACK[job.outfitType] || 'cut-outline') as any;
 
   return (
     <TouchableOpacity
@@ -599,8 +620,10 @@ const RecentJobCard: React.FC<{ job: Job; onPress: () => void }> = ({ job, onPre
             style={[styles.recentCardImage, { opacity: fadeAnim }]}
             resizeMode="cover"
           />
+        ) : OutfitIconCmp ? (
+          <OutfitIconCmp size={48} color={Colors.textTertiary} />
         ) : (
-          <Ionicons name={outfitIcon} size={48} color={Colors.textTertiary} />
+          <Ionicons name={outfitIoniconFallback} size={48} color={Colors.textTertiary} />
         )}
         {/* Status badge */}
         <View style={[styles.recentStatusBadge, { backgroundColor: cfg?.color || Colors.primary }]}>
