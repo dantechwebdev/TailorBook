@@ -126,6 +126,15 @@ const DrawerContent: React.FC<DrawerContentComponentProps> = (props) => {
     <View style={styles.container}>
       {/* ─── Profile Header ─── */}
       <View style={styles.header}>
+        {/* App logo */}
+        <Image
+          source={require('../../../assets/icon.png')}
+          style={styles.drawerLogo}
+          resizeMode="cover"
+          accessibilityLabel="TailorBook logo"
+        />
+        <View style={styles.headerDivider} />
+        {/* Shop / tailor info */}
         <View style={styles.avatarWrap}>
           {photoUri ? (
             <Image
@@ -135,7 +144,7 @@ const DrawerContent: React.FC<DrawerContentComponentProps> = (props) => {
               accessibilityLabel={`${shopName} profile photo`}
             />
           ) : (
-            <DrawerAvatar name={shopName} size={52} colors={colors} />
+            <DrawerAvatar name={shopName} size={44} colors={colors} />
           )}
         </View>
         <View style={styles.headerText}>
@@ -221,13 +230,21 @@ function makeStyles(C: any) {
       borderBottomWidth: 1,
       borderBottomColor: '#FFFFFF15',
     },
+    drawerLogo: {
+      width: 44, height: 44, borderRadius: 10,
+    },
+    headerDivider: {
+      width: 1, height: 32,
+      backgroundColor: '#FFFFFF20',
+      marginHorizontal: 4,
+    },
     avatarWrap: {
-      width: 52, height: 52, borderRadius: 26,
+      width: 44, height: 44, borderRadius: 22,
       overflow: 'hidden',
       backgroundColor: C.primary,
       alignItems: 'center', justifyContent: 'center',
     },
-    avatarPhoto: { width: 52, height: 52 },
+    avatarPhoto: { width: 44, height: 44 },
     headerText: { flex: 1 },
     shopName: { color: C.drawerText, fontSize: Typography.md, fontWeight: Typography.bold },
     shopRole: { color: C.drawerTextMuted, fontSize: Typography.sm, marginTop: 2 },

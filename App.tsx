@@ -1,6 +1,6 @@
 import 'react-native-gesture-handler';
 import React, { useEffect, useState } from 'react';
-import { StatusBar, View, Text, StyleSheet } from 'react-native';
+import { StatusBar, View, Text, StyleSheet, Image } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
@@ -12,7 +12,6 @@ import { useStore } from './src/context/store';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { requestNotificationPermissions, addNotificationResponseListener, clearBadge } from './src/utils/notifications';
 import { Typography, Spacing, LightColors } from './src/constants/theme';
-import { TailorIcon } from './src/components/common/Icons';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -26,9 +25,11 @@ const SplashView: React.FC<{ onReady: () => void }> = ({ onReady }) => {
 
   return (
     <View style={splashStyles.container}>
-      <View style={splashStyles.logoWrap}>
-        <TailorIcon size={72} color={LightColors.white} />
-      </View>
+      <Image
+        source={require('./assets/icon.png')}
+        style={splashStyles.logo}
+        resizeMode="contain"
+      />
       <Text style={splashStyles.title}>TailorBook</Text>
       <Text style={splashStyles.subtitle}>Your digital customer book</Text>
     </View>
@@ -43,14 +44,11 @@ const splashStyles = StyleSheet.create({
     justifyContent: 'center',
     gap: Spacing.md,
   },
-  logoWrap: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.md,
+  logo: {
+    width: 110,
+    height: 110,
+    borderRadius: 22,
+    marginBottom: Spacing.sm,
   },
   title: {
     fontSize: 36,
