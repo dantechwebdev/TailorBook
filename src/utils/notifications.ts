@@ -3,7 +3,13 @@ import { Platform } from 'react-native';
 import { Job } from '../types';
 import { parseISO, subDays, isAfter } from 'date-fns';
 
-// ─── Configure Handler ────────────────────────────────────────────────────────
+// ─── Notification Channels ────────────────────────────────────────────────────
+
+const CHANNEL_JOB_REMINDERS = 'job-reminders';
+const CHANNEL_SCRATCH = 'scratch-reminders';
+const CHANNEL_ALERTS = 'delivery-alerts';
+
+// ─── Foreground Handler ───────────────────────────────────────────────────────
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -13,34 +19,82 @@ Notifications.setNotificationHandler({
   }),
 });
 
+// ─── Create Android Channels ─────────────────────────────────────────────────
+
+async function ensureChannels(): Promise<void> {
+  if (Platform.OS !== 'android') return;
+
+  await Promise.all([
+    Notifications.setNotificationChannelAsync(CHANNEL_JOB_REMINDERS, {
+      name: 'Job Reminders',
+      description: 'Reminders about upcoming and overdue delivery dates',
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 300, 200, 300],
+      lightColor: '#4B3FA0',
+      sound: 'default',
+      enableVibrate: true,
+      enableLights: true,
+      showBadge: true,
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+    }),
+    Notifications.setNotificationChannelAsync(CHANNEL_ALERTS, {
+      name: 'Delivery Alerts',
+      description: 'High-priority alerts for delivery day and overdue jobs',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 500, 200, 500],
+      lightColor: '#E8443A',
+      sound: 'default',
+      enableVibrate: true,
+      enableLights: true,
+      showBadge: true,
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      bypassDnd: false,
+    }),
+    Notifications.setNotificationChannelAsync(CHANNEL_SCRATCH, {
+      name: 'Scratch Pad Reminders',
+      description: 'Reminders set from the Scratch Pad',
+      importance: Notifications.AndroidImportance.DEFAULT,
+      vibrationPattern: [0, 200],
+      lightColor: '#4B3FA0',
+      sound: 'default',
+      enableVibrate: true,
+      showBadge: false,
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PRIVATE,
+    }),
+  ]);
+}
+
 // ─── Permission Request ───────────────────────────────────────────────────────
 
 export async function requestNotificationPermissions(): Promise<boolean> {
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('job-reminders', {
-      name: 'Job Reminders',
-      importance: Notifications.AndroidImportance.HIGH,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#4B3FA0',
-      description: 'Reminders about upcoming and overdue jobs',
-    });
-  }
+  await ensureChannels();
 
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   if (existingStatus === 'granted') return true;
 
-  const { status } = await Notifications.requestPermissionsAsync();
+  const { status } = await Notifications.requestPermissionsAsync({
+    ios: {
+      allowAlert: true,
+      allowBadge: true,
+      allowSound: true,
+      allowProvisional: false,
+      allowCriticalAlerts: false,
+    },
+  });
+
   return status === 'granted';
 }
 
 // ─── Schedule Job Reminders ───────────────────────────────────────────────────
 
 export async function scheduleJobReminders(job: Job): Promise<void> {
-  // Cancel any existing notifications for this job first
   await cancelJobNotifications(job.id);
 
   const hasPermission = await requestNotificationPermissions();
   if (!hasPermission) return;
+
+  // Skip scheduling for delivered jobs
+  if (job.status === 'Delivered') return;
 
   const deliveryDate = parseISO(job.deliveryDate);
   const now = new Date();
@@ -48,63 +102,86 @@ export async function scheduleJobReminders(job: Job): Promise<void> {
   const reminders = [
     {
       daysBefore: 7,
-      title: '📅 Job due in 7 days',
+      title: 'Job due in 7 days',
       body: `${job.customerName}'s ${job.outfitType} is due in one week.`,
+      channel: CHANNEL_JOB_REMINDERS,
     },
     {
       daysBefore: 3,
-      title: '⏰ Job due in 3 days',
+      title: 'Job due in 3 days',
       body: `${job.customerName}'s ${job.outfitType} is due on ${job.deliveryDate}.`,
+      channel: CHANNEL_JOB_REMINDERS,
     },
     {
       daysBefore: 1,
-      title: '🔔 Job due tomorrow!',
+      title: 'Job due tomorrow',
       body: `${job.customerName}'s ${job.outfitType} is due tomorrow. Make sure it's ready!`,
+      channel: CHANNEL_JOB_REMINDERS,
     },
     {
       daysBefore: 0,
-      title: '🚨 Delivery day!',
+      title: 'Delivery day!',
       body: `${job.customerName}'s ${job.outfitType} is due today.`,
+      channel: CHANNEL_ALERTS,
     },
   ];
 
-  for (const reminder of reminders) {
-    const triggerDate = subDays(deliveryDate, reminder.daysBefore);
-    triggerDate.setHours(8, 0, 0, 0); // 8:00 AM
+  await Promise.all(
+    reminders.map(async (reminder) => {
+      const triggerDate = subDays(deliveryDate, reminder.daysBefore);
+      triggerDate.setHours(8, 0, 0, 0);
 
-    // Only schedule if date is in the future
-    if (isAfter(triggerDate, now)) {
-      await Notifications.scheduleNotificationAsync({
-        identifier: `${job.id}-${reminder.daysBefore}d`,
-        content: {
-          title: reminder.title,
-          body: reminder.body,
-          data: { jobId: job.id, type: reminder.daysBefore === 0 ? 'due_today' : 'due_soon' },
-          sound: 'default',
-        },
-        trigger: {
-          date: triggerDate,
-          channelId: 'job-reminders',
-        },
-      });
-    }
-  }
+      if (!isAfter(triggerDate, now)) return;
+
+      try {
+        await Notifications.scheduleNotificationAsync({
+          identifier: `${job.id}-${reminder.daysBefore}d`,
+          content: {
+            title: reminder.title,
+            body: reminder.body,
+            data: {
+              jobId: job.id,
+              type: reminder.daysBefore === 0 ? 'due_today' : 'due_soon',
+            },
+            sound: 'default',
+            badge: 1,
+          },
+          trigger: {
+            date: triggerDate,
+            channelId: reminder.channel,
+          } as any,
+        });
+      } catch {
+        // Silently skip notifications that cannot be scheduled
+      }
+    })
+  );
 }
 
 // ─── Cancel Job Notifications ─────────────────────────────────────────────────
 
 export async function cancelJobNotifications(jobId: string): Promise<void> {
-  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
-  const jobNotifs = scheduled.filter((n) => n.identifier.startsWith(jobId));
-  await Promise.all(jobNotifs.map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier)));
+  try {
+    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+    const toCancel = scheduled.filter((n) => n.identifier.startsWith(jobId));
+    await Promise.all(
+      toCancel.map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier))
+    );
+  } catch {
+    // Non-fatal — best-effort cancellation
+  }
 }
 
-// ─── Reschedule All ───────────────────────────────────────────────────────────
+// ─── Reschedule All Job Notifications ────────────────────────────────────────
 
 export async function rescheduleAllJobNotifications(jobs: Job[]): Promise<void> {
-  await Notifications.cancelAllScheduledNotificationsAsync();
-  const pending = jobs.filter((j) => j.status !== 'Delivered');
-  await Promise.all(pending.map((job) => scheduleJobReminders(job)));
+  try {
+    await Notifications.cancelAllScheduledNotificationsAsync();
+    const active = jobs.filter((j) => j.status !== 'Delivered');
+    await Promise.all(active.map((job) => scheduleJobReminders(job)));
+  } catch {
+    // Non-fatal
+  }
 }
 
 // ─── Custom Job Reminders ─────────────────────────────────────────────────────
@@ -134,7 +211,7 @@ export async function scheduleCustomJobReminder(
       },
       trigger: {
         date: scheduledAt,
-        channelId: 'job-reminders',
+        channelId: CHANNEL_JOB_REMINDERS,
       } as any,
     });
     return identifier;
@@ -146,7 +223,9 @@ export async function scheduleCustomJobReminder(
 export async function cancelCustomJobReminder(identifier: string): Promise<void> {
   try {
     await Notifications.cancelScheduledNotificationAsync(identifier);
-  } catch {}
+  } catch {
+    // Non-fatal
+  }
 }
 
 // ─── Scratch Note Reminders ───────────────────────────────────────────────────
@@ -167,14 +246,14 @@ export async function scheduleScratchReminder(
     await Notifications.scheduleNotificationAsync({
       identifier,
       content: {
-        title: '📝 Scratch Pad Reminder',
+        title: 'Scratch Pad Reminder',
         body: text.length > 80 ? text.slice(0, 77) + '…' : text,
         data: { noteId, type: 'scratch' },
         sound: 'default',
       },
       trigger: {
         date: scheduledAt,
-        channelId: 'job-reminders',
+        channelId: CHANNEL_SCRATCH,
       } as any,
     });
     return identifier;
@@ -186,16 +265,28 @@ export async function scheduleScratchReminder(
 export async function cancelScratchReminder(identifier: string): Promise<void> {
   try {
     await Notifications.cancelScheduledNotificationAsync(identifier);
-  } catch {}
+  } catch {
+    // Non-fatal
+  }
 }
 
-// ─── Listen for Tap ──────────────────────────────────────────────────────────
+// ─── Notification Response Listener ──────────────────────────────────────────
 
 export function addNotificationResponseListener(
   handler: (jobId: string) => void
 ): Notifications.Subscription {
   return Notifications.addNotificationResponseReceivedListener((response) => {
     const jobId = response.notification.request.content.data?.jobId;
-    if (jobId) handler(jobId as string);
+    if (typeof jobId === 'string') handler(jobId);
   });
+}
+
+// ─── Badge Management ─────────────────────────────────────────────────────────
+
+export async function clearBadge(): Promise<void> {
+  try {
+    await Notifications.setBadgeCountAsync(0);
+  } catch {
+    // Non-fatal
+  }
 }

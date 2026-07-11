@@ -1,7 +1,7 @@
 // ─── TailorBook Design Tokens ─────────────────────────────────────────────────
 // Warm, practical, modern — feels like a premium notebook, not a dashboard.
 
-export const Colors = {
+export const LightColors = {
   // Primary — deep indigo-purple, confident and premium
   primary: '#4B3FA0',
   primaryLight: '#6558B8',
@@ -52,6 +52,64 @@ export const Colors = {
   drawerText: '#FFFFFF',
   drawerTextMuted: '#A5A3C2',
 } as const;
+
+export const DarkColors = {
+  // Primary
+  primary: '#7B6DC5',
+  primaryLight: '#9585D4',
+  primaryDark: '#5C50A8',
+  primaryFaint: '#1E1B40',
+
+  // Accent
+  accent: '#F5A623',
+  accentLight: '#2D2018',
+
+  // Semantic Status Colors
+  overdue: '#FF6B6B',
+  overdueLight: '#2D1515',
+  dueSoon: '#F5A623',
+  dueSoonLight: '#2D2010',
+  ready: '#4CAF72',
+  readyLight: '#122018',
+  cutting: '#4EA8E8',
+  cuttingLight: '#112035',
+  sewing: '#C07BD0',
+  sewingLight: '#251535',
+  finishing: '#FF8C66',
+  finishingLight: '#2D1810',
+  delivered: '#8A9EB0',
+  deliveredLight: '#151C22',
+  pending: '#F5A623',
+  pendingLight: '#2D2010',
+
+  // Neutrals
+  white: '#FFFFFF',
+  background: '#0E0C1C',
+  surface: '#1A1730',
+  surfaceElevated: '#221F3A',
+  border: '#2D2860',
+  borderLight: '#1E1B40',
+  divider: '#2D2860',
+
+  // Text
+  textPrimary: '#F0EFF8',
+  textSecondary: '#A5A3C2',
+  textTertiary: '#6B6898',
+  textInverse: '#1A1A2E',
+  textLink: '#9585D4',
+
+  // Drawer — stays dark in both themes
+  drawerBg: '#0B0919',
+  drawerActive: '#1E1B40',
+  drawerText: '#FFFFFF',
+  drawerTextMuted: '#A5A3C2',
+} as const;
+
+// Default export — light theme (used by screens not yet theme-aware)
+export const Colors = LightColors;
+
+export type ColorPalette = typeof LightColors;
+export type AppearanceMode = 'system' | 'light' | 'dark';
 
 export const Typography = {
   // Font sizes
@@ -127,33 +185,33 @@ export const Shadow = {
 
 export const JOB_STATUS_CONFIG = {
   Pending: {
-    color: Colors.pending,
-    bgColor: Colors.pendingLight,
+    color: LightColors.pending,
+    bgColor: LightColors.pendingLight,
     label: 'Pending',
   },
   Cutting: {
-    color: Colors.cutting,
-    bgColor: Colors.cuttingLight,
+    color: LightColors.cutting,
+    bgColor: LightColors.cuttingLight,
     label: 'Cutting',
   },
   Sewing: {
-    color: Colors.sewing,
-    bgColor: Colors.sewingLight,
+    color: LightColors.sewing,
+    bgColor: LightColors.sewingLight,
     label: 'Sewing',
   },
   Finishing: {
-    color: Colors.finishing,
-    bgColor: Colors.finishingLight,
+    color: LightColors.finishing,
+    bgColor: LightColors.finishingLight,
     label: 'Finishing',
   },
   Ready: {
-    color: Colors.ready,
-    bgColor: Colors.readyLight,
+    color: LightColors.ready,
+    bgColor: LightColors.readyLight,
     label: 'Ready',
   },
   Delivered: {
-    color: Colors.delivered,
-    bgColor: Colors.deliveredLight,
+    color: LightColors.delivered,
+    bgColor: LightColors.deliveredLight,
     label: 'Delivered',
   },
 } as const;

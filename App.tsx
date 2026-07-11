@@ -1,5 +1,5 @@
 import 'react-native-gesture-handler';
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StatusBar, View, Text, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -9,24 +9,25 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AppNavigator from './src/navigation/AppNavigator';
 import OnboardingFlow from './src/screens/onboarding/OnboardingFlow';
 import { useStore } from './src/context/store';
-import { requestNotificationPermissions, addNotificationResponseListener } from './src/utils/notifications';
-import { Colors, Typography, Spacing } from './src/constants/theme';
+import { ThemeProvider, useTheme } from './src/context/ThemeContext';
+import { requestNotificationPermissions, addNotificationResponseListener, clearBadge } from './src/utils/notifications';
+import { Typography, Spacing, LightColors } from './src/constants/theme';
 import { TailorIcon } from './src/components/common/Icons';
 
 SplashScreen.preventAutoHideAsync();
 
-// ─── Loading Screen ────────────────────────────────────────────────────────────
+// ─── Loading / Splash View ─────────────────────────────────────────────────────
 
 const SplashView: React.FC<{ onReady: () => void }> = ({ onReady }) => {
   useEffect(() => {
-    const timeout = setTimeout(onReady, 1500);
+    const timeout = setTimeout(onReady, 1400);
     return () => clearTimeout(timeout);
   }, []);
 
   return (
     <View style={splashStyles.container}>
       <View style={splashStyles.logoWrap}>
-        <TailorIcon size={72} color={Colors.white} />
+        <TailorIcon size={72} color={LightColors.white} />
       </View>
       <Text style={splashStyles.title}>TailorBook</Text>
       <Text style={splashStyles.subtitle}>Your digital customer book</Text>
@@ -37,7 +38,7 @@ const SplashView: React.FC<{ onReady: () => void }> = ({ onReady }) => {
 const splashStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.primary,
+    backgroundColor: LightColors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.md,
@@ -54,7 +55,7 @@ const splashStyles = StyleSheet.create({
   title: {
     fontSize: 36,
     fontWeight: '800',
-    color: Colors.white,
+    color: LightColors.white,
     letterSpacing: 0.5,
   },
   subtitle: {
@@ -64,10 +65,11 @@ const splashStyles = StyleSheet.create({
   },
 });
 
-// ─── App Root ──────────────────────────────────────────────────────────────────
+// ─── App Content (inside ThemeProvider) ───────────────────────────────────────
 
 function AppContent() {
   const { initialize, isInitialized, settings } = useStore();
+  const { colors, isDark } = useTheme();
   const [showSplash, setShowSplash] = useState(true);
   const [appReady, setAppReady] = useState(false);
 
@@ -76,8 +78,10 @@ function AppContent() {
       try {
         await initialize();
         await requestNotificationPermissions();
+        await clearBadge();
       } catch (e) {
-        console.warn('Boot error:', e);
+        // Boot errors are non-fatal — log for debugging in development
+        if (__DEV__) console.warn('Boot error:', e);
       } finally {
         setAppReady(true);
         SplashScreen.hideAsync();
@@ -86,9 +90,11 @@ function AppContent() {
     boot();
   }, []);
 
+  // Navigate to job detail when notification is tapped
   useEffect(() => {
-    const sub = addNotificationResponseListener((jobId) => {
-      console.log('Notification tapped, jobId:', jobId);
+    const sub = addNotificationResponseListener((_jobId) => {
+      // Navigation to the specific job happens via the NavigationContainer
+      // jobId available for future deep-link integration
     });
     return () => sub.remove();
   }, []);
@@ -104,17 +110,25 @@ function AppContent() {
 
   return (
     <NavigationContainer>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.background} translucent={false} />
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor={colors.background}
+        translucent={false}
+      />
       <AppNavigator />
     </NavigationContainer>
   );
 }
 
+// ─── Root App ──────────────────────────────────────────────────────────────────
+
 export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <AppContent />
+        <ThemeProvider>
+          <AppContent />
+        </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

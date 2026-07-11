@@ -1,5 +1,7 @@
 import { Job } from '../types';
 
+// ─── Web stubs — notifications are not supported on web ───────────────────────
+
 export async function requestNotificationPermissions(): Promise<boolean> {
   return false;
 }
@@ -37,3 +39,5 @@ export function addNotificationResponseListener(
 ): { remove: () => void } {
   return { remove: () => {} };
 }
+
+export async function clearBadge(): Promise<void> {}

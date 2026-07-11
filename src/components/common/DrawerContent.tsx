@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
   Image,
 } from 'react-native';
 import { DrawerContentComponentProps } from '@react-navigation/drawer';
-import { Colors, Typography, Spacing, Radius } from '../../constants/theme';
+import { Typography, Spacing, Radius } from '../../constants/theme';
 import {
   HomeIcon,
   CustomersIcon,
@@ -20,8 +20,10 @@ import {
   HelpIcon,
   ReportsIcon,
   NotepadIcon,
+  SettingsIcon,
 } from '../common/Icons';
 import { useStore } from '../../context/store';
+import { useTheme } from '../../context/ThemeContext';
 import { getInitials, getAvatarColor } from '../../utils/helpers';
 
 // ─── Drawer Content ───────────────────────────────────────────────────────────
@@ -29,54 +31,57 @@ import { getInitials, getAvatarColor } from '../../utils/helpers';
 const DrawerContent: React.FC<DrawerContentComponentProps> = (props) => {
   const { navigation, state } = props;
   const { unreadNotificationCount, settings } = useStore();
+  const { colors } = useTheme();
+
+  const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const currentRoute = state.routeNames[state.index];
 
-  const shopName = settings?.shopName || 'My Shop';
+  const shopName   = settings?.shopName   || 'My Shop';
   const tailorName = settings?.tailorName || 'Tailor';
-  const photoUri = settings?.profilePhotoUri || '';
+  const photoUri   = settings?.profilePhotoUri || '';
 
   const navItems = [
     {
       key: 'HomeTab',
       label: 'Home',
       icon: (active: boolean) => (
-        <HomeIcon size={20} color={active ? Colors.primaryLight : Colors.drawerTextMuted} />
+        <HomeIcon size={20} color={active ? colors.primaryLight : colors.drawerTextMuted} />
       ),
     },
     {
       key: 'CustomersStack',
       label: 'Customers',
       icon: (active: boolean) => (
-        <CustomersIcon size={20} color={active ? Colors.primaryLight : Colors.drawerTextMuted} />
+        <CustomersIcon size={20} color={active ? colors.primaryLight : colors.drawerTextMuted} />
       ),
     },
     {
       key: 'JobsStack',
       label: 'Jobs',
       icon: (active: boolean) => (
-        <JobsIcon size={20} color={active ? Colors.primaryLight : Colors.drawerTextMuted} />
+        <JobsIcon size={20} color={active ? colors.primaryLight : colors.drawerTextMuted} />
       ),
     },
     {
       key: 'ScheduleScreen',
       label: 'Schedule',
       icon: (active: boolean) => (
-        <ClockIcon size={20} color={active ? Colors.primaryLight : Colors.drawerTextMuted} />
+        <ClockIcon size={20} color={active ? colors.primaryLight : colors.drawerTextMuted} />
       ),
     },
     {
       key: 'FinancialsScreen',
       label: 'Financials',
       icon: (active: boolean) => (
-        <ReportsIcon size={20} color={active ? Colors.primaryLight : Colors.drawerTextMuted} />
+        <ReportsIcon size={20} color={active ? colors.primaryLight : colors.drawerTextMuted} />
       ),
     },
     {
       key: 'ScratchPadScreen',
       label: 'Scratch Pad',
       icon: (active: boolean) => (
-        <NotepadIcon size={20} color={active ? Colors.primaryLight : Colors.drawerTextMuted} />
+        <NotepadIcon size={20} color={active ? colors.primaryLight : colors.drawerTextMuted} />
       ),
     },
     {
@@ -84,28 +89,35 @@ const DrawerContent: React.FC<DrawerContentComponentProps> = (props) => {
       label: 'Notifications',
       badge: unreadNotificationCount,
       icon: (active: boolean) => (
-        <NotificationsIcon size={20} color={active ? Colors.primaryLight : Colors.drawerTextMuted} />
+        <NotificationsIcon size={20} color={active ? colors.primaryLight : colors.drawerTextMuted} />
       ),
     },
     {
       key: 'AccountScreen',
       label: 'Account',
       icon: (active: boolean) => (
-        <AccountIcon size={20} color={active ? Colors.primaryLight : Colors.drawerTextMuted} />
+        <AccountIcon size={20} color={active ? colors.primaryLight : colors.drawerTextMuted} />
+      ),
+    },
+    {
+      key: 'SettingsScreen',
+      label: 'Settings',
+      icon: (active: boolean) => (
+        <SettingsIcon size={20} color={active ? colors.primaryLight : colors.drawerTextMuted} />
       ),
     },
     {
       key: 'SubscriptionScreen',
       label: 'Subscription',
       icon: (active: boolean) => (
-        <SubscriptionIcon size={20} color={active ? Colors.primaryLight : Colors.drawerTextMuted} />
+        <SubscriptionIcon size={20} color={active ? colors.primaryLight : colors.drawerTextMuted} />
       ),
     },
     {
       key: 'HelpScreen',
       label: 'Help & Support',
       icon: (active: boolean) => (
-        <HelpIcon size={20} color={active ? Colors.primaryLight : Colors.drawerTextMuted} />
+        <HelpIcon size={20} color={active ? colors.primaryLight : colors.drawerTextMuted} />
       ),
     },
   ];
@@ -120,9 +132,10 @@ const DrawerContent: React.FC<DrawerContentComponentProps> = (props) => {
               source={{ uri: photoUri }}
               style={styles.avatarPhoto}
               resizeMode="cover"
+              accessibilityLabel={`${shopName} profile photo`}
             />
           ) : (
-            <DrawerAvatar name={shopName} size={52} />
+            <DrawerAvatar name={shopName} size={52} colors={colors} />
           )}
         </View>
         <View style={styles.headerText}>
@@ -144,6 +157,9 @@ const DrawerContent: React.FC<DrawerContentComponentProps> = (props) => {
               key={item.key}
               onPress={() => navigation.navigate(item.key)}
               activeOpacity={0.8}
+              accessibilityLabel={item.label}
+              accessibilityRole="menuitem"
+              accessibilityState={{ selected: isActive }}
               style={[styles.navItem, isActive && styles.navItemActive]}
             >
               {item.icon(isActive)}
@@ -158,13 +174,12 @@ const DrawerContent: React.FC<DrawerContentComponentProps> = (props) => {
             </TouchableOpacity>
           );
         })}
-
       </ScrollView>
 
       {/* ─── Footer ─── */}
       <View style={styles.footer}>
-        <Text style={styles.footerText}>TailorBook v1.0</Text>
-        <Text style={styles.footerSub}>Your digital workshop assistant</Text>
+        <Text style={styles.footerText}>TailorBook v1.0.0</Text>
+        <Text style={styles.footerSub}>Your digital workshop companion</Text>
       </View>
     </View>
   );
@@ -172,9 +187,9 @@ const DrawerContent: React.FC<DrawerContentComponentProps> = (props) => {
 
 // ─── Drawer Avatar (initials fallback) ────────────────────────────────────────
 
-const DrawerAvatar: React.FC<{ name: string; size: number }> = ({ name, size }) => {
+const DrawerAvatar: React.FC<{ name: string; size: number; colors: any }> = ({ name, size, colors }) => {
   const initials = getInitials(name);
-  const bgColor = getAvatarColor(name);
+  const bgColor  = getAvatarColor(name);
   return (
     <View
       style={{
@@ -182,56 +197,63 @@ const DrawerAvatar: React.FC<{ name: string; size: number }> = ({ name, size }) 
         backgroundColor: bgColor,
         alignItems: 'center', justifyContent: 'center',
       }}
+      accessibilityLabel={`${name} avatar`}
     >
-      <Text style={{ color: Colors.white, fontSize: size * 0.36, fontWeight: Typography.bold }}>
+      <Text style={{ color: colors.white, fontSize: size * 0.36, fontWeight: Typography.bold }}>
         {initials}
       </Text>
     </View>
   );
 };
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// ─── Styles (always dark — drawer stays dark in both themes) ──────────────────
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.drawerBg },
-  header: {
-    paddingTop: 60,
-    paddingBottom: Spacing.xl,
-    paddingHorizontal: Spacing.base,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: '#FFFFFF15',
-  },
-  avatarWrap: {
-    width: 52, height: 52, borderRadius: 26,
-    overflow: 'hidden',
-    backgroundColor: Colors.primary,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  avatarPhoto: { width: 52, height: 52 },
-  headerText: { flex: 1 },
-  shopName: { color: Colors.drawerText, fontSize: Typography.md, fontWeight: Typography.bold },
-  shopRole: { color: Colors.drawerTextMuted, fontSize: Typography.sm, marginTop: 2 },
-  navList: { paddingVertical: Spacing.md, paddingHorizontal: Spacing.md },
-  navItem: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingVertical: 13, paddingHorizontal: Spacing.md,
-    borderRadius: Radius.md, marginBottom: 2, gap: Spacing.md,
-  },
-  navItemActive: { backgroundColor: Colors.drawerActive },
-  navLabel: { flex: 1, fontSize: Typography.base, color: Colors.drawerTextMuted, fontWeight: Typography.medium },
-  navLabelActive: { color: Colors.drawerText, fontWeight: Typography.semibold },
-  navBadge: {
-    backgroundColor: Colors.overdue, minWidth: 20, height: 20,
-    borderRadius: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6,
-  },
-  navBadgeText: { color: Colors.white, fontSize: 11, fontWeight: Typography.bold },
-  divider: { height: 1, backgroundColor: '#FFFFFF15', marginVertical: Spacing.md },
-  footer: { padding: Spacing.base, borderTopWidth: 1, borderTopColor: '#FFFFFF10', paddingBottom: 32 },
-  footerText: { color: Colors.drawerTextMuted, fontSize: Typography.xs, fontWeight: Typography.medium },
-  footerSub: { color: '#FFFFFF30', fontSize: 10, marginTop: 2 },
-});
+function makeStyles(C: any) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: C.drawerBg },
+    header: {
+      paddingTop: 60,
+      paddingBottom: Spacing.xl,
+      paddingHorizontal: Spacing.base,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: '#FFFFFF15',
+    },
+    avatarWrap: {
+      width: 52, height: 52, borderRadius: 26,
+      overflow: 'hidden',
+      backgroundColor: C.primary,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    avatarPhoto: { width: 52, height: 52 },
+    headerText: { flex: 1 },
+    shopName: { color: C.drawerText, fontSize: Typography.md, fontWeight: Typography.bold },
+    shopRole: { color: C.drawerTextMuted, fontSize: Typography.sm, marginTop: 2 },
+    navList: { paddingVertical: Spacing.md, paddingHorizontal: Spacing.md },
+    navItem: {
+      flexDirection: 'row', alignItems: 'center',
+      paddingVertical: 13, paddingHorizontal: Spacing.md,
+      borderRadius: Radius.md, marginBottom: 2, gap: Spacing.md,
+    },
+    navItemActive: { backgroundColor: C.drawerActive },
+    navLabel: { flex: 1, fontSize: Typography.base, color: C.drawerTextMuted, fontWeight: Typography.medium },
+    navLabelActive: { color: C.drawerText, fontWeight: Typography.semibold },
+    navBadge: {
+      backgroundColor: '#E8443A', minWidth: 20, height: 20,
+      borderRadius: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6,
+    },
+    navBadgeText: { color: '#FFFFFF', fontSize: 11, fontWeight: Typography.bold },
+    footer: {
+      padding: Spacing.base,
+      borderTopWidth: 1,
+      borderTopColor: '#FFFFFF10',
+      paddingBottom: 32,
+    },
+    footerText: { color: C.drawerTextMuted, fontSize: Typography.xs, fontWeight: Typography.medium },
+    footerSub: { color: '#FFFFFF30', fontSize: 10, marginTop: 2 },
+  });
+}
 
 export default DrawerContent;

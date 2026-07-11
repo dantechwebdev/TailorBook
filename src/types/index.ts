@@ -107,10 +107,12 @@ export interface TailorSettings {
   phone: string;
   location: string;
   currency: string;
-  workDays: string;       // JSON array e.g. '["Mon","Tue","Wed","Thu","Fri","Sat"]'
-  defaultApparel: string; // e.g. 'Senator'
-  onboardingComplete: string; // '0' or '1'
-  profilePhotoUri?: string; // optional tailor/storefront photo URI
+  workDays: string;            // JSON array e.g. '["Mon","Tue","Wed","Thu","Fri","Sat"]'
+  defaultApparel: string;      // e.g. 'Senator'
+  onboardingComplete: string;  // '0' or '1'
+  profilePhotoUri?: string;    // optional tailor/storefront photo URI
+  appearance?: string;         // 'system' | 'light' | 'dark'
+  notificationsEnabled?: string; // '1' = enabled (default), '0' = disabled
 }
 
 // ─── Today Task (derived from jobs for Home screen) ────────────────────────

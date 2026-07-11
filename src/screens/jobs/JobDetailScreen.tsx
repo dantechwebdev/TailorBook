@@ -116,6 +116,7 @@ const JobDetailScreen: React.FC = () => {
   const [showSummary, setShowSummary] = useState(false);
   const [statusLoading, setStatusLoading] = useState(false);
   const [waPreview, setWaPreview] = useState<WaPreview | null>(null);
+  const [showStudio, setShowStudio] = useState(false);
 
   // ─── Reminder state
   const [showAddReminder, setShowAddReminder] = useState(false);
@@ -603,6 +604,29 @@ const JobDetailScreen: React.FC = () => {
           </Card>
         </View>
 
+        {/* ─── Studio ─── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Studio</Text>
+          <TouchableOpacity
+            onPress={() => setShowStudio(true)}
+            activeOpacity={0.85}
+            style={styles.studioCard}
+            accessibilityLabel="Open TailorStudio"
+            accessibilityRole="button"
+          >
+            <View style={styles.studioLeft}>
+              <Text style={styles.studioEmoji}>🧵</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.studioTitle}>TailorStudio</Text>
+                <Text style={styles.studioSubtitle}>Visualize garments before you sew</Text>
+              </View>
+            </View>
+            <View style={styles.studioComingSoonBadge}>
+              <Text style={styles.studioComingSoonText}>Coming Soon</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
         <View style={{ height: 120 }} />
       </ScrollView>
 
@@ -840,6 +864,33 @@ const JobDetailScreen: React.FC = () => {
         </View>
       </Modal>
 
+      {/* ─── Studio Coming Soon Modal ─── */}
+      <Modal visible={showStudio} transparent animationType="fade" presentationStyle="overFullScreen" onRequestClose={() => setShowStudio(false)}>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowStudio(false)}
+        >
+          <View style={[styles.modalSheet, styles.studioSheet]}>
+            <View style={styles.modalHandle} />
+            <View style={styles.studioModalIcon}>
+              <Text style={{ fontSize: 48 }}>🧵</Text>
+            </View>
+            <Text style={styles.studioModalTitle}>TailorStudio</Text>
+            <Text style={styles.studioModalSubtitle}>
+              Visualize garments before sewing.{'\n\n'}
+              Soon you'll be able to preview fabrics, styles and measurements in an immersive creative workspace — designed specifically for tailors like you.
+            </Text>
+            <View style={styles.studioModalBadge}>
+              <Text style={styles.studioModalBadgeText}>Coming Soon</Text>
+            </View>
+            <TouchableOpacity onPress={() => setShowStudio(false)} style={styles.cancelPreviewBtn}>
+              <Text style={styles.cancelPreviewText}>Got it</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       {/* ─── Summary Sheet ─── */}
       <Modal visible={showSummary} transparent animationType="slide" presentationStyle="overFullScreen">
         <View style={styles.modalOverlay}>
@@ -1062,6 +1113,46 @@ const styles = StyleSheet.create({
   statusOption: { flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.md, paddingHorizontal: Spacing.base, borderRadius: Radius.md, marginBottom: 4, gap: Spacing.md },
   statusDot: { width: 10, height: 10, borderRadius: 5 },
   statusOptionText: { flex: 1, fontSize: Typography.base, color: Colors.textPrimary },
+
+  // Studio
+  studioCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.lg,
+    padding: Spacing.base,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    ...Shadow.sm,
+    borderWidth: 1,
+    borderColor: Colors.primaryFaint,
+  },
+  studioLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, flex: 1 },
+  studioEmoji: { fontSize: 28 },
+  studioTitle: { fontSize: Typography.base, fontWeight: Typography.bold, color: Colors.textPrimary },
+  studioSubtitle: { fontSize: Typography.xs, color: Colors.textSecondary, marginTop: 2 },
+  studioComingSoonBadge: {
+    backgroundColor: Colors.primaryFaint,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    borderColor: Colors.primaryLight + '40',
+  },
+  studioComingSoonText: { fontSize: 10, fontWeight: Typography.bold, color: Colors.primary, letterSpacing: 0.5 },
+  studioSheet: { alignItems: 'center', paddingBottom: 40 },
+  studioModalIcon: { marginBottom: Spacing.lg, marginTop: Spacing.sm },
+  studioModalTitle: { fontSize: Typography.xxl, fontWeight: Typography.extrabold, color: Colors.textPrimary, marginBottom: Spacing.md, textAlign: 'center' },
+  studioModalSubtitle: { fontSize: Typography.base, color: Colors.textSecondary, lineHeight: 24, textAlign: 'center', marginBottom: Spacing.xl },
+  studioModalBadge: {
+    backgroundColor: Colors.primaryFaint,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    borderColor: Colors.primaryLight + '40',
+    marginBottom: Spacing.xl,
+  },
+  studioModalBadgeText: { fontSize: Typography.sm, fontWeight: Typography.bold, color: Colors.primary, letterSpacing: 0.5 },
 
   summarySheet: { maxHeight: '75%' },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: Spacing.sm, borderBottomWidth: 1, borderBottomColor: Colors.borderLight },
