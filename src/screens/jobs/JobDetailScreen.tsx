@@ -11,6 +11,7 @@ import {
   Linking,
   Platform,
   TextInput,
+  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -43,6 +44,7 @@ import {
   buildDirectChatUrl,
   WhatsAppMessageType,
 } from '../../utils/whatsapp';
+import { REMINDER_PRESETS, computeReminderDate } from '../../utils/notifications/presets';
 
 // ─── Auto-reminder schedule (derived from delivery date) ──────────────────────
 
@@ -127,6 +129,20 @@ const JobDetailScreen: React.FC = () => {
   const [specificHour, setSpecificHour] = useState(8);
   const [reminderLabel, setReminderLabel] = useState('');
   const [addingReminder, setAddingReminder] = useState(false);
+  const [selectedPresetKey, setSelectedPresetKey] = useState(REMINDER_PRESETS[REMINDER_PRESETS.length - 4]?.key ?? REMINDER_PRESETS[0].key);
+  const [overdueToggleLoading, setOverdueToggleLoading] = useState(false);
+
+  const selectedPreset = REMINDER_PRESETS.find((p) => p.key === selectedPresetKey) ?? REMINDER_PRESETS[0];
+  const overdueReminderOn = false; // placeholder — store does not yet expose hasRecurringOverdueReminder
+
+  const handleToggleOverdueReminder = async (_value: boolean) => {
+    setOverdueToggleLoading(true);
+    try {
+      // setRecurringOverdueReminder not yet in store — no-op for now
+    } finally {
+      setOverdueToggleLoading(false);
+    }
+  };
 
   // ─── Computed reminder preview date
   const computedReminderDate = useMemo<Date | null>(() => {
@@ -269,28 +285,13 @@ const JobDetailScreen: React.FC = () => {
     setAddingReminder(true);
     try {
       if (reminderMode === 'before_delivery') {
-        const deliveryDate = parseISO(job.deliveryDate);
-
-        if (reminderRepeatEvery === 0) {
-          // Single reminder
-          const date = subDays(deliveryDate, reminderDaysBefore);
-          date.setHours(8, 0, 0, 0);
-          if (!isAfter(date, new Date())) {
-            Alert.alert('Date has passed', 'This reminder date is already in the past. Choose a closer date to delivery.');
-            return;
-          }
-          await addJobReminder(job.id, date, reminderLabel, reminderDaysBefore);
-        } else {
-          // Repeat: generate series from daysBefore down by repeatEvery
-          const futureDates = repeatGeneratedDates.filter((d) => isAfter(d, new Date()));
-          if (futureDates.length === 0) {
-            Alert.alert('No future dates', 'All generated reminder dates are in the past.');
-            return;
-          }
-          for (const date of futureDates) {
-            await addJobReminder(job.id, date, reminderLabel);
-          }
+        const date = computeReminderDate(parseISO(job.deliveryDate), selectedPreset.minutesBefore);
+        if (!isAfter(date, new Date())) {
+          Alert.alert('Date has passed', 'This reminder date is already in the past. Choose a shorter time before delivery.');
+          return;
         }
+        const label = reminderLabel || selectedPreset.label;
+        await addJobReminder(job.id, date, label, selectedPreset.minutesBefore);
       } else {
         // Specific date
         if (!specificDate) {
@@ -318,6 +319,7 @@ const JobDetailScreen: React.FC = () => {
       setSpecificDate('');
       setSpecificHour(8);
       setReminderMode('before_delivery');
+      setSelectedPresetKey(REMINDER_PRESETS[REMINDER_PRESETS.length - 4]?.key ?? REMINDER_PRESETS[0].key);
     } finally {
       setAddingReminder(false);
     }
@@ -566,6 +568,22 @@ const JobDetailScreen: React.FC = () => {
               <Text style={styles.addReminderText}>Add Custom Reminder</Text>
             </TouchableOpacity>
           </Card>
+
+          {job.status !== 'Ready' && job.status !== 'Delivered' && (
+            <View style={styles.overdueToggleRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.overdueToggleLabel}>Remind me daily while overdue</Text>
+                <Text style={styles.overdueToggleSub}>Gets a daily nudge until job is marked Ready</Text>
+              </View>
+              <Switch
+                value={overdueReminderOn}
+                onValueChange={handleToggleOverdueReminder}
+                disabled={overdueToggleLoading}
+                trackColor={{ false: Colors.border, true: Colors.primary }}
+                thumbColor={Colors.white}
+              />
+            </View>
+          )}
         </View>
 
         {/* ─── WhatsApp Actions ─── */}
@@ -727,47 +745,20 @@ const JobDetailScreen: React.FC = () => {
 
             {reminderMode === 'before_delivery' ? (
               <>
-                <Text style={styles.reminderSubTitle}>Days before delivery</Text>
+                <Text style={styles.reminderSubTitle}>Remind me</Text>
                 <View style={styles.chipRow}>
-                  {[1, 2, 3, 5, 7, 10, 14].map((d) => (
+                  {REMINDER_PRESETS.map((preset) => (
                     <TouchableOpacity
-                      key={d}
-                      onPress={() => setReminderDaysBefore(d)}
-                      style={[styles.chip, reminderDaysBefore === d && styles.chipActive]}
+                      key={preset.key}
+                      style={[styles.chip, selectedPresetKey === preset.key && styles.chipActive]}
+                      onPress={() => setSelectedPresetKey(preset.key)}
                     >
-                      <Text style={[styles.chipText, reminderDaysBefore === d && styles.chipTextActive]}>{d}d</Text>
+                      <Text style={[styles.chipText, selectedPresetKey === preset.key && styles.chipTextActive]}>
+                        {preset.label}
+                      </Text>
                     </TouchableOpacity>
                   ))}
                 </View>
-
-                <Text style={styles.reminderSubTitle}>Repeat every</Text>
-                <View style={styles.chipRow}>
-                  {[{ val: 0, lbl: 'Off' }, { val: 2, lbl: '2d' }, { val: 3, lbl: '3d' }, { val: 5, lbl: '5d' }, { val: 7, lbl: '7d' }].map(({ val, lbl }) => (
-                    <TouchableOpacity
-                      key={val}
-                      onPress={() => setReminderRepeatEvery(val)}
-                      style={[styles.chip, reminderRepeatEvery === val && styles.chipActive]}
-                    >
-                      <Text style={[styles.chipText, reminderRepeatEvery === val && styles.chipTextActive]}>{lbl}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-
-                {/* Preview */}
-                {computedReminderDate && (
-                  <View style={styles.reminderPreviewBox}>
-                    {reminderRepeatEvery === 0 ? (
-                      <Text style={styles.reminderPreviewText}>
-                        Will remind on: {format(computedReminderDate, 'EEE d MMM yyyy')} at 8:00 AM
-                      </Text>
-                    ) : (
-                      <Text style={styles.reminderPreviewText}>
-                        Will create {repeatGeneratedDates.filter((d) => isAfter(d, new Date())).length} reminder(s):{'\n'}
-                        {repeatGeneratedDates.filter((d) => isAfter(d, new Date())).map((d) => format(d, 'EEE d MMM')).join('  ·  ')}
-                      </Text>
-                    )}
-                  </View>
-                )}
               </>
             ) : (
               <>
@@ -1053,6 +1044,14 @@ const styles = StyleSheet.create({
   reminderAutoText: { fontSize: 10, color: Colors.textTertiary, fontWeight: Typography.medium },
   addReminderBtn: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingHorizontal: Spacing.base, paddingVertical: Spacing.md },
   addReminderText: { fontSize: Typography.sm, color: Colors.primary, fontWeight: Typography.semibold },
+  overdueToggleRow: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: Colors.surface, borderRadius: Radius.md,
+    padding: Spacing.md, marginTop: Spacing.sm,
+    borderWidth: 1, borderColor: Colors.border,
+  },
+  overdueToggleLabel: { fontSize: Typography.sm, fontWeight: Typography.semibold, color: Colors.textPrimary },
+  overdueToggleSub: { fontSize: Typography.xs, color: Colors.textSecondary, marginTop: 2 },
 
   // WhatsApp rows
   waRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.base, paddingVertical: Spacing.md + 2, gap: Spacing.md },

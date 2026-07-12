@@ -19,8 +19,8 @@ import ScheduleScreen from '../screens/schedule/ScheduleScreen';
 import AccountScreen from '../screens/settings/AccountScreen';
 import SubscriptionScreen from '../screens/settings/SubscriptionScreen';
 import HelpScreen from '../screens/settings/HelpScreen';
-import SettingsScreen from '../screens/settings/SettingsScreen';
 import FinancialsScreen from '../screens/financials/FinancialsScreen';
+import TailorStudioScreen from '../screens/tailorstudio/TailorStudioScreen';
 import ScratchPadScreen from '../screens/scratchpad/ScratchPadScreen';
 import DrawerContent from '../components/common/DrawerContent';
 
@@ -82,9 +82,9 @@ const AppNavigator: React.FC = () => {
       <Drawer.Screen name="ScheduleScreen"      component={ScheduleScreen} />
       <Drawer.Screen name="FinancialsScreen"    component={FinancialsScreen} />
       <Drawer.Screen name="ScratchPadScreen"    component={ScratchPadScreen} />
+      <Drawer.Screen name="TailorStudioScreen"  component={TailorStudioScreen} />
       <Drawer.Screen name="NotificationsScreen" component={NotificationsScreen} />
       <Drawer.Screen name="AccountScreen"       component={AccountScreen} />
-      <Drawer.Screen name="SettingsScreen"      component={SettingsScreen} />
       <Drawer.Screen name="SubscriptionScreen"  component={SubscriptionScreen} />
       <Drawer.Screen name="HelpScreen"          component={HelpScreen} />
     </Drawer.Navigator>

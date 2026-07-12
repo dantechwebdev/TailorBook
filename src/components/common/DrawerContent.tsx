@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
+  Switch,
 } from 'react-native';
 import { DrawerContentComponentProps } from '@react-navigation/drawer';
 import { Typography, Spacing, Radius } from '../../constants/theme';
@@ -20,7 +21,8 @@ import {
   HelpIcon,
   ReportsIcon,
   NotepadIcon,
-  SettingsIcon,
+  SparkleIcon,
+  Logo,
 } from '../common/Icons';
 import { useStore } from '../../context/store';
 import { useTheme } from '../../context/ThemeContext';
@@ -31,7 +33,7 @@ import { getInitials, getAvatarColor } from '../../utils/helpers';
 const DrawerContent: React.FC<DrawerContentComponentProps> = (props) => {
   const { navigation, state } = props;
   const { unreadNotificationCount, settings } = useStore();
-  const { colors } = useTheme();
+  const { colors, isDark, toggleTheme } = useTheme();
 
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
@@ -85,6 +87,14 @@ const DrawerContent: React.FC<DrawerContentComponentProps> = (props) => {
       ),
     },
     {
+      key: 'TailorStudioScreen',
+      label: 'TailorStudio',
+      badgeLabel: 'AI',
+      icon: (active: boolean) => (
+        <SparkleIcon size={20} color={active ? colors.primaryLight : colors.drawerTextMuted} />
+      ),
+    },
+    {
       key: 'NotificationsScreen',
       label: 'Notifications',
       badge: unreadNotificationCount,
@@ -97,13 +107,6 @@ const DrawerContent: React.FC<DrawerContentComponentProps> = (props) => {
       label: 'Account',
       icon: (active: boolean) => (
         <AccountIcon size={20} color={active ? colors.primaryLight : colors.drawerTextMuted} />
-      ),
-    },
-    {
-      key: 'SettingsScreen',
-      label: 'Settings',
-      icon: (active: boolean) => (
-        <SettingsIcon size={20} color={active ? colors.primaryLight : colors.drawerTextMuted} />
       ),
     },
     {
@@ -127,12 +130,10 @@ const DrawerContent: React.FC<DrawerContentComponentProps> = (props) => {
       {/* ─── Profile Header ─── */}
       <View style={styles.header}>
         {/* App logo */}
-        <Image
-          source={require('../../../assets/icon.png')}
-          style={styles.drawerLogo}
-          resizeMode="cover"
-          accessibilityLabel="TailorBook logo"
-        />
+        <View style={styles.brandRow}>
+          <Logo size={22} variant="white" />
+          <Text style={styles.brandText}>TailorBook</Text>
+        </View>
         <View style={styles.headerDivider} />
         {/* Shop / tailor info */}
         <View style={styles.avatarWrap}>
@@ -175,6 +176,11 @@ const DrawerContent: React.FC<DrawerContentComponentProps> = (props) => {
               <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>
                 {item.label}
               </Text>
+              {item.badgeLabel ? (
+                <View style={styles.navBadgeOutline}>
+                  <Text style={styles.navBadgeOutlineText}>{item.badgeLabel}</Text>
+                </View>
+              ) : null}
               {item.badge ? (
                 <View style={styles.navBadge}>
                   <Text style={styles.navBadgeText}>{item.badge}</Text>
@@ -187,6 +193,15 @@ const DrawerContent: React.FC<DrawerContentComponentProps> = (props) => {
 
       {/* ─── Footer ─── */}
       <View style={styles.footer}>
+        <View style={styles.themeRow}>
+          <Text style={styles.themeLabel}>Dark Mode</Text>
+          <Switch
+            value={isDark}
+            onValueChange={toggleTheme}
+            trackColor={{ false: '#3A3568', true: colors.primaryLight }}
+            thumbColor={colors.white}
+          />
+        </View>
         <Text style={styles.footerText}>TailorBook v1.0.0</Text>
         <Text style={styles.footerSub}>Your digital workshop companion</Text>
       </View>
@@ -230,9 +245,10 @@ function makeStyles(C: any) {
       borderBottomWidth: 1,
       borderBottomColor: '#FFFFFF15',
     },
-    drawerLogo: {
-      width: 44, height: 44, borderRadius: 10,
+    brandRow: {
+      flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
     },
+    brandText: { color: '#FFFFFF', fontSize: Typography.base, fontWeight: Typography.bold, letterSpacing: 0.5 },
     headerDivider: {
       width: 1, height: 32,
       backgroundColor: '#FFFFFF20',
@@ -262,6 +278,16 @@ function makeStyles(C: any) {
       borderRadius: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6,
     },
     navBadgeText: { color: '#FFFFFF', fontSize: 11, fontWeight: Typography.bold },
+    navBadgeOutline: {
+      borderWidth: 1, borderColor: C.primaryLight, borderRadius: Radius.full,
+      paddingHorizontal: 6, paddingVertical: 1,
+    },
+    navBadgeOutlineText: { color: C.primaryLight, fontSize: 10, fontWeight: Typography.bold },
+    themeRow: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      marginBottom: Spacing.md,
+    },
+    themeLabel: { color: C.drawerText, fontSize: Typography.base, fontWeight: Typography.medium },
     footer: {
       padding: Spacing.base,
       borderTopWidth: 1,

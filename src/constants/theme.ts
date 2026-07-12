@@ -7,6 +7,7 @@ export const LightColors = {
   primaryLight: '#6558B8',
   primaryDark: '#362D7A',
   primaryFaint: '#F0EEFF',
+  brand: '#1E1B40',
 
   // Accent — warm amber for highlights and CTAs
   accent: '#F5A623',
@@ -59,6 +60,7 @@ export const DarkColors = {
   primaryLight: '#9585D4',
   primaryDark: '#5C50A8',
   primaryFaint: '#1E1B40',
+  brand: '#0E0C1C',
 
   // Accent
   accent: '#F5A623',

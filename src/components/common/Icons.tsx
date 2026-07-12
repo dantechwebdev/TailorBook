@@ -1,4 +1,5 @@
 import React from 'react';
+import { Image, ImageStyle, StyleProp } from 'react-native';
 import Svg, { Path, Circle, Rect, Line, Polyline, Polygon, G, Defs, ClipPath } from 'react-native-svg';
 
 interface IconProps {
@@ -6,6 +7,28 @@ interface IconProps {
   color?: string;
   strokeWidth?: number;
 }
+
+interface LogoProps {
+  size?: number;
+  variant?: 'white' | 'blue';
+  style?: StyleProp<ImageStyle>;
+}
+
+const LOGO_SOURCES = {
+  white: require('../../../assets/brand/logo-mark-white.png'),
+  blue: require('../../../assets/brand/logo-mark-blue.png'),
+};
+
+const LOGO_ASPECT_RATIO = 527 / 664;
+
+export const Logo: React.FC<LogoProps> = ({ size = 40, variant = 'blue', style }) => (
+  <Image
+    source={LOGO_SOURCES[variant]}
+    style={[{ width: size * LOGO_ASPECT_RATIO, height: size }, style]}
+    resizeMode="contain"
+    accessibilityLabel="TailorBook logo"
+  />
+);
 
 // ─── Navigation Icons ─────────────────────────────────────────────────────────
 
@@ -257,6 +280,18 @@ export const ImageIcon = ({ size = 24, color = '#6B7280', strokeWidth = 1.8 }: I
     <Rect x="3" y="3" width="18" height="18" rx="2" stroke={color} strokeWidth={strokeWidth}/>
     <Circle cx="8.5" cy="8.5" r="1.5" stroke={color} strokeWidth={strokeWidth}/>
     <Path d="M21 15L16 10L5 21" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"/>
+  </Svg>
+);
+
+export const SparkleIcon = ({ size = 24, color = '#4B3FA0', strokeWidth = 1.8 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M12 3L13.6 9.2C13.9 10.4 14.9 11.3 16 11.6L21 13L16 14.4C14.9 14.7 13.9 15.6 13.6 16.8L12 23L10.4 16.8C10.1 15.6 9.1 14.7 8 14.4L3 13L8 11.6C9.1 11.3 10.1 10.4 10.4 9.2L12 3Z"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </Svg>
 );
 

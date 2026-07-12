@@ -3,7 +3,17 @@ import { Customer, Job, Measurements, AppNotification, JobStatus, TailorSettings
 import * as db from '../utils/database';
 import { generateId } from '../utils/helpers';
 import { seedDemoDataIfEmpty } from '../utils/seedData';
-import { scheduleCustomJobReminder, cancelCustomJobReminder, scheduleScratchReminder, cancelScratchReminder } from '../utils/notifications';
+import {
+  scheduleJobReminder,
+  cancelJobReminder,
+  rescheduleJobReminder,
+  startOrExtendRecurringOverdue,
+  stopRecurringOverdue,
+  reconcileReminders,
+  getDefaultReminderMinutes,
+  scheduleScratchReminder,
+  cancelScratchReminder,
+} from '../utils/notifications';
 
 // ─── Store Interface ──────────────────────────────────────────────────────────
 
@@ -56,9 +66,11 @@ interface TailorBookState {
   addNotification: (n: Omit<AppNotification, 'id' | 'createdAt' | 'read'>) => Promise<void>;
 
   // ── Per-job custom reminders ──────────────────────────────────────────────
-  addJobReminder: (jobId: string, scheduledAt: Date, label: string, daysBefore?: number) => Promise<void>;
+  addJobReminder: (jobId: string, scheduledAt: Date, label: string, minutesBeforeDelivery?: number) => Promise<void>;
   removeJobReminder: (reminderId: string) => Promise<void>;
   getJobReminders: (jobId: string) => JobReminder[];
+  hasRecurringOverdueReminder: (jobId: string) => boolean;
+  setRecurringOverdueReminder: (jobId: string, enabled: boolean) => Promise<void>;
 
   // ── Scratch notes ─────────────────────────────────────────────────────────
   scratchNotes: ScratchNote[];
@@ -136,6 +148,10 @@ export const useStore = create<TailorBookState>((set, get) => ({
         db.getOutstandingBalances(),
         db.getUnreadNotificationCount(),
       ]);
+
+      reconcileReminders(jobs, jobReminders).catch((e) =>
+        console.warn('Failed to reconcile notification reminders:', e)
+      );
 
       set({
         customers, jobs, measurements, notifications, jobReminders, scratchNotes,
@@ -230,14 +246,26 @@ export const useStore = create<TailorBookState>((set, get) => ({
       customerId: job.customerId,
     });
 
+    set((state) => ({ jobs: [...state.jobs, job] }));
+
+    // Seed default reminders
+    const seededReminders = await seedDefaultReminders(job);
+    if (seededReminders.length > 0) {
+      set((state) => ({ jobReminders: [...state.jobReminders, ...seededReminders] }));
+    }
+
     await get().refreshJobs();
     return job;
   },
 
   updateJob: async (job) => {
+    const previous = get().jobs.find((j) => j.id === job.id);
     const updated = { ...job, updatedAt: new Date().toISOString() };
     await db.updateJob(updated);
     await get().refreshJobs();
+    if (previous && previous.deliveryDate !== job.deliveryDate) {
+      await rescheduleRemindersForJob(job, get, set);
+    }
   },
 
   updateJobStatus: async (jobId, status) => {
@@ -270,18 +298,18 @@ export const useStore = create<TailorBookState>((set, get) => ({
       }
     }
 
+    if (status === 'Ready' || status === 'Delivered') {
+      await stopRecurringOverdueForJob(jobId, get, set);
+    }
+
     await get().refreshJobs();
     await get().refreshNotifications();
   },
 
   deleteJob: async (id) => {
-    // Cancel all custom reminders for this job
+    // Cancel all reminders for this job
     const reminders = get().jobReminders.filter((r) => r.jobId === id);
-    await Promise.all(
-      reminders
-        .filter((r) => r.notifIdentifier)
-        .map((r) => cancelCustomJobReminder(r.notifIdentifier!))
-    );
+    await Promise.all(reminders.map((r) => cancelJobReminder(r)));
     await db.deleteAllJobRemindersForJob(id);
     await db.deleteNotificationsByJobId(id);
     await db.deleteJob(id);
@@ -344,43 +372,61 @@ export const useStore = create<TailorBookState>((set, get) => ({
 
   // ── Reminders ──────────────────────────────────────────────────────────────
 
-  addJobReminder: async (jobId, scheduledAt, label, daysBefore) => {
+  addJobReminder: async (jobId, scheduledAt, label, minutesBeforeDelivery) => {
     const job = get().jobs.find((j) => j.id === jobId);
-    const now = new Date().toISOString();
+    if (!job) return;
     const id = generateId();
-
-    const notifTitle = `Reminder: ${job?.outfitType || 'Job'}`;
-    const notifBody = job
-      ? `${job.customerName}'s ${job.outfitType}${label ? ' — ' + label : ''}`
-      : label || 'Custom reminder';
-
-    const identifier = await scheduleCustomJobReminder(id, jobId, scheduledAt, notifTitle, notifBody);
-
+    const { identifier } = await scheduleJobReminder({
+      reminderId: id,
+      job,
+      label,
+      minutesBeforeDelivery,
+      specificDate: minutesBeforeDelivery !== undefined ? undefined : scheduledAt,
+    });
     const reminder: JobReminder = {
-      id,
-      jobId,
-      scheduledAt: scheduledAt.toISOString(),
-      label: label || '',
-      daysBefore,
-      repeatEvery: 0,
+      id, jobId, scheduledAt: scheduledAt.toISOString(), label,
+      minutesBeforeDelivery,
       notifIdentifier: identifier || undefined,
-      createdAt: now,
+      createdAt: new Date().toISOString(),
     };
-
     await db.addJobReminderRecord(reminder);
     set((state) => ({ jobReminders: [...state.jobReminders, reminder] }));
   },
 
   removeJobReminder: async (reminderId) => {
     const reminder = get().jobReminders.find((r) => r.id === reminderId);
-    if (reminder?.notifIdentifier) {
-      await cancelCustomJobReminder(reminder.notifIdentifier);
+    if (reminder) {
+      await cancelJobReminder(reminder);
     }
     await db.deleteJobReminderRecord(reminderId);
     set((state) => ({ jobReminders: state.jobReminders.filter((r) => r.id !== reminderId) }));
   },
 
   getJobReminders: (jobId) => get().jobReminders.filter((r) => r.jobId === jobId),
+
+  hasRecurringOverdueReminder: (jobId) => {
+    return get().jobReminders.some((r) => r.jobId === jobId && r.isRecurringOverdue);
+  },
+
+  setRecurringOverdueReminder: async (jobId, enabled) => {
+    if (enabled) {
+      const job = get().jobs.find((j) => j.id === jobId);
+      if (!job) return;
+      await startOrExtendRecurringOverdue(job);
+      const existing = get().jobReminders.find((r) => r.jobId === jobId && r.isRecurringOverdue);
+      if (!existing) {
+        const reminder: JobReminder = {
+          id: generateId(), jobId, scheduledAt: job.deliveryDate,
+          label: 'Daily reminder while overdue', isRecurringOverdue: true,
+          notifIdentifier: `job:${jobId}:overdue:`, createdAt: new Date().toISOString(),
+        };
+        await db.addJobReminderRecord(reminder);
+        set((state) => ({ jobReminders: [...state.jobReminders, reminder] }));
+      }
+    } else {
+      await stopRecurringOverdueForJob(jobId, get, set);
+    }
+  },
 
   // ── Scratch notes ─────────────────────────────────────────────────────────
 
@@ -454,4 +500,73 @@ function formatDate(isoDate: string): string {
   try {
     return new Date(isoDate).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' });
   } catch { return isoDate; }
+}
+
+// ─── Helper Types ─────────────────────────────────────────────────────────────
+
+type Get = () => TailorBookState;
+type Set = (fn: (state: TailorBookState) => Partial<TailorBookState>) => void;
+
+// ─── Helper Functions ─────────────────────────────────────────────────────────
+
+async function seedDefaultReminders(job: Job): Promise<JobReminder[]> {
+  const minutesList = getDefaultReminderMinutes();
+  const created: JobReminder[] = [];
+  for (const minutesBefore of minutesList) {
+    const id = generateId();
+    const label = minutesBefore === 0 ? 'On delivery day' : minutesBefore === 24 * 60 ? '1 day before delivery' : `${minutesBefore} min before`;
+    const { scheduledAt, identifier } = await scheduleJobReminder({
+      reminderId: id, job, label, minutesBeforeDelivery: minutesBefore,
+    });
+    const reminder: JobReminder = {
+      id, jobId: job.id, scheduledAt: scheduledAt.toISOString(),
+      label, minutesBeforeDelivery: minutesBefore,
+      notifIdentifier: identifier || undefined,
+      createdAt: new Date().toISOString(),
+    };
+    await db.addJobReminderRecord(reminder);
+    created.push(reminder);
+  }
+  // Also seed a recurring overdue reminder
+  await startOrExtendRecurringOverdue(job);
+  const overdueReminder: JobReminder = {
+    id: generateId(), jobId: job.id, scheduledAt: job.deliveryDate,
+    label: 'Daily reminder while overdue', isRecurringOverdue: true,
+    notifIdentifier: `job:${job.id}:overdue:`, createdAt: new Date().toISOString(),
+  };
+  await db.addJobReminderRecord(overdueReminder);
+  created.push(overdueReminder);
+  return created;
+}
+
+async function rescheduleRemindersForJob(job: Job, get: Get, set: Set): Promise<void> {
+  const reminders = get().jobReminders.filter((r) => r.jobId === job.id);
+  const updates = new Map<string, JobReminder>();
+  for (const reminder of reminders) {
+    if (reminder.isRecurringOverdue) {
+      await startOrExtendRecurringOverdue(job);
+      continue;
+    }
+    const result = await rescheduleJobReminder(reminder, job);
+    if (!result) continue;
+    const updated: JobReminder = {
+      ...reminder,
+      scheduledAt: result.scheduledAt.toISOString(),
+      notifIdentifier: result.identifier || undefined,
+    };
+    await db.deleteJobReminderRecord(reminder.id);
+    await db.addJobReminderRecord(updated);
+    updates.set(reminder.id, updated);
+  }
+  if (updates.size > 0) {
+    set((state) => ({ jobReminders: state.jobReminders.map((r) => updates.get(r.id) ?? r) }));
+  }
+}
+
+async function stopRecurringOverdueForJob(jobId: string, get: Get, set: Set): Promise<void> {
+  const reminder = get().jobReminders.find((r) => r.jobId === jobId && r.isRecurringOverdue);
+  if (!reminder) return;
+  await stopRecurringOverdue(jobId);
+  await db.deleteJobReminderRecord(reminder.id);
+  set((state) => ({ jobReminders: state.jobReminders.filter((r) => r.id !== reminder.id) }));
 }

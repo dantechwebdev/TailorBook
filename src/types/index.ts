@@ -138,12 +138,20 @@ export interface TodayTask {
 export interface JobReminder {
   id: string;
   jobId: string;
-  scheduledAt: string;       // ISO datetime
+  scheduledAt: string;
   label: string;
-  daysBefore?: number;       // set when created from "X days before delivery"
-  repeatEvery?: number;      // 0 = one-time, N = repeat every N days
-  notifIdentifier?: string;  // expo-notifications identifier for cancellation
+  minutesBeforeDelivery?: number;
+  daysBefore?: number;
+  repeatEvery?: number;
+  isRecurringOverdue?: boolean;
+  notifIdentifier?: string;
   createdAt: string;
+}
+
+export interface ReminderPreset {
+  key: string;
+  label: string;
+  minutesBefore: number;
 }
 
 // ─── Scratch Note Types ───────────────────────────────────────────────────────
