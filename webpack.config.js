@@ -24,5 +24,16 @@ module.exports = async function (env, argv) {
     crypto: false,
   };
 
+  if (config.resolve.extensions) {
+    const exts = config.resolve.extensions;
+    const webFirst = [
+      '.web.tsx', '.web.ts', '.web.jsx', '.web.js',
+      ...exts.filter(
+        (e) => !['.web.tsx', '.web.ts', '.web.jsx', '.web.js'].includes(e)
+      ),
+    ];
+    config.resolve.extensions = webFirst;
+  }
+
   return config;
 };
