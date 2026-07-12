@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,9 +9,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
-import { Colors, Typography, Spacing, Radius, Shadow } from '../../constants/theme';
+import { Typography, Spacing, Radius, Shadow } from '../../constants/theme';
 import { ChevronRightIcon, HelpIcon, MenuIcon } from '../../components/common/Icons';
 import { Card, Divider } from '../../components/common/UI';
+import { useTheme } from '../../context/ThemeContext';
 
 const FAQ_ITEMS = [
   {
@@ -46,7 +47,112 @@ const FAQ_ITEMS = [
 
 const HelpScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const { colors: Colors } = useTheme();
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  const styles = useMemo(() => StyleSheet.create({
+    container: { flex: 1, backgroundColor: Colors.background },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: Spacing.base,
+      paddingVertical: Spacing.md,
+    },
+    headerTitle: { fontSize: Typography.xl, fontWeight: Typography.bold, color: Colors.textPrimary },
+    scroll: { paddingHorizontal: Spacing.base },
+    heroSection: {
+      alignItems: 'center',
+      paddingVertical: Spacing.xl,
+      marginBottom: Spacing.lg,
+    },
+    heroIcon: {
+      width: 68,
+      height: 68,
+      borderRadius: 34,
+      backgroundColor: Colors.primaryFaint,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: Spacing.md,
+    },
+    heroTitle: {
+      fontSize: Typography.xl,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+      marginBottom: Spacing.sm,
+    },
+    heroSubtitle: {
+      fontSize: Typography.sm,
+      color: Colors.textSecondary,
+      textAlign: 'center',
+      lineHeight: 20,
+    },
+    section: { marginBottom: Spacing.xl },
+    sectionLabel: {
+      fontSize: Typography.xs,
+      fontWeight: Typography.bold,
+      color: Colors.textTertiary,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      marginBottom: Spacing.sm,
+    },
+    contactRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+      paddingHorizontal: Spacing.base,
+      gap: Spacing.md,
+    },
+    contactIcon: { fontSize: 20 },
+    contactLabel: { fontSize: Typography.sm, color: Colors.textSecondary },
+    contactValue: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.primary, marginTop: 1 },
+    faqList: {
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.lg,
+      overflow: 'hidden',
+      ...Shadow.sm,
+    },
+    faqItem: { paddingHorizontal: Spacing.base },
+    faqQuestion: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: Spacing.md,
+    },
+    faqQuestionText: {
+      flex: 1,
+      fontSize: Typography.base,
+      fontWeight: Typography.semibold,
+      color: Colors.textPrimary,
+      paddingRight: Spacing.md,
+    },
+    faqChevron: {
+      fontSize: 20,
+      color: Colors.textTertiary,
+      fontWeight: Typography.bold,
+    },
+    faqAnswer: {
+      fontSize: Typography.sm,
+      color: Colors.textSecondary,
+      lineHeight: 22,
+      paddingBottom: Spacing.md,
+    },
+    infoRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 12,
+      paddingHorizontal: Spacing.base,
+    },
+    infoLabel: { fontSize: Typography.base, color: Colors.textSecondary },
+    infoValue: { fontSize: Typography.base, fontWeight: Typography.medium, color: Colors.textPrimary },
+    tagline: {
+      textAlign: 'center',
+      fontSize: Typography.sm,
+      color: Colors.textTertiary,
+      marginBottom: Spacing.md,
+    },
+  }), [Colors]);
 
   const toggle = (idx: number) => {
     setOpenIndex(openIndex === idx ? null : idx);
@@ -81,26 +187,32 @@ const HelpScreen: React.FC = () => {
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Contact Us</Text>
           <Card padding={0}>
-            <ContactRow
-              icon="📧"
-              label="Email Support"
-              value="support@tailorbook.app"
-              onPress={() => Linking.openURL('mailto:support@tailorbook.app')}
-            />
+            <TouchableOpacity onPress={() => Linking.openURL('mailto:support@tailorbook.app')} style={styles.contactRow} activeOpacity={0.7}>
+              <Text style={styles.contactIcon}>📧</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.contactLabel}>Email Support</Text>
+                <Text style={styles.contactValue}>support@tailorbook.app</Text>
+              </View>
+              <ChevronRightIcon size={16} color={Colors.textTertiary} />
+            </TouchableOpacity>
             <Divider />
-            <ContactRow
-              icon="🐦"
-              label="Twitter / X"
-              value="@TailorBookApp"
-              onPress={() => Linking.openURL('https://twitter.com/tailorbookapp')}
-            />
+            <TouchableOpacity onPress={() => Linking.openURL('https://twitter.com/tailorbookapp')} style={styles.contactRow} activeOpacity={0.7}>
+              <Text style={styles.contactIcon}>🐦</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.contactLabel}>Twitter / X</Text>
+                <Text style={styles.contactValue}>@TailorBookApp</Text>
+              </View>
+              <ChevronRightIcon size={16} color={Colors.textTertiary} />
+            </TouchableOpacity>
             <Divider />
-            <ContactRow
-              icon="💬"
-              label="WhatsApp"
-              value="+234 800 TAILOR"
-              onPress={() => Linking.openURL('https://wa.me/2348001245671')}
-            />
+            <TouchableOpacity onPress={() => Linking.openURL('https://wa.me/2348001245671')} style={styles.contactRow} activeOpacity={0.7}>
+              <Text style={styles.contactIcon}>💬</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.contactLabel}>WhatsApp</Text>
+                <Text style={styles.contactValue}>+234 800 TAILOR</Text>
+              </View>
+              <ChevronRightIcon size={16} color={Colors.textTertiary} />
+            </TouchableOpacity>
           </Card>
         </View>
 
@@ -143,13 +255,25 @@ const HelpScreen: React.FC = () => {
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>App Info</Text>
           <Card padding={0}>
-            <InfoRow label="Version" value="1.0.0" />
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Version</Text>
+              <Text style={styles.infoValue}>1.0.0</Text>
+            </View>
             <Divider />
-            <InfoRow label="Build" value="MVP Release" />
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Build</Text>
+              <Text style={styles.infoValue}>MVP Release</Text>
+            </View>
             <Divider />
-            <InfoRow label="Storage" value="Local Device" />
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Storage</Text>
+              <Text style={styles.infoValue}>Local Device</Text>
+            </View>
             <Divider />
-            <InfoRow label="Notifications" value="Local Only" />
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Notifications</Text>
+              <Text style={styles.infoValue}>Local Only</Text>
+            </View>
           </Card>
         </View>
 
@@ -159,132 +283,5 @@ const HelpScreen: React.FC = () => {
     </SafeAreaView>
   );
 };
-
-const ContactRow: React.FC<{
-  icon: string;
-  label: string;
-  value: string;
-  onPress: () => void;
-}> = ({ icon, label, value, onPress }) => (
-  <TouchableOpacity onPress={onPress} style={styles.contactRow} activeOpacity={0.7}>
-    <Text style={styles.contactIcon}>{icon}</Text>
-    <View style={{ flex: 1 }}>
-      <Text style={styles.contactLabel}>{label}</Text>
-      <Text style={styles.contactValue}>{value}</Text>
-    </View>
-    <ChevronRightIcon size={16} color={Colors.textTertiary} />
-  </TouchableOpacity>
-);
-
-const InfoRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <View style={styles.infoRow}>
-    <Text style={styles.infoLabel}>{label}</Text>
-    <Text style={styles.infoValue}>{value}</Text>
-  </View>
-);
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.md,
-  },
-  headerTitle: { fontSize: Typography.xl, fontWeight: Typography.bold, color: Colors.textPrimary },
-  scroll: { paddingHorizontal: Spacing.base },
-  heroSection: {
-    alignItems: 'center',
-    paddingVertical: Spacing.xl,
-    marginBottom: Spacing.lg,
-  },
-  heroIcon: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: Colors.primaryFaint,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.md,
-  },
-  heroTitle: {
-    fontSize: Typography.xl,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-    marginBottom: Spacing.sm,
-  },
-  heroSubtitle: {
-    fontSize: Typography.sm,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  section: { marginBottom: Spacing.xl },
-  sectionLabel: {
-    fontSize: Typography.xs,
-    fontWeight: Typography.bold,
-    color: Colors.textTertiary,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: Spacing.sm,
-  },
-  contactRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: Spacing.base,
-    gap: Spacing.md,
-  },
-  contactIcon: { fontSize: 20 },
-  contactLabel: { fontSize: Typography.sm, color: Colors.textSecondary },
-  contactValue: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.primary, marginTop: 1 },
-  faqList: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    overflow: 'hidden',
-    ...Shadow.sm,
-  },
-  faqItem: { paddingHorizontal: Spacing.base },
-  faqQuestion: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: Spacing.md,
-  },
-  faqQuestionText: {
-    flex: 1,
-    fontSize: Typography.base,
-    fontWeight: Typography.semibold,
-    color: Colors.textPrimary,
-    paddingRight: Spacing.md,
-  },
-  faqChevron: {
-    fontSize: 20,
-    color: Colors.textTertiary,
-    fontWeight: Typography.bold,
-  },
-  faqAnswer: {
-    fontSize: Typography.sm,
-    color: Colors.textSecondary,
-    lineHeight: 22,
-    paddingBottom: Spacing.md,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: Spacing.base,
-  },
-  infoLabel: { fontSize: Typography.base, color: Colors.textSecondary },
-  infoValue: { fontSize: Typography.base, fontWeight: Typography.medium, color: Colors.textPrimary },
-  tagline: {
-    textAlign: 'center',
-    fontSize: Typography.sm,
-    color: Colors.textTertiary,
-    marginBottom: Spacing.md,
-  },
-});
 
 export default HelpScreen;

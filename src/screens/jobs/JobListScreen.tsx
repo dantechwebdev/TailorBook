@@ -12,11 +12,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { useStore } from '../../context/store';
-import { Colors, Typography, Spacing, Radius, Shadow, JOB_STATUS_CONFIG, JOB_STATUSES } from '../../constants/theme';
+import { Typography, Spacing, Radius, Shadow, JOB_STATUS_CONFIG, JOB_STATUSES } from '../../constants/theme';
 import { SearchIcon, PlusIcon, JobsIcon, ChevronRightIcon, MenuIcon, CheckIcon } from '../../components/common/Icons';
 import { Avatar, StatusBadge, Chip, EmptyState } from '../../components/common/UI';
 import { formatDeliveryDate, getDeliveryUrgency } from '../../utils/helpers';
 import { Job, JobStatus } from '../../types';
+import { useTheme } from '../../context/ThemeContext';
 
 type SortKey = 'urgency' | 'date_asc' | 'date_desc' | 'name_asc';
 
@@ -51,6 +52,167 @@ function sortJobs(jobs: Job[], key: SortKey): Job[] {
 const JobListScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { jobs } = useStore();
+  const { colors: Colors } = useTheme();
+
+  const styles = useMemo(() => StyleSheet.create({
+    container: { flex: 1, backgroundColor: Colors.background },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: Spacing.base,
+      paddingVertical: Spacing.md,
+    },
+    headerTitle: {
+      fontSize: Typography.xl,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+    },
+    addBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: Colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...Shadow.sm,
+    },
+    searchWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.lg,
+      marginHorizontal: Spacing.base,
+      marginBottom: Spacing.sm,
+      paddingHorizontal: Spacing.md,
+      paddingVertical: 12,
+      gap: Spacing.sm,
+      ...Shadow.sm,
+    },
+    searchInput: {
+      flex: 1,
+      fontSize: Typography.base,
+      color: Colors.textPrimary,
+      padding: 0,
+    },
+    filtersRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: Spacing.sm,
+    },
+    filterScroll: { flexGrow: 0, flex: 1 },
+    filterList: {
+      paddingHorizontal: Spacing.base,
+      gap: Spacing.sm,
+    },
+    sortBtn: {
+      marginRight: Spacing.base,
+      marginLeft: Spacing.sm,
+      width: 34,
+      height: 34,
+      borderRadius: Radius.lg,
+      backgroundColor: Colors.surface,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: Colors.border,
+      ...Shadow.sm,
+    },
+    sortBtnText: {
+      fontSize: 16,
+      color: Colors.textSecondary,
+      fontWeight: Typography.bold,
+    },
+    summaryRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: Spacing.base,
+      marginBottom: Spacing.sm,
+    },
+    resultCount: {
+      fontSize: Typography.xs,
+      color: Colors.textTertiary,
+      fontWeight: Typography.medium,
+    },
+    sortLabel: {
+      fontSize: Typography.xs,
+      color: Colors.primary,
+      fontWeight: Typography.medium,
+      maxWidth: 180,
+    },
+    list: {
+      paddingHorizontal: Spacing.base,
+      paddingBottom: Spacing.xxxl,
+      flexGrow: 1,
+    },
+    jobCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.lg,
+      padding: Spacing.md,
+      gap: Spacing.md,
+      ...Shadow.sm,
+    },
+    jobInfo: { flex: 1, gap: 3 },
+    jobName: {
+      fontSize: Typography.base,
+      fontWeight: Typography.semibold,
+      color: Colors.textPrimary,
+    },
+    jobDate: {
+      fontSize: Typography.xs,
+      color: Colors.textSecondary,
+      fontWeight: Typography.medium,
+    },
+    overdueTag: {
+      fontSize: Typography.xs,
+      color: Colors.overdue,
+      fontWeight: Typography.semibold,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.4)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: Spacing.xl,
+    },
+    modalCard: {
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.xl,
+      padding: Spacing.lg,
+      width: '100%',
+      ...Shadow.md,
+    },
+    modalTitle: {
+      fontSize: Typography.base,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+      marginBottom: Spacing.md,
+    },
+    modalOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: Spacing.md,
+      paddingHorizontal: Spacing.md,
+      borderRadius: Radius.lg,
+      marginBottom: Spacing.sm,
+    },
+    modalOptionSelected: {
+      backgroundColor: Colors.primaryFaint,
+    },
+    modalOptionText: {
+      fontSize: Typography.sm,
+      color: Colors.textSecondary,
+      fontWeight: Typography.medium,
+    },
+    modalOptionTextSelected: {
+      color: Colors.primary,
+      fontWeight: Typography.semibold,
+    },
+  }), [Colors]);
 
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<JobStatus | 'All'>('All');
@@ -258,165 +420,5 @@ const JobListScreen: React.FC = () => {
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.md,
-  },
-  headerTitle: {
-    fontSize: Typography.xl,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-  },
-  addBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadow.sm,
-  },
-  searchWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    marginHorizontal: Spacing.base,
-    marginBottom: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 12,
-    gap: Spacing.sm,
-    ...Shadow.sm,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: Typography.base,
-    color: Colors.textPrimary,
-    padding: 0,
-  },
-  filtersRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  filterScroll: { flexGrow: 0, flex: 1 },
-  filterList: {
-    paddingHorizontal: Spacing.base,
-    gap: Spacing.sm,
-  },
-  sortBtn: {
-    marginRight: Spacing.base,
-    marginLeft: Spacing.sm,
-    width: 34,
-    height: 34,
-    borderRadius: Radius.lg,
-    backgroundColor: Colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: Colors.border,
-    ...Shadow.sm,
-  },
-  sortBtnText: {
-    fontSize: 16,
-    color: Colors.textSecondary,
-    fontWeight: Typography.bold,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.base,
-    marginBottom: Spacing.sm,
-  },
-  resultCount: {
-    fontSize: Typography.xs,
-    color: Colors.textTertiary,
-    fontWeight: Typography.medium,
-  },
-  sortLabel: {
-    fontSize: Typography.xs,
-    color: Colors.primary,
-    fontWeight: Typography.medium,
-    maxWidth: 180,
-  },
-  list: {
-    paddingHorizontal: Spacing.base,
-    paddingBottom: Spacing.xxxl,
-    flexGrow: 1,
-  },
-  jobCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    padding: Spacing.md,
-    gap: Spacing.md,
-    ...Shadow.sm,
-  },
-  jobInfo: { flex: 1, gap: 3 },
-  jobName: {
-    fontSize: Typography.base,
-    fontWeight: Typography.semibold,
-    color: Colors.textPrimary,
-  },
-  jobDate: {
-    fontSize: Typography.xs,
-    color: Colors.textSecondary,
-    fontWeight: Typography.medium,
-  },
-  overdueTag: {
-    fontSize: Typography.xs,
-    color: Colors.overdue,
-    fontWeight: Typography.semibold,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.xl,
-  },
-  modalCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.xl,
-    padding: Spacing.lg,
-    width: '100%',
-    ...Shadow.md,
-  },
-  modalTitle: {
-    fontSize: Typography.base,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-    marginBottom: Spacing.md,
-  },
-  modalOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Radius.lg,
-    marginBottom: Spacing.sm,
-  },
-  modalOptionSelected: {
-    backgroundColor: Colors.primaryFaint,
-  },
-  modalOptionText: {
-    fontSize: Typography.sm,
-    color: Colors.textSecondary,
-    fontWeight: Typography.medium,
-  },
-  modalOptionTextSelected: {
-    color: Colors.primary,
-    fontWeight: Typography.semibold,
-  },
-});
 
 export default JobListScreen;

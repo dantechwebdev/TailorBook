@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,15 +12,64 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useStore } from '../../context/store';
-import { Colors, Typography, Spacing, Radius } from '../../constants/theme';
+import { Typography, Spacing, Radius } from '../../constants/theme';
 import { BackIcon, CustomersIcon } from '../../components/common/Icons';
 import { Button, InputField, Avatar } from '../../components/common/UI';
 import ContactPickerButton from '../../components/common/ContactPickerButton';
 import { isValidName, isValidPhone, getAvatarColor } from '../../utils/helpers';
+import { useTheme } from '../../context/ThemeContext';
 
 const CustomerCreateScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { addCustomer } = useStore();
+  const { colors: Colors } = useTheme();
+
+  const styles = useMemo(() => StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: Colors.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: Spacing.base,
+      paddingVertical: Spacing.md,
+    },
+    headerTitle: {
+      fontSize: Typography.md,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+    },
+    scroll: {
+      paddingHorizontal: Spacing.base,
+      paddingBottom: Spacing.xxxl,
+    },
+    avatarSection: {
+      alignItems: 'center',
+      paddingVertical: Spacing.xl,
+      gap: Spacing.md,
+    },
+    avatarName: {
+      fontSize: Typography.lg,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+    },
+    avatarPlaceholder: {
+      fontSize: Typography.sm,
+      color: Colors.textTertiary,
+    },
+    form: {
+      gap: Spacing.xs,
+    },
+    hint: {
+      textAlign: 'center',
+      fontSize: Typography.xs,
+      color: Colors.textTertiary,
+      marginTop: Spacing.md,
+      lineHeight: 18,
+    },
+  }), [Colors]);
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -163,52 +212,5 @@ const CustomerCreateScreen: React.FC = () => {
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.md,
-  },
-  headerTitle: {
-    fontSize: Typography.md,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-  },
-  scroll: {
-    paddingHorizontal: Spacing.base,
-    paddingBottom: Spacing.xxxl,
-  },
-  avatarSection: {
-    alignItems: 'center',
-    paddingVertical: Spacing.xl,
-    gap: Spacing.md,
-  },
-  avatarName: {
-    fontSize: Typography.lg,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-  },
-  avatarPlaceholder: {
-    fontSize: Typography.sm,
-    color: Colors.textTertiary,
-  },
-  form: {
-    gap: Spacing.xs,
-  },
-  hint: {
-    textAlign: 'center',
-    fontSize: Typography.xs,
-    color: Colors.textTertiary,
-    marginTop: Spacing.md,
-    lineHeight: 18,
-  },
-});
 
 export default CustomerCreateScreen;

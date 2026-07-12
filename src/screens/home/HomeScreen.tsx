@@ -29,7 +29,7 @@ import {
   IconProps,
 } from '../../../assets/icons/custom';
 import { useStore } from '../../context/store';
-import { Colors, Typography, Spacing, Radius, Shadow, JOB_STATUS_CONFIG } from '../../constants/theme';
+import { Typography, Spacing, Radius, Shadow, JOB_STATUS_CONFIG } from '../../constants/theme';
 import {
   MenuIcon,
   NotificationsIcon,
@@ -37,6 +37,7 @@ import {
 } from '../../components/common/Icons';
 import { getFirstName, formatNaira } from '../../utils/helpers';
 import { Job } from '../../types';
+import { useTheme } from '../../context/ThemeContext';
 
 const CARD_WIDTH = Dimensions.get('window').width * 0.68;
 const CARD_HEIGHT = CARD_WIDTH * 1.2;
@@ -145,6 +146,301 @@ const HomeScreen: React.FC = () => {
     refreshJobs,
     loadSettings,
   } = useStore();
+  const { colors: Colors } = useTheme();
+
+  const styles = useMemo(() => StyleSheet.create({
+    container: { flex: 1, backgroundColor: Colors.background },
+    topBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: Spacing.base,
+      paddingVertical: Spacing.md,
+    },
+    topBarCenter: { flex: 1, alignItems: 'center' },
+    topBarDate: {
+      fontSize: Typography.sm,
+      color: Colors.textSecondary,
+      fontWeight: Typography.medium,
+    },
+    iconBtn: { position: 'relative', padding: Spacing.xs },
+    badge: {
+      position: 'absolute',
+      top: 0, right: 0,
+      minWidth: 18, height: 18,
+      borderRadius: 9,
+      backgroundColor: Colors.overdue,
+      alignItems: 'center', justifyContent: 'center',
+      paddingHorizontal: 4,
+      borderWidth: 2, borderColor: Colors.background,
+    },
+    badgeText: { color: Colors.white, fontSize: 10, fontWeight: Typography.bold },
+    scroll: { paddingBottom: Spacing.xxl },
+
+    greetingBlock: {
+      paddingTop: Spacing.sm,
+      paddingHorizontal: Spacing.base,
+      marginBottom: Spacing.xl,
+    },
+    greetingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    greetingText: { flex: 1, marginRight: Spacing.md },
+    greetingName: {
+      fontSize: Typography.xxl,
+      fontWeight: Typography.extrabold,
+      color: Colors.textPrimary,
+      marginBottom: 4,
+    },
+    greetingSubtext: {
+      fontSize: Typography.base,
+      color: Colors.textSecondary,
+      lineHeight: 22,
+    },
+    greetingPhoto: {
+      width: 52, height: 52, borderRadius: 26,
+      borderWidth: 2,
+      borderColor: Colors.primary + '30',
+    },
+    greetingAvatarPlaceholder: {
+      width: 52, height: 52,
+      alignItems: 'center', justifyContent: 'center',
+    },
+
+    newOrderBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: Colors.primary,
+      borderRadius: Radius.xl,
+      paddingVertical: Spacing.lg,
+      marginBottom: Spacing.xxl,
+      marginHorizontal: Spacing.base,
+      gap: Spacing.md,
+      ...Shadow.md,
+    },
+    newOrderPlus: {
+      fontSize: 28,
+      fontWeight: Typography.bold,
+      color: Colors.white,
+      lineHeight: 30,
+      marginTop: -2,
+    },
+    newOrderLabel: {
+      fontSize: Typography.lg,
+      fontWeight: Typography.bold,
+      color: Colors.white,
+      letterSpacing: 0.2,
+    },
+
+    section: { marginBottom: Spacing.xxl },
+    sectionHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: Spacing.md,
+      paddingHorizontal: Spacing.base,
+    },
+    sectionTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.sm,
+    },
+    sectionTitle: {
+      fontSize: Typography.md,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+    },
+    viewAllText: {
+      fontSize: Typography.sm,
+      color: Colors.primary,
+      fontWeight: Typography.medium,
+    },
+    taskCountBadge: {
+      minWidth: 22, height: 22,
+      borderRadius: 11,
+      backgroundColor: Colors.primary,
+      alignItems: 'center', justifyContent: 'center',
+      paddingHorizontal: 6,
+    },
+    taskCountText: { color: Colors.white, fontSize: 11, fontWeight: Typography.bold },
+
+    taskList: {
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.lg,
+      overflow: 'hidden',
+      marginHorizontal: Spacing.base,
+      ...Shadow.sm,
+    },
+    taskCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: Spacing.md,
+      paddingLeft: Spacing.base,
+      borderLeftWidth: 3,
+      gap: Spacing.md,
+      backgroundColor: Colors.surface,
+    },
+    taskCardBorder: {
+      borderBottomWidth: 1,
+      borderBottomColor: Colors.borderLight,
+    },
+    taskDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
+    taskContent: { flex: 1 },
+    taskLabel: {
+      fontSize: Typography.base,
+      fontWeight: Typography.semibold,
+      color: Colors.textPrimary,
+      lineHeight: 20,
+    },
+    taskSubLabel: {
+      fontSize: Typography.sm,
+      color: Colors.textSecondary,
+      marginTop: 2,
+    },
+
+    emptyTaskCard: {
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.lg,
+      padding: Spacing.xl,
+      alignItems: 'center',
+      marginHorizontal: Spacing.base,
+      ...Shadow.sm,
+    },
+    emptyTaskTitle: {
+      fontSize: Typography.md,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+      marginBottom: 4,
+    },
+    emptyTaskSubtext: {
+      fontSize: Typography.sm,
+      color: Colors.textSecondary,
+      textAlign: 'center',
+    },
+
+    recentJobsScroll: {
+      paddingLeft: Spacing.base,
+      paddingRight: Spacing.sm,
+      gap: Spacing.md,
+    },
+    recentCard: {
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.xl,
+      overflow: 'hidden',
+      ...Shadow.md,
+    },
+    recentCardMedia: {
+      height: CARD_WIDTH * 0.72,
+      alignItems: 'center',
+      justifyContent: 'center',
+      position: 'relative',
+    },
+    recentCardImage: {
+      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    },
+    recentStatusBadge: {
+      position: 'absolute', top: Spacing.sm, right: Spacing.sm,
+      paddingHorizontal: 8, paddingVertical: 3,
+      borderRadius: Radius.full,
+    },
+    recentStatusText: { color: Colors.white, fontSize: 11, fontWeight: Typography.bold },
+    photoCountBadge: {
+      position: 'absolute', bottom: Spacing.sm, right: Spacing.sm,
+      flexDirection: 'row', alignItems: 'center', gap: 3,
+      backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: Radius.full,
+      paddingHorizontal: 7, paddingVertical: 3,
+    },
+    photoCountText: { color: Colors.white, fontSize: 11, fontWeight: Typography.bold },
+    recentCardInfo: { padding: Spacing.md },
+    recentCardName: {
+      fontSize: Typography.base, fontWeight: Typography.bold, color: Colors.textPrimary,
+    },
+    recentCardType: { fontSize: Typography.sm, color: Colors.textSecondary, marginTop: 2 },
+    recentCardBalance: {
+      fontSize: Typography.xs, color: Colors.overdue, fontWeight: Typography.semibold, marginTop: 4,
+    },
+
+    compactRow: {
+      flexDirection: 'row', alignItems: 'center',
+      paddingRight: Spacing.md,
+    },
+    compactRowMain: {
+      flex: 1, flexDirection: 'row', alignItems: 'center',
+      padding: Spacing.md, gap: Spacing.md,
+    },
+    compactRowBorder: { borderBottomWidth: 1, borderBottomColor: Colors.borderLight },
+    compactDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
+    compactInfo: { flex: 1 },
+    compactLabel: { fontSize: Typography.base, fontWeight: Typography.medium, color: Colors.textPrimary },
+    compactSub: { fontSize: Typography.xs, color: Colors.textSecondary, marginTop: 2 },
+    balanceTotalText: {
+      fontSize: Typography.sm, color: Colors.overdue, fontWeight: Typography.bold,
+    },
+    balanceAmount: {
+      fontSize: Typography.sm, color: Colors.overdue, fontWeight: Typography.bold,
+    },
+    balanceWaBtn: {
+      width: 36, height: 36, borderRadius: 18,
+      backgroundColor: '#E8FFF1', alignItems: 'center', justifyContent: 'center',
+      marginLeft: Spacing.sm,
+    },
+
+    digestCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#F0FFF7',
+      borderWidth: 1.5,
+      borderColor: '#25D36640',
+      borderRadius: Radius.lg,
+      paddingHorizontal: Spacing.base,
+      paddingVertical: Spacing.md,
+      marginHorizontal: Spacing.base,
+      marginBottom: Spacing.md,
+      gap: Spacing.md,
+    },
+    digestLeft: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.md,
+    },
+    digestTitle: {
+      fontSize: Typography.base,
+      fontWeight: Typography.bold,
+      color: '#1a7a3f',
+    },
+    digestSub: {
+      fontSize: Typography.xs,
+      color: '#1a7a3f99',
+      marginTop: 2,
+      lineHeight: 16,
+    },
+
+    quickRow: {
+      flexDirection: 'row',
+      gap: Spacing.sm,
+      paddingHorizontal: Spacing.base,
+      marginBottom: Spacing.xl,
+    },
+    quickBtn: {
+      flex: 1,
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.lg,
+      padding: Spacing.md,
+      alignItems: 'center',
+      ...Shadow.sm,
+    },
+    quickBtnLabel: {
+      fontSize: Typography.sm,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+      marginBottom: 2,
+    },
+    quickBtnSub: { fontSize: Typography.xs, color: Colors.textTertiary },
+  }), [Colors]);
 
   const [refreshing, setRefreshing] = React.useState(false);
 
@@ -359,6 +655,8 @@ const HomeScreen: React.FC = () => {
                   task={task}
                   isLast={idx === tasks.length - 1}
                   onPress={() => goToJob(task.job.id)}
+                  styles={styles}
+                  Colors={Colors}
                 />
               ))}
             </View>
@@ -389,6 +687,8 @@ const HomeScreen: React.FC = () => {
                   key={job.id}
                   job={job}
                   onPress={() => goToJob(job.id)}
+                  styles={styles}
+                  Colors={Colors}
                 />
               ))}
             </ScrollView>
@@ -578,7 +878,7 @@ const STATUS_BG: Record<string, string> = {
   Finishing: '#FFF0E8', Ready: '#E8F8E8', Delivered: '#F0F0F0',
 };
 
-const RecentJobCard: React.FC<{ job: Job; onPress: () => void }> = ({ job, onPress }) => {
+const RecentJobCard: React.FC<{ job: Job; onPress: () => void; styles: any; Colors: any }> = ({ job, onPress, styles, Colors }) => {
   const photos = useMemo(() => {
     if (!job.photoUris?.length) return [];
     if (job.photoUris.length === 1) return job.photoUris;
@@ -652,18 +952,19 @@ const RecentJobCard: React.FC<{ job: Job; onPress: () => void }> = ({ job, onPre
 
 // ─── TaskCard ─────────────────────────────────────────────────────────────────
 
-const URGENCY_CONFIG = {
-  critical: { border: Colors.overdue, bg: Colors.overdueLight, dot: Colors.overdue },
-  warning: { border: Colors.dueSoon, bg: Colors.dueSoonLight, dot: Colors.dueSoon },
-  action: { border: Colors.ready, bg: Colors.readyLight, dot: Colors.ready },
-  info: { border: Colors.primary, bg: Colors.primaryFaint, dot: Colors.primary },
-};
-
-const TaskCard: React.FC<{ task: Task; isLast: boolean; onPress: () => void }> = ({
+const TaskCard: React.FC<{ task: Task; isLast: boolean; onPress: () => void; styles: any; Colors: any }> = ({
   task,
   isLast,
   onPress,
+  styles,
+  Colors,
 }) => {
+  const URGENCY_CONFIG = {
+    critical: { border: Colors.overdue, bg: Colors.overdueLight, dot: Colors.overdue },
+    warning: { border: Colors.dueSoon, bg: Colors.dueSoonLight, dot: Colors.dueSoon },
+    action: { border: Colors.ready, bg: Colors.readyLight, dot: Colors.ready },
+    info: { border: Colors.primary, bg: Colors.primaryFaint, dot: Colors.primary },
+  };
   const cfg = URGENCY_CONFIG[task.urgency];
   return (
     <TouchableOpacity
@@ -686,301 +987,5 @@ const TaskCard: React.FC<{ task: Task; isLast: boolean; onPress: () => void }> =
     </TouchableOpacity>
   );
 };
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.md,
-  },
-  topBarCenter: { flex: 1, alignItems: 'center' },
-  topBarDate: {
-    fontSize: Typography.sm,
-    color: Colors.textSecondary,
-    fontWeight: Typography.medium,
-  },
-  iconBtn: { position: 'relative', padding: Spacing.xs },
-  badge: {
-    position: 'absolute',
-    top: 0, right: 0,
-    minWidth: 18, height: 18,
-    borderRadius: 9,
-    backgroundColor: Colors.overdue,
-    alignItems: 'center', justifyContent: 'center',
-    paddingHorizontal: 4,
-    borderWidth: 2, borderColor: Colors.background,
-  },
-  badgeText: { color: Colors.white, fontSize: 10, fontWeight: Typography.bold },
-  scroll: { paddingBottom: Spacing.xxl },
-
-  greetingBlock: {
-    paddingTop: Spacing.sm,
-    paddingHorizontal: Spacing.base,
-    marginBottom: Spacing.xl,
-  },
-  greetingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  greetingText: { flex: 1, marginRight: Spacing.md },
-  greetingName: {
-    fontSize: Typography.xxl,
-    fontWeight: Typography.extrabold,
-    color: Colors.textPrimary,
-    marginBottom: 4,
-  },
-  greetingSubtext: {
-    fontSize: Typography.base,
-    color: Colors.textSecondary,
-    lineHeight: 22,
-  },
-  greetingPhoto: {
-    width: 52, height: 52, borderRadius: 26,
-    borderWidth: 2,
-    borderColor: Colors.primary + '30',
-  },
-  greetingAvatarPlaceholder: {
-    width: 52, height: 52,
-    alignItems: 'center', justifyContent: 'center',
-  },
-
-  newOrderBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.xl,
-    paddingVertical: Spacing.lg,
-    marginBottom: Spacing.xxl,
-    marginHorizontal: Spacing.base,
-    gap: Spacing.md,
-    ...Shadow.md,
-  },
-  newOrderPlus: {
-    fontSize: 28,
-    fontWeight: Typography.bold,
-    color: Colors.white,
-    lineHeight: 30,
-    marginTop: -2,
-  },
-  newOrderLabel: {
-    fontSize: Typography.lg,
-    fontWeight: Typography.bold,
-    color: Colors.white,
-    letterSpacing: 0.2,
-  },
-
-  section: { marginBottom: Spacing.xxl },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.md,
-    paddingHorizontal: Spacing.base,
-  },
-  sectionTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  sectionTitle: {
-    fontSize: Typography.md,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-  },
-  viewAllText: {
-    fontSize: Typography.sm,
-    color: Colors.primary,
-    fontWeight: Typography.medium,
-  },
-  taskCountBadge: {
-    minWidth: 22, height: 22,
-    borderRadius: 11,
-    backgroundColor: Colors.primary,
-    alignItems: 'center', justifyContent: 'center',
-    paddingHorizontal: 6,
-  },
-  taskCountText: { color: Colors.white, fontSize: 11, fontWeight: Typography.bold },
-
-  taskList: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    overflow: 'hidden',
-    marginHorizontal: Spacing.base,
-    ...Shadow.sm,
-  },
-  taskCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.md,
-    paddingLeft: Spacing.base,
-    borderLeftWidth: 3,
-    gap: Spacing.md,
-    backgroundColor: Colors.surface,
-  },
-  taskCardBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.borderLight,
-  },
-  taskDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
-  taskContent: { flex: 1 },
-  taskLabel: {
-    fontSize: Typography.base,
-    fontWeight: Typography.semibold,
-    color: Colors.textPrimary,
-    lineHeight: 20,
-  },
-  taskSubLabel: {
-    fontSize: Typography.sm,
-    color: Colors.textSecondary,
-    marginTop: 2,
-  },
-
-  emptyTaskCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    padding: Spacing.xl,
-    alignItems: 'center',
-    marginHorizontal: Spacing.base,
-    ...Shadow.sm,
-  },
-  emptyTaskTitle: {
-    fontSize: Typography.md,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-    marginBottom: 4,
-  },
-  emptyTaskSubtext: {
-    fontSize: Typography.sm,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-  },
-
-  recentJobsScroll: {
-    paddingLeft: Spacing.base,
-    paddingRight: Spacing.sm,
-    gap: Spacing.md,
-  },
-  recentCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.xl,
-    overflow: 'hidden',
-    ...Shadow.md,
-  },
-  recentCardMedia: {
-    height: CARD_WIDTH * 0.72,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  recentCardImage: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-  },
-  recentStatusBadge: {
-    position: 'absolute', top: Spacing.sm, right: Spacing.sm,
-    paddingHorizontal: 8, paddingVertical: 3,
-    borderRadius: Radius.full,
-  },
-  recentStatusText: { color: Colors.white, fontSize: 11, fontWeight: Typography.bold },
-  photoCountBadge: {
-    position: 'absolute', bottom: Spacing.sm, right: Spacing.sm,
-    flexDirection: 'row', alignItems: 'center', gap: 3,
-    backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: Radius.full,
-    paddingHorizontal: 7, paddingVertical: 3,
-  },
-  photoCountText: { color: Colors.white, fontSize: 11, fontWeight: Typography.bold },
-  recentCardInfo: { padding: Spacing.md },
-  recentCardName: {
-    fontSize: Typography.base, fontWeight: Typography.bold, color: Colors.textPrimary,
-  },
-  recentCardType: { fontSize: Typography.sm, color: Colors.textSecondary, marginTop: 2 },
-  recentCardBalance: {
-    fontSize: Typography.xs, color: Colors.overdue, fontWeight: Typography.semibold, marginTop: 4,
-  },
-
-  compactRow: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingRight: Spacing.md,
-  },
-  compactRowMain: {
-    flex: 1, flexDirection: 'row', alignItems: 'center',
-    padding: Spacing.md, gap: Spacing.md,
-  },
-  compactRowBorder: { borderBottomWidth: 1, borderBottomColor: Colors.borderLight },
-  compactDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
-  compactInfo: { flex: 1 },
-  compactLabel: { fontSize: Typography.base, fontWeight: Typography.medium, color: Colors.textPrimary },
-  compactSub: { fontSize: Typography.xs, color: Colors.textSecondary, marginTop: 2 },
-  balanceTotalText: {
-    fontSize: Typography.sm, color: Colors.overdue, fontWeight: Typography.bold,
-  },
-  balanceAmount: {
-    fontSize: Typography.sm, color: Colors.overdue, fontWeight: Typography.bold,
-  },
-  balanceWaBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: '#E8FFF1', alignItems: 'center', justifyContent: 'center',
-    marginLeft: Spacing.sm,
-  },
-
-  digestCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F0FFF7',
-    borderWidth: 1.5,
-    borderColor: '#25D36640',
-    borderRadius: Radius.lg,
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.md,
-    marginHorizontal: Spacing.base,
-    marginBottom: Spacing.md,
-    gap: Spacing.md,
-  },
-  digestLeft: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  digestTitle: {
-    fontSize: Typography.base,
-    fontWeight: Typography.bold,
-    color: '#1a7a3f',
-  },
-  digestSub: {
-    fontSize: Typography.xs,
-    color: '#1a7a3f99',
-    marginTop: 2,
-    lineHeight: 16,
-  },
-
-  quickRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.base,
-    marginBottom: Spacing.xl,
-  },
-  quickBtn: {
-    flex: 1,
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    padding: Spacing.md,
-    alignItems: 'center',
-    ...Shadow.sm,
-  },
-  quickBtnLabel: {
-    fontSize: Typography.sm,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-    marginBottom: 2,
-  },
-  quickBtnSub: { fontSize: Typography.xs, color: Colors.textTertiary },
-});
 
 export default HomeScreen;

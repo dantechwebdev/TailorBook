@@ -9,12 +9,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { useStore } from '../../context/store';
-import { Colors, Typography, Spacing, Radius, Shadow, JOB_STATUS_CONFIG } from '../../constants/theme';
+import { Typography, Spacing, Radius, Shadow, JOB_STATUS_CONFIG } from '../../constants/theme';
 import { MenuIcon, ClockIcon } from '../../components/common/Icons';
 import { StatusBadge, EmptyState } from '../../components/common/UI';
 import { formatNaira, getFirstName } from '../../utils/helpers';
 import { Job } from '../../types';
 import { addDays, format, parseISO, isToday, isTomorrow, differenceInCalendarDays } from 'date-fns';
+import { useTheme } from '../../context/ThemeContext';
 
 // ─── Grouping Logic ───────────────────────────────────────────────────────────
 
@@ -25,7 +26,7 @@ interface ScheduleSection {
   color: string;
 }
 
-function buildScheduleSections(jobs: Job[]): ScheduleSection[] {
+function buildScheduleSections(jobs: Job[], Colors: any): ScheduleSection[] {
   const active = jobs.filter((j) => j.status !== 'Delivered');
 
   const today: Job[] = [];
@@ -109,9 +110,112 @@ function getDeliveryLabel(job: Job): string {
 const ScheduleScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { jobs } = useStore();
+  const { colors: Colors } = useTheme();
 
-  const sections = useMemo(() => buildScheduleSections(jobs), [jobs]);
+  const sections = useMemo(() => buildScheduleSections(jobs, Colors), [jobs, Colors]);
   const totalActive = sections.reduce((sum, s) => sum + s.data.length, 0);
+
+  const styles = useMemo(() => StyleSheet.create({
+    container: { flex: 1, backgroundColor: Colors.background },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: Spacing.base,
+      paddingVertical: Spacing.md,
+    },
+    menuBtn: { padding: Spacing.xs },
+    headerCenter: { flex: 1, alignItems: 'center' },
+    headerTitle: {
+      fontSize: Typography.md,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+    },
+    headerSub: {
+      fontSize: Typography.xs,
+      color: Colors.textSecondary,
+      marginTop: 1,
+    },
+
+    list: {
+      paddingHorizontal: Spacing.base,
+      paddingBottom: Spacing.xxxl,
+    },
+
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.md,
+      paddingTop: Spacing.lg,
+      paddingBottom: Spacing.md,
+    },
+    sectionDot: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      flexShrink: 0,
+    },
+    sectionTitle: {
+      fontSize: Typography.md,
+      fontWeight: Typography.bold,
+    },
+    sectionSubtitle: {
+      fontSize: Typography.xs,
+      color: Colors.textTertiary,
+      marginTop: 1,
+    },
+    sectionBadge: {
+      marginLeft: 'auto',
+      paddingHorizontal: 10,
+      paddingVertical: 3,
+      borderRadius: Radius.full,
+    },
+    sectionBadgeText: {
+      fontSize: Typography.xs,
+      fontWeight: Typography.bold,
+    },
+
+    jobCard: {
+      flexDirection: 'row',
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.lg,
+      overflow: 'hidden',
+      ...Shadow.sm,
+    },
+    jobCardLast: { marginBottom: 0 },
+    jobStatusBar: { width: 4 },
+    jobCardContent: { flex: 1, padding: Spacing.md },
+    jobCardTop: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 6,
+    },
+    jobCardName: {
+      fontSize: Typography.base,
+      fontWeight: Typography.semibold,
+      color: Colors.textPrimary,
+      flex: 1,
+      marginRight: Spacing.sm,
+    },
+    jobCardMeta: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.md,
+      flexWrap: 'wrap',
+    },
+    jobCardDelivery: {
+      fontSize: Typography.xs,
+      color: Colors.textSecondary,
+      fontWeight: Typography.medium,
+    },
+    jobCardBalance: {
+      fontSize: Typography.xs,
+      color: Colors.overdue,
+      fontWeight: Typography.semibold,
+    },
+
+    itemSeparator: { height: Spacing.sm },
+  }), [Colors]);
 
   const goToJob = (jobId: string) => {
     navigation.navigate('JobsStack', {
@@ -208,109 +312,5 @@ const ScheduleScreen: React.FC = () => {
     </SafeAreaView>
   );
 };
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.md,
-  },
-  menuBtn: { padding: Spacing.xs },
-  headerCenter: { flex: 1, alignItems: 'center' },
-  headerTitle: {
-    fontSize: Typography.md,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-  },
-  headerSub: {
-    fontSize: Typography.xs,
-    color: Colors.textSecondary,
-    marginTop: 1,
-  },
-
-  list: {
-    paddingHorizontal: Spacing.base,
-    paddingBottom: Spacing.xxxl,
-  },
-
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.md,
-  },
-  sectionDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    flexShrink: 0,
-  },
-  sectionTitle: {
-    fontSize: Typography.md,
-    fontWeight: Typography.bold,
-  },
-  sectionSubtitle: {
-    fontSize: Typography.xs,
-    color: Colors.textTertiary,
-    marginTop: 1,
-  },
-  sectionBadge: {
-    marginLeft: 'auto',
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: Radius.full,
-  },
-  sectionBadgeText: {
-    fontSize: Typography.xs,
-    fontWeight: Typography.bold,
-  },
-
-  jobCard: {
-    flexDirection: 'row',
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    overflow: 'hidden',
-    ...Shadow.sm,
-  },
-  jobCardLast: { marginBottom: 0 },
-  jobStatusBar: { width: 4 },
-  jobCardContent: { flex: 1, padding: Spacing.md },
-  jobCardTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  jobCardName: {
-    fontSize: Typography.base,
-    fontWeight: Typography.semibold,
-    color: Colors.textPrimary,
-    flex: 1,
-    marginRight: Spacing.sm,
-  },
-  jobCardMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    flexWrap: 'wrap',
-  },
-  jobCardDelivery: {
-    fontSize: Typography.xs,
-    color: Colors.textSecondary,
-    fontWeight: Typography.medium,
-  },
-  jobCardBalance: {
-    fontSize: Typography.xs,
-    color: Colors.overdue,
-    fontWeight: Typography.semibold,
-  },
-
-  itemSeparator: { height: Spacing.sm },
-});
 
 export default ScheduleScreen;

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -20,7 +20,8 @@ import {
   TrouserIcon,
   IconProps,
 } from '../../../../assets/icons/custom';
-import { Colors, Typography, Spacing, Radius, Shadow } from '../../../constants/theme';
+import { Typography, Spacing, Radius, Shadow } from '../../../constants/theme';
+import { useTheme } from '../../../context/ThemeContext';
 import { OutfitType } from '../../../types';
 import { OrderDraft } from './index';
 
@@ -54,6 +55,7 @@ const GARMENT_OPTIONS: GarmentOption[] = [
 const KNOWN_TYPES = GARMENT_OPTIONS.map((o) => o.type);
 
 const StepGarment: React.FC<Props> = ({ draft, onChange, onNext }) => {
+  const { colors: Colors } = useTheme();
   const [style, setStyle] = useState(draft.style);
   const [fabric, setFabric] = useState(draft.fabric);
 
@@ -64,6 +66,146 @@ const StepGarment: React.FC<Props> = ({ draft, onChange, onNext }) => {
   const [customTypeText, setCustomTypeText] = useState(isInitiallyCustom ? draft.outfitType : '');
 
   const customInputRef = useRef<TextInput>(null);
+
+  const styles = useMemo(() => StyleSheet.create({
+    container: { flex: 1, backgroundColor: Colors.background },
+    content: { paddingBottom: 100 },
+    promptBlock: {
+      paddingHorizontal: Spacing.base,
+      paddingTop: Spacing.xl,
+      paddingBottom: Spacing.lg,
+    },
+    question: {
+      fontSize: Typography.xl,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+      marginBottom: 6,
+    },
+    subtitle: { fontSize: Typography.base, color: Colors.textSecondary },
+    grid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      paddingHorizontal: Spacing.base,
+      gap: Spacing.md,
+    },
+    garmentCard: {
+      width: '47%',
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.xl,
+      padding: Spacing.md,
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: 'transparent',
+      ...Shadow.sm,
+      minHeight: 110,
+      justifyContent: 'center',
+      position: 'relative',
+    },
+    garmentCardSelected: {
+      borderColor: Colors.primary,
+      backgroundColor: Colors.primaryFaint,
+    },
+    garmentEmoji: { fontSize: 28, marginBottom: Spacing.sm },
+    garmentName: {
+      fontSize: Typography.base,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+      marginBottom: 2,
+      textAlign: 'center',
+    },
+    garmentNameSelected: { color: Colors.primary },
+    garmentDesc: {
+      fontSize: Typography.xs,
+      color: Colors.textSecondary,
+      textAlign: 'center',
+    },
+    garmentDescSelected: { color: Colors.primaryLight },
+    selectedTick: {
+      position: 'absolute',
+      top: 8,
+      right: 10,
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      backgroundColor: Colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    tickText: { color: Colors.white, fontSize: 11, fontWeight: Typography.bold },
+    customInputBlock: {
+      marginTop: Spacing.lg,
+      marginHorizontal: Spacing.base,
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.xl,
+      borderWidth: 2,
+      borderColor: Colors.primary,
+      padding: Spacing.base,
+      ...Shadow.sm,
+    },
+    customInputLabel: {
+      fontSize: Typography.sm,
+      fontWeight: Typography.semibold,
+      color: Colors.primary,
+      marginBottom: Spacing.sm,
+    },
+    customInput: {
+      fontSize: Typography.base,
+      color: Colors.textPrimary,
+      paddingVertical: Spacing.sm,
+      borderBottomWidth: 1,
+      borderBottomColor: Colors.border,
+    },
+    customInputHint: {
+      fontSize: Typography.xs,
+      color: Colors.textTertiary,
+      marginTop: Spacing.sm,
+    },
+    optionalBlock: {
+      marginTop: Spacing.xl,
+      paddingHorizontal: Spacing.base,
+    },
+    optionalTitle: {
+      fontSize: Typography.sm,
+      fontWeight: Typography.semibold,
+      color: Colors.textSecondary,
+      marginBottom: Spacing.md,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    inputGroup: { marginBottom: Spacing.md },
+    inputLabel: {
+      fontSize: Typography.sm,
+      fontWeight: Typography.medium,
+      color: Colors.textSecondary,
+      marginBottom: Spacing.sm,
+    },
+    input: {
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.lg,
+      paddingHorizontal: Spacing.base,
+      paddingVertical: Spacing.md,
+      fontSize: Typography.base,
+      color: Colors.textPrimary,
+      ...Shadow.sm,
+    },
+    footer: {
+      padding: Spacing.base,
+      paddingTop: Spacing.lg,
+      paddingBottom: Spacing.xxl,
+    },
+    nextBtn: {
+      backgroundColor: Colors.primary,
+      paddingVertical: Spacing.md + 2,
+      borderRadius: Radius.lg,
+      alignItems: 'center',
+    },
+    nextBtnDisabled: { backgroundColor: Colors.border },
+    nextBtnText: {
+      fontSize: Typography.base,
+      color: Colors.white,
+      fontWeight: Typography.bold,
+    },
+  }), [Colors]);
 
   const selected = draft.outfitType;
 
@@ -205,145 +347,5 @@ const StepGarment: React.FC<Props> = ({ draft, onChange, onNext }) => {
     </ScrollView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  content: { paddingBottom: 100 },
-  promptBlock: {
-    paddingHorizontal: Spacing.base,
-    paddingTop: Spacing.xl,
-    paddingBottom: Spacing.lg,
-  },
-  question: {
-    fontSize: Typography.xl,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-    marginBottom: 6,
-  },
-  subtitle: { fontSize: Typography.base, color: Colors.textSecondary },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: Spacing.base,
-    gap: Spacing.md,
-  },
-  garmentCard: {
-    width: '47%',
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.xl,
-    padding: Spacing.md,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
-    ...Shadow.sm,
-    minHeight: 110,
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  garmentCardSelected: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primaryFaint,
-  },
-  garmentEmoji: { fontSize: 28, marginBottom: Spacing.sm },
-  garmentName: {
-    fontSize: Typography.base,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-    marginBottom: 2,
-    textAlign: 'center',
-  },
-  garmentNameSelected: { color: Colors.primary },
-  garmentDesc: {
-    fontSize: Typography.xs,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-  },
-  garmentDescSelected: { color: Colors.primaryLight },
-  selectedTick: {
-    position: 'absolute',
-    top: 8,
-    right: 10,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tickText: { color: Colors.white, fontSize: 11, fontWeight: Typography.bold },
-  customInputBlock: {
-    marginTop: Spacing.lg,
-    marginHorizontal: Spacing.base,
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.xl,
-    borderWidth: 2,
-    borderColor: Colors.primary,
-    padding: Spacing.base,
-    ...Shadow.sm,
-  },
-  customInputLabel: {
-    fontSize: Typography.sm,
-    fontWeight: Typography.semibold,
-    color: Colors.primary,
-    marginBottom: Spacing.sm,
-  },
-  customInput: {
-    fontSize: Typography.base,
-    color: Colors.textPrimary,
-    paddingVertical: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  customInputHint: {
-    fontSize: Typography.xs,
-    color: Colors.textTertiary,
-    marginTop: Spacing.sm,
-  },
-  optionalBlock: {
-    marginTop: Spacing.xl,
-    paddingHorizontal: Spacing.base,
-  },
-  optionalTitle: {
-    fontSize: Typography.sm,
-    fontWeight: Typography.semibold,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.md,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  inputGroup: { marginBottom: Spacing.md },
-  inputLabel: {
-    fontSize: Typography.sm,
-    fontWeight: Typography.medium,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.sm,
-  },
-  input: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.md,
-    fontSize: Typography.base,
-    color: Colors.textPrimary,
-    ...Shadow.sm,
-  },
-  footer: {
-    padding: Spacing.base,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.xxl,
-  },
-  nextBtn: {
-    backgroundColor: Colors.primary,
-    paddingVertical: Spacing.md + 2,
-    borderRadius: Radius.lg,
-    alignItems: 'center',
-  },
-  nextBtnDisabled: { backgroundColor: Colors.border },
-  nextBtnText: {
-    fontSize: Typography.base,
-    color: Colors.white,
-    fontWeight: Typography.bold,
-  },
-});
 
 export default StepGarment;

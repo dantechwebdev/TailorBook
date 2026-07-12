@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,10 +9,11 @@ import {
   FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Typography, Spacing, Radius, Shadow } from '../../../constants/theme';
+import { Typography, Spacing, Radius, Shadow } from '../../../constants/theme';
 import { Avatar } from '../../../components/common/UI';
 import ContactPickerButton from '../../../components/common/ContactPickerButton';
 import { useStore } from '../../../context/store';
+import { useTheme } from '../../../context/ThemeContext';
 import { Customer } from '../../../types';
 import { OrderDraft } from './index';
 
@@ -25,12 +26,141 @@ interface Props {
 
 const StepCustomer: React.FC<Props> = ({ draft, onChange, onNext, prefilledCustomerId }) => {
   const { customers, getCustomer } = useStore();
+  const { colors: Colors } = useTheme();
   const [mode, setMode] = useState<'choose' | 'existing' | 'new'>(
     draft.customer ? 'existing' : 'choose'
   );
   const [search, setSearch] = useState('');
   const [newName, setNewName] = useState(draft.newCustomerName);
   const [newPhone, setNewPhone] = useState(draft.newCustomerPhone);
+
+  const styles = useMemo(() => StyleSheet.create({
+    container: { flex: 1, backgroundColor: Colors.background },
+    promptBlock: {
+      paddingHorizontal: Spacing.base,
+      paddingTop: Spacing.xl,
+      paddingBottom: Spacing.lg,
+    },
+    question: {
+      fontSize: Typography.xl,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+      marginBottom: 6,
+    },
+    subtitle: { fontSize: Typography.base, color: Colors.textSecondary, lineHeight: 22 },
+    choiceRow: {
+      flexDirection: 'row',
+      gap: Spacing.md,
+      paddingHorizontal: Spacing.base,
+      marginTop: Spacing.md,
+    },
+    choiceCard: {
+      flex: 1,
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.xl,
+      padding: Spacing.xl,
+      alignItems: 'center',
+      ...Shadow.sm,
+      minHeight: 130,
+      justifyContent: 'center',
+    },
+    choiceLabel: {
+      fontSize: Typography.base,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+      textAlign: 'center',
+      marginBottom: 4,
+    },
+    choiceSub: { fontSize: Typography.sm, color: Colors.textSecondary },
+    searchBox: {
+      marginHorizontal: Spacing.base,
+      marginBottom: Spacing.md,
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.lg,
+      ...Shadow.sm,
+    },
+    searchInput: {
+      paddingHorizontal: Spacing.base,
+      paddingVertical: Spacing.md,
+      fontSize: Typography.base,
+      color: Colors.textPrimary,
+    },
+    list: { flex: 1, paddingHorizontal: Spacing.base },
+    customerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.lg,
+      padding: Spacing.md,
+      marginBottom: Spacing.sm,
+      gap: Spacing.md,
+      ...Shadow.sm,
+    },
+    customerRowSelected: {
+      borderWidth: 2,
+      borderColor: Colors.primary,
+      backgroundColor: Colors.primaryFaint,
+    },
+    customerInfo: { flex: 1 },
+    customerName: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textPrimary },
+    customerPhone: { fontSize: Typography.sm, color: Colors.textSecondary, marginTop: 2 },
+    checkCircle: {
+      width: 26, height: 26, borderRadius: 13,
+      backgroundColor: Colors.primary,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    checkMark: { color: Colors.white, fontSize: 14, fontWeight: Typography.bold },
+    emptySearch: { padding: Spacing.xxl, alignItems: 'center' },
+    emptySearchText: { fontSize: Typography.base, color: Colors.textSecondary },
+    labelRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: Spacing.sm,
+    },
+    inputGroup: { paddingHorizontal: Spacing.base, marginBottom: Spacing.lg },
+    inputLabel: {
+      fontSize: Typography.sm,
+      fontWeight: Typography.semibold,
+      color: Colors.textSecondary,
+    },
+    input: {
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.lg,
+      paddingHorizontal: Spacing.base,
+      paddingVertical: Spacing.md,
+      fontSize: Typography.base,
+      color: Colors.textPrimary,
+      ...Shadow.sm,
+    },
+    footer: {
+      flexDirection: 'row',
+      gap: Spacing.md,
+      padding: Spacing.base,
+      paddingBottom: Spacing.xxl,
+      backgroundColor: Colors.background,
+    },
+    ghostBtn: {
+      flex: 1,
+      paddingVertical: Spacing.md,
+      borderRadius: Radius.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: Colors.border,
+    },
+    ghostBtnText: { fontSize: Typography.base, color: Colors.textSecondary, fontWeight: Typography.medium },
+    nextBtn: {
+      flex: 2,
+      backgroundColor: Colors.primary,
+      paddingVertical: Spacing.md,
+      borderRadius: Radius.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    nextBtnDisabled: { backgroundColor: Colors.border },
+    nextBtnText: { fontSize: Typography.base, color: Colors.white, fontWeight: Typography.bold },
+  }), [Colors]);
 
   useEffect(() => {
     if (prefilledCustomerId) {
@@ -238,133 +368,5 @@ const StepCustomer: React.FC<Props> = ({ draft, onChange, onNext, prefilledCusto
     </ScrollView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  promptBlock: {
-    paddingHorizontal: Spacing.base,
-    paddingTop: Spacing.xl,
-    paddingBottom: Spacing.lg,
-  },
-  question: {
-    fontSize: Typography.xl,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-    marginBottom: 6,
-  },
-  subtitle: { fontSize: Typography.base, color: Colors.textSecondary, lineHeight: 22 },
-  choiceRow: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-    paddingHorizontal: Spacing.base,
-    marginTop: Spacing.md,
-  },
-  choiceCard: {
-    flex: 1,
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.xl,
-    padding: Spacing.xl,
-    alignItems: 'center',
-    ...Shadow.sm,
-    minHeight: 130,
-    justifyContent: 'center',
-  },
-  choiceLabel: {
-    fontSize: Typography.base,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  choiceSub: { fontSize: Typography.sm, color: Colors.textSecondary },
-  searchBox: {
-    marginHorizontal: Spacing.base,
-    marginBottom: Spacing.md,
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    ...Shadow.sm,
-  },
-  searchInput: {
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.md,
-    fontSize: Typography.base,
-    color: Colors.textPrimary,
-  },
-  list: { flex: 1, paddingHorizontal: Spacing.base },
-  customerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
-    gap: Spacing.md,
-    ...Shadow.sm,
-  },
-  customerRowSelected: {
-    borderWidth: 2,
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primaryFaint,
-  },
-  customerInfo: { flex: 1 },
-  customerName: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textPrimary },
-  customerPhone: { fontSize: Typography.sm, color: Colors.textSecondary, marginTop: 2 },
-  checkCircle: {
-    width: 26, height: 26, borderRadius: 13,
-    backgroundColor: Colors.primary,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  checkMark: { color: Colors.white, fontSize: 14, fontWeight: Typography.bold },
-  emptySearch: { padding: Spacing.xxl, alignItems: 'center' },
-  emptySearchText: { fontSize: Typography.base, color: Colors.textSecondary },
-  labelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.sm,
-  },
-  inputGroup: { paddingHorizontal: Spacing.base, marginBottom: Spacing.lg },
-  inputLabel: {
-    fontSize: Typography.sm,
-    fontWeight: Typography.semibold,
-    color: Colors.textSecondary,
-  },
-  input: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.md,
-    fontSize: Typography.base,
-    color: Colors.textPrimary,
-    ...Shadow.sm,
-  },
-  footer: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-    padding: Spacing.base,
-    paddingBottom: Spacing.xxl,
-    backgroundColor: Colors.background,
-  },
-  ghostBtn: {
-    flex: 1,
-    paddingVertical: Spacing.md,
-    borderRadius: Radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  ghostBtnText: { fontSize: Typography.base, color: Colors.textSecondary, fontWeight: Typography.medium },
-  nextBtn: {
-    flex: 2,
-    backgroundColor: Colors.primary,
-    paddingVertical: Spacing.md,
-    borderRadius: Radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  nextBtnDisabled: { backgroundColor: Colors.border },
-  nextBtnText: { fontSize: Typography.base, color: Colors.white, fontWeight: Typography.bold },
-});
 
 export default StepCustomer;

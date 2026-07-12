@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,19 +11,117 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { useStore } from '../../context/store';
-import { Colors, Typography, Spacing, Radius, Shadow } from '../../constants/theme';
+import { Typography, Spacing, Radius, Shadow } from '../../constants/theme';
 import { SearchIcon, PlusIcon, CustomersIcon, ChevronRightIcon, PhoneIcon, MenuIcon } from '../../components/common/Icons';
 import { Avatar, EmptyState } from '../../components/common/UI';
 import { formatPhone } from '../../utils/helpers';
 import { Customer } from '../../types';
 import * as db from '../../utils/database';
+import { useTheme } from '../../context/ThemeContext';
 
 const CustomerListScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { customers, refreshCustomers, getJobsByCustomer } = useStore();
+  const { colors: Colors } = useTheme();
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [searchResults, setSearchResults] = useState<Customer[] | null>(null);
+
+  const styles = useMemo(() => StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: Colors.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: Spacing.base,
+      paddingVertical: Spacing.md,
+    },
+    headerTitle: {
+      fontSize: Typography.xl,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+    },
+    addBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: Colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...Shadow.sm,
+    },
+    searchWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.lg,
+      marginHorizontal: Spacing.base,
+      marginBottom: Spacing.md,
+      paddingHorizontal: Spacing.md,
+      paddingVertical: 12,
+      gap: Spacing.sm,
+      ...Shadow.sm,
+    },
+    searchInput: {
+      flex: 1,
+      fontSize: Typography.base,
+      color: Colors.textPrimary,
+      padding: 0,
+    },
+    list: {
+      paddingHorizontal: Spacing.base,
+      paddingBottom: Spacing.xxxl,
+      flexGrow: 1,
+    },
+    customerItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.lg,
+      padding: Spacing.md,
+      gap: Spacing.md,
+      ...Shadow.sm,
+    },
+    customerInfo: {
+      flex: 1,
+      gap: 2,
+    },
+    customerName: {
+      fontSize: Typography.base,
+      fontWeight: Typography.semibold,
+      color: Colors.textPrimary,
+    },
+    customerPhone: {
+      fontSize: Typography.sm,
+      color: Colors.textSecondary,
+    },
+    customerNote: {
+      fontSize: Typography.xs,
+      color: Colors.textTertiary,
+      marginTop: 1,
+    },
+    customerRight: {
+      alignItems: 'flex-end',
+      gap: Spacing.xs,
+    },
+    jobCountBadge: {
+      backgroundColor: Colors.primaryFaint,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: Radius.full,
+    },
+    jobCountText: {
+      fontSize: Typography.xs,
+      color: Colors.primary,
+      fontWeight: Typography.semibold,
+    },
+    separator: {
+      height: Spacing.sm,
+    },
+  }), [Colors]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -146,101 +244,5 @@ const CustomerListScreen: React.FC = () => {
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.md,
-  },
-  headerTitle: {
-    fontSize: Typography.xl,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-  },
-  addBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadow.sm,
-  },
-  searchWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    marginHorizontal: Spacing.base,
-    marginBottom: Spacing.md,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 12,
-    gap: Spacing.sm,
-    ...Shadow.sm,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: Typography.base,
-    color: Colors.textPrimary,
-    padding: 0,
-  },
-  list: {
-    paddingHorizontal: Spacing.base,
-    paddingBottom: Spacing.xxxl,
-    flexGrow: 1,
-  },
-  customerItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    padding: Spacing.md,
-    gap: Spacing.md,
-    ...Shadow.sm,
-  },
-  customerInfo: {
-    flex: 1,
-    gap: 2,
-  },
-  customerName: {
-    fontSize: Typography.base,
-    fontWeight: Typography.semibold,
-    color: Colors.textPrimary,
-  },
-  customerPhone: {
-    fontSize: Typography.sm,
-    color: Colors.textSecondary,
-  },
-  customerNote: {
-    fontSize: Typography.xs,
-    color: Colors.textTertiary,
-    marginTop: 1,
-  },
-  customerRight: {
-    alignItems: 'flex-end',
-    gap: Spacing.xs,
-  },
-  jobCountBadge: {
-    backgroundColor: Colors.primaryFaint,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: Radius.full,
-  },
-  jobCountText: {
-    fontSize: Typography.xs,
-    color: Colors.primary,
-    fontWeight: Typography.semibold,
-  },
-  separator: {
-    height: Spacing.sm,
-  },
-});
 
 export default CustomerListScreen;

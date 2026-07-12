@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,8 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { Colors, Typography, Spacing, Radius, Shadow } from '../../../constants/theme';
+import { Typography, Spacing, Radius, Shadow } from '../../../constants/theme';
+import { useTheme } from '../../../context/ThemeContext';
 import { OrderDraft } from './index';
 
 interface Props {
@@ -31,9 +32,179 @@ function formatNaira(n: number): string {
 }
 
 const StepPayment: React.FC<Props> = ({ draft, onChange, onNext }) => {
+  const { colors: Colors } = useTheme();
   const [priceStr, setPriceStr] = useState(draft.price || '');
   const [depositStr, setDepositStr] = useState(draft.deposit || '');
   const [notes, setNotes] = useState(draft.notes || '');
+
+  const styles = useMemo(() => StyleSheet.create({
+    container: { flex: 1, backgroundColor: Colors.background },
+    content: { paddingBottom: 100 },
+    promptBlock: {
+      paddingHorizontal: Spacing.base,
+      paddingTop: Spacing.xl,
+      paddingBottom: Spacing.lg,
+    },
+    question: {
+      fontSize: Typography.xl,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+      marginBottom: 6,
+    },
+    subtitle: { fontSize: Typography.base, color: Colors.textSecondary },
+
+    chipsWrap: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      paddingHorizontal: Spacing.base,
+      gap: Spacing.sm,
+      marginBottom: Spacing.lg,
+    },
+    priceChip: {
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.lg,
+      paddingVertical: Spacing.sm,
+      paddingHorizontal: Spacing.md,
+      borderWidth: 2,
+      borderColor: 'transparent',
+      ...Shadow.sm,
+    },
+    priceChipSelected: {
+      borderColor: Colors.primary,
+      backgroundColor: Colors.primaryFaint,
+    },
+    priceChipText: {
+      fontSize: Typography.sm,
+      fontWeight: Typography.semibold,
+      color: Colors.textPrimary,
+    },
+    priceChipTextSelected: { color: Colors.primary },
+
+    inputGroup: {
+      paddingHorizontal: Spacing.base,
+      marginBottom: Spacing.lg,
+    },
+    inputLabel: {
+      fontSize: Typography.sm,
+      fontWeight: Typography.semibold,
+      color: Colors.textSecondary,
+      marginBottom: Spacing.sm,
+    },
+    nairaInputWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.lg,
+      paddingHorizontal: Spacing.base,
+      ...Shadow.sm,
+    },
+    nairaSign: {
+      fontSize: Typography.xl,
+      fontWeight: Typography.bold,
+      color: Colors.textSecondary,
+      marginRight: 6,
+    },
+    nairaInput: {
+      flex: 1,
+      fontSize: Typography.xl,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+      paddingVertical: Spacing.md,
+    },
+
+    sectionHeader: { paddingHorizontal: Spacing.base, marginBottom: Spacing.md },
+    sectionTitle: {
+      fontSize: Typography.md,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+    },
+
+    depositPctRow: {
+      flexDirection: 'row',
+      gap: Spacing.sm,
+      paddingHorizontal: Spacing.base,
+      marginBottom: Spacing.lg,
+      flexWrap: 'wrap',
+    },
+    pctChip: {
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.lg,
+      paddingVertical: Spacing.md,
+      paddingHorizontal: Spacing.md,
+      borderWidth: 2,
+      borderColor: 'transparent',
+      alignItems: 'center',
+      minWidth: 80,
+      ...Shadow.sm,
+    },
+    pctChipSelected: {
+      borderColor: Colors.accent,
+      backgroundColor: Colors.accentLight,
+    },
+    pctLabel: {
+      fontSize: Typography.base,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+    },
+    pctLabelSelected: { color: Colors.accent },
+    pctAmount: { fontSize: Typography.xs, color: Colors.textSecondary, marginTop: 2 },
+    pctAmountSelected: { color: Colors.accent },
+
+    balanceSummary: {
+      marginHorizontal: Spacing.base,
+      marginBottom: Spacing.xl,
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.lg,
+      padding: Spacing.md,
+      ...Shadow.sm,
+    },
+    balanceRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingVertical: 6,
+    },
+    balanceTotalRow: {
+      borderTopWidth: 1,
+      borderTopColor: Colors.borderLight,
+      marginTop: 4,
+      paddingTop: 10,
+    },
+    balanceLabel: { fontSize: Typography.sm, color: Colors.textSecondary },
+    balanceValue: {
+      fontSize: Typography.base,
+      fontWeight: Typography.semibold,
+      color: Colors.textPrimary,
+    },
+    balanceTotalLabel: {
+      fontSize: Typography.base,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+    },
+    balanceTotalValue: {
+      fontSize: Typography.md,
+      fontWeight: Typography.extrabold,
+    },
+
+    notesInput: {
+      minHeight: 80,
+      textAlignVertical: 'top',
+      paddingTop: Spacing.md,
+      fontSize: Typography.base,
+      color: Colors.textPrimary,
+      paddingVertical: Spacing.md,
+      flex: undefined,
+    },
+
+    footer: { padding: Spacing.base, paddingBottom: Spacing.xxl },
+    nextBtn: {
+      backgroundColor: Colors.primary,
+      paddingVertical: Spacing.md + 2,
+      borderRadius: Radius.lg,
+      alignItems: 'center',
+    },
+    nextBtnDisabled: { backgroundColor: Colors.border },
+    nextBtnText: { fontSize: Typography.base, color: Colors.white, fontWeight: Typography.bold },
+  }), [Colors]);
 
   const price = parseFloat(priceStr.replace(/,/g, '')) || 0;
   const deposit = parseFloat(depositStr.replace(/,/g, '')) || 0;
@@ -205,174 +376,5 @@ const StepPayment: React.FC<Props> = ({ draft, onChange, onNext }) => {
     </KeyboardAvoidingView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  content: { paddingBottom: 100 },
-  promptBlock: {
-    paddingHorizontal: Spacing.base,
-    paddingTop: Spacing.xl,
-    paddingBottom: Spacing.lg,
-  },
-  question: {
-    fontSize: Typography.xl,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-    marginBottom: 6,
-  },
-  subtitle: { fontSize: Typography.base, color: Colors.textSecondary },
-
-  chipsWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: Spacing.base,
-    gap: Spacing.sm,
-    marginBottom: Spacing.lg,
-  },
-  priceChip: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    ...Shadow.sm,
-  },
-  priceChipSelected: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primaryFaint,
-  },
-  priceChipText: {
-    fontSize: Typography.sm,
-    fontWeight: Typography.semibold,
-    color: Colors.textPrimary,
-  },
-  priceChipTextSelected: { color: Colors.primary },
-
-  inputGroup: {
-    paddingHorizontal: Spacing.base,
-    marginBottom: Spacing.lg,
-  },
-  inputLabel: {
-    fontSize: Typography.sm,
-    fontWeight: Typography.semibold,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.sm,
-  },
-  nairaInputWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    paddingHorizontal: Spacing.base,
-    ...Shadow.sm,
-  },
-  nairaSign: {
-    fontSize: Typography.xl,
-    fontWeight: Typography.bold,
-    color: Colors.textSecondary,
-    marginRight: 6,
-  },
-  nairaInput: {
-    flex: 1,
-    fontSize: Typography.xl,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-    paddingVertical: Spacing.md,
-  },
-
-  sectionHeader: { paddingHorizontal: Spacing.base, marginBottom: Spacing.md },
-  sectionTitle: {
-    fontSize: Typography.md,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-  },
-
-  depositPctRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.base,
-    marginBottom: Spacing.lg,
-    flexWrap: 'wrap',
-  },
-  pctChip: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.md,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    alignItems: 'center',
-    minWidth: 80,
-    ...Shadow.sm,
-  },
-  pctChipSelected: {
-    borderColor: Colors.accent,
-    backgroundColor: Colors.accentLight,
-  },
-  pctLabel: {
-    fontSize: Typography.base,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-  },
-  pctLabelSelected: { color: Colors.accent },
-  pctAmount: { fontSize: Typography.xs, color: Colors.textSecondary, marginTop: 2 },
-  pctAmountSelected: { color: Colors.accent },
-
-  balanceSummary: {
-    marginHorizontal: Spacing.base,
-    marginBottom: Spacing.xl,
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    padding: Spacing.md,
-    ...Shadow.sm,
-  },
-  balanceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 6,
-  },
-  balanceTotalRow: {
-    borderTopWidth: 1,
-    borderTopColor: Colors.borderLight,
-    marginTop: 4,
-    paddingTop: 10,
-  },
-  balanceLabel: { fontSize: Typography.sm, color: Colors.textSecondary },
-  balanceValue: {
-    fontSize: Typography.base,
-    fontWeight: Typography.semibold,
-    color: Colors.textPrimary,
-  },
-  balanceTotalLabel: {
-    fontSize: Typography.base,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-  },
-  balanceTotalValue: {
-    fontSize: Typography.md,
-    fontWeight: Typography.extrabold,
-  },
-
-  notesInput: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-    paddingTop: Spacing.md,
-    fontSize: Typography.base,
-    color: Colors.textPrimary,
-    paddingVertical: Spacing.md,
-    flex: undefined,
-  },
-
-  footer: { padding: Spacing.base, paddingBottom: Spacing.xxl },
-  nextBtn: {
-    backgroundColor: Colors.primary,
-    paddingVertical: Spacing.md + 2,
-    borderRadius: Radius.lg,
-    alignItems: 'center',
-  },
-  nextBtnDisabled: { backgroundColor: Colors.border },
-  nextBtnText: { fontSize: Typography.base, color: Colors.white, fontWeight: Typography.bold },
-});
 
 export default StepPayment;

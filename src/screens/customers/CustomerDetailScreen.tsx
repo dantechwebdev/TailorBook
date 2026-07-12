@@ -12,12 +12,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useStore } from '../../context/store';
-import { Colors, Typography, Spacing, Radius, Shadow } from '../../constants/theme';
+import { Typography, Spacing, Radius, Shadow } from '../../constants/theme';
 import { BackIcon, EditIcon, PhoneIcon, BriefcasePlusIcon, TrashIcon, MeasurementsIcon, HomeIcon } from '../../components/common/Icons';
 import { Avatar, StatusBadge, Card, Button, EmptyState } from '../../components/common/UI';
 import { formatPhone, formatDeliveryDate } from '../../utils/helpers';
 import { Job } from '../../types';
 import { JOB_STATUS_CONFIG } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 
 const CustomerDetailScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -25,6 +26,160 @@ const CustomerDetailScreen: React.FC = () => {
   const { customerId } = route.params;
 
   const { getCustomer, getJobsByCustomer, getMeasurementsByCustomer, deleteCustomer } = useStore();
+  const { colors: Colors } = useTheme();
+
+  const styles = useMemo(() => StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: Colors.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: Spacing.base,
+      paddingVertical: Spacing.md,
+    },
+    headerTitle: {
+      fontSize: Typography.md,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+    },
+    scroll: {
+      paddingHorizontal: Spacing.base,
+    },
+    profileCard: {
+      marginBottom: Spacing.md,
+    },
+    profileTop: {
+      flexDirection: 'row',
+      gap: Spacing.md,
+      marginBottom: Spacing.lg,
+    },
+    profileInfo: {
+      flex: 1,
+      gap: 4,
+    },
+    profileName: {
+      fontSize: Typography.lg,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+    },
+    contactRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.md,
+      flexWrap: 'wrap',
+      marginTop: 2,
+    },
+    phoneRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    phoneText: {
+      fontSize: Typography.sm,
+      color: Colors.primary,
+      fontWeight: Typography.medium,
+    },
+    waBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: '#E8FFF0',
+      paddingHorizontal: Spacing.sm,
+      paddingVertical: 3,
+      borderRadius: Radius.full,
+    },
+    waBtnText: {
+      fontSize: Typography.xs,
+      color: '#25D366',
+      fontWeight: Typography.semibold,
+    },
+    notesText: {
+      fontSize: Typography.xs,
+      color: Colors.textTertiary,
+      lineHeight: 18,
+      marginTop: 2,
+    },
+    statsRow: {
+      flexDirection: 'row',
+      paddingTop: Spacing.md,
+      borderTopWidth: 1,
+      borderTopColor: Colors.borderLight,
+    },
+    statDivider: {
+      width: 1,
+      backgroundColor: Colors.borderLight,
+    },
+    actionsRow: {
+      flexDirection: 'row',
+      gap: Spacing.md,
+      marginBottom: Spacing.xl,
+    },
+    section: {
+      marginBottom: Spacing.xl,
+    },
+    sectionHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: Spacing.md,
+    },
+    sectionTitle: {
+      fontSize: Typography.md,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+    },
+    addMeasurementText: {
+      fontSize: Typography.sm,
+      color: Colors.primary,
+      fontWeight: Typography.semibold,
+    },
+    measureRowHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.md,
+    },
+    editMeasureBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: Colors.primaryFaint,
+      paddingHorizontal: Spacing.sm,
+      paddingVertical: 5,
+      borderRadius: Radius.full,
+    },
+    editMeasureBtnText: {
+      fontSize: Typography.xs,
+      color: Colors.primary,
+      fontWeight: Typography.semibold,
+    },
+    jobList: {
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.lg,
+      overflow: 'hidden',
+      ...Shadow.sm,
+    },
+    jobRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: Spacing.md,
+    },
+    jobRowLeft: {
+      flex: 1,
+    },
+    jobRowName: {
+      fontSize: Typography.base,
+      fontWeight: Typography.semibold,
+      color: Colors.textPrimary,
+    },
+    jobRowDate: {
+      fontSize: Typography.xs,
+      color: Colors.textSecondary,
+      marginTop: 2,
+    },
+  }), [Colors]);
 
   const customer = getCustomer(customerId);
   const jobs = useMemo(() => getJobsByCustomer(customerId), [customerId]);
@@ -134,11 +289,11 @@ const CustomerDetailScreen: React.FC = () => {
 
           {/* Stats */}
           <View style={styles.statsRow}>
-            <StatItem label="Total Jobs" value={String(jobs.length)} />
+            <StatItem label="Total Jobs" value={String(jobs.length)} Colors={Colors} />
             <View style={styles.statDivider} />
-            <StatItem label="Active" value={String(activeJobs.length)} color={Colors.primary} />
+            <StatItem label="Active" value={String(activeJobs.length)} color={Colors.primary} Colors={Colors} />
             <View style={styles.statDivider} />
-            <StatItem label="Delivered" value={String(completedJobs.length)} color={Colors.ready} />
+            <StatItem label="Delivered" value={String(completedJobs.length)} color={Colors.ready} Colors={Colors} />
           </View>
         </Card>
 
@@ -176,6 +331,8 @@ const CustomerDetailScreen: React.FC = () => {
                   job={job}
                   last={idx === activeJobs.length - 1}
                   onPress={() => navigation.navigate('JobDetail', { jobId: job.id })}
+                  styles={styles}
+                  Colors={Colors}
                 />
               ))}
             </View>
@@ -236,6 +393,8 @@ const CustomerDetailScreen: React.FC = () => {
                   job={job}
                   last={idx === completedJobs.length - 1}
                   onPress={() => navigation.navigate('JobDetail', { jobId: job.id })}
+                  styles={styles}
+                  Colors={Colors}
                 />
               ))}
             </View>
@@ -263,21 +422,24 @@ const CustomerDetailScreen: React.FC = () => {
   );
 };
 
-const StatItem: React.FC<{ label: string; value: string; color?: string }> = ({
+const StatItem: React.FC<{ label: string; value: string; color?: string; Colors: any }> = ({
   label,
   value,
-  color = Colors.textPrimary,
+  color,
+  Colors,
 }) => (
   <View style={{ alignItems: 'center', flex: 1 }}>
-    <Text style={{ fontSize: Typography.xl, fontWeight: Typography.bold, color }}>{value}</Text>
+    <Text style={{ fontSize: Typography.xl, fontWeight: Typography.bold, color: color ?? Colors.textPrimary }}>{value}</Text>
     <Text style={{ fontSize: Typography.xs, color: Colors.textTertiary, marginTop: 2 }}>{label}</Text>
   </View>
 );
 
-const JobRow: React.FC<{ job: Job; last: boolean; onPress: () => void }> = ({
+const JobRow: React.FC<{ job: Job; last: boolean; onPress: () => void; styles: any; Colors: any }> = ({
   job,
   last,
   onPress,
+  styles,
+  Colors,
 }) => {
   const config = JOB_STATUS_CONFIG[job.status];
   return (
@@ -297,158 +459,5 @@ const JobRow: React.FC<{ job: Job; last: boolean; onPress: () => void }> = ({
     </TouchableOpacity>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.md,
-  },
-  headerTitle: {
-    fontSize: Typography.md,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-  },
-  scroll: {
-    paddingHorizontal: Spacing.base,
-  },
-  profileCard: {
-    marginBottom: Spacing.md,
-  },
-  profileTop: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-    marginBottom: Spacing.lg,
-  },
-  profileInfo: {
-    flex: 1,
-    gap: 4,
-  },
-  profileName: {
-    fontSize: Typography.lg,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-  },
-  contactRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    flexWrap: 'wrap',
-    marginTop: 2,
-  },
-  phoneRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  phoneText: {
-    fontSize: Typography.sm,
-    color: Colors.primary,
-    fontWeight: Typography.medium,
-  },
-  waBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#E8FFF0',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 3,
-    borderRadius: Radius.full,
-  },
-  waBtnText: {
-    fontSize: Typography.xs,
-    color: '#25D366',
-    fontWeight: Typography.semibold,
-  },
-  notesText: {
-    fontSize: Typography.xs,
-    color: Colors.textTertiary,
-    lineHeight: 18,
-    marginTop: 2,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    paddingTop: Spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: Colors.borderLight,
-  },
-  statDivider: {
-    width: 1,
-    backgroundColor: Colors.borderLight,
-  },
-  actionsRow: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-    marginBottom: Spacing.xl,
-  },
-  section: {
-    marginBottom: Spacing.xl,
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.md,
-  },
-  sectionTitle: {
-    fontSize: Typography.md,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-  },
-  addMeasurementText: {
-    fontSize: Typography.sm,
-    color: Colors.primary,
-    fontWeight: Typography.semibold,
-  },
-  measureRowHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  editMeasureBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: Colors.primaryFaint,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 5,
-    borderRadius: Radius.full,
-  },
-  editMeasureBtnText: {
-    fontSize: Typography.xs,
-    color: Colors.primary,
-    fontWeight: Typography.semibold,
-  },
-  jobList: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    overflow: 'hidden',
-    ...Shadow.sm,
-  },
-  jobRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.md,
-  },
-  jobRowLeft: {
-    flex: 1,
-  },
-  jobRowName: {
-    fontSize: Typography.base,
-    fontWeight: Typography.semibold,
-    color: Colors.textPrimary,
-  },
-  jobRowDate: {
-    fontSize: Typography.xs,
-    color: Colors.textSecondary,
-    marginTop: 2,
-  },
-});
 
 export default CustomerDetailScreen;

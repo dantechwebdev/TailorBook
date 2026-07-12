@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { useStore } from '../../context/store';
-import { Colors, Typography, Spacing, Radius, Shadow } from '../../constants/theme';
+import { Typography, Spacing, Radius, Shadow } from '../../constants/theme';
 import { OUTFIT_TYPES, JOB_STATUSES } from '../../constants/theme';
 import {
   BackIcon,
@@ -37,6 +37,7 @@ import {
   formatNaira,
 } from '../../utils/helpers';
 import { OutfitType, JobStatus, Customer } from '../../types';
+import { useTheme } from '../../context/ThemeContext';
 
 // ─── Delivery Quick Select ─────────────────────────────────────────────────────
 
@@ -55,6 +56,280 @@ const JobCreateScreen: React.FC = () => {
   const prefilledCustomerId = route.params?.customerId;
 
   const { customers, addJob, getMeasurementsByCustomer } = useStore();
+  const { colors: Colors } = useTheme();
+
+  const styles = useMemo(() => StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: Colors.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: Spacing.base,
+      paddingVertical: Spacing.md,
+    },
+    headerTitle: {
+      fontSize: Typography.md,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+    },
+    scroll: {
+      paddingHorizontal: Spacing.base,
+      paddingBottom: Spacing.xl,
+    },
+    formSection: {
+      marginBottom: Spacing.xl,
+    },
+    formSectionTitle: {
+      fontSize: Typography.xs,
+      fontWeight: Typography.bold,
+      color: Colors.textTertiary,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      marginBottom: Spacing.md,
+    },
+    selectorRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.md,
+      borderWidth: 1.5,
+      borderColor: Colors.border,
+      paddingHorizontal: Spacing.md,
+      paddingVertical: 14,
+      justifyContent: 'space-between',
+    },
+    selectorSelected: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.md,
+    },
+    selectorValue: {
+      fontSize: Typography.base,
+      color: Colors.textPrimary,
+      fontWeight: Typography.medium,
+    },
+    selectorPlaceholder: {
+      fontSize: Typography.base,
+      color: Colors.textTertiary,
+    },
+    chipWrap: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+    },
+    customOutfitWrap: {
+      marginTop: Spacing.md,
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.lg,
+      borderWidth: 1.5,
+      borderColor: Colors.primary,
+      padding: Spacing.md,
+    },
+    customOutfitLabel: {
+      fontSize: Typography.xs,
+      fontWeight: Typography.semibold,
+      color: Colors.primary,
+      marginBottom: Spacing.sm,
+      textTransform: 'uppercase' as const,
+      letterSpacing: 0.4,
+    },
+    customOutfitInput: {
+      fontSize: Typography.base,
+      color: Colors.textPrimary,
+      paddingVertical: Spacing.sm,
+      borderBottomWidth: 1,
+      borderBottomColor: Colors.border,
+    },
+    presetRow: {
+      flexDirection: 'row',
+      gap: Spacing.sm,
+      marginBottom: Spacing.md,
+      flexWrap: 'wrap',
+    },
+    presetBtn: {
+      paddingHorizontal: Spacing.md,
+      paddingVertical: Spacing.sm,
+      borderRadius: Radius.full,
+      borderWidth: 1.5,
+      borderColor: Colors.border,
+      backgroundColor: Colors.surface,
+    },
+    presetBtnActive: {
+      borderColor: Colors.primary,
+      backgroundColor: Colors.primaryFaint,
+    },
+    presetText: {
+      fontSize: Typography.sm,
+      color: Colors.textSecondary,
+      fontWeight: Typography.medium,
+    },
+    presetTextActive: {
+      color: Colors.primary,
+      fontWeight: Typography.semibold,
+    },
+    dateDisplayRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.sm,
+      paddingHorizontal: Spacing.sm,
+    },
+    dateLabel: {
+      fontSize: Typography.sm,
+      color: Colors.textSecondary,
+    },
+    dateValue: {
+      fontSize: Typography.sm,
+      fontWeight: Typography.semibold,
+      color: Colors.primary,
+    },
+    measureHint: {
+      fontSize: Typography.xs,
+      color: Colors.textTertiary,
+      marginBottom: Spacing.sm,
+    },
+    measureRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.md,
+      paddingVertical: Spacing.md,
+      paddingHorizontal: Spacing.md,
+      borderRadius: Radius.md,
+      borderWidth: 1.5,
+      borderColor: Colors.border,
+      backgroundColor: Colors.surface,
+      marginBottom: Spacing.sm,
+    },
+    measureRowActive: {
+      borderColor: Colors.primary,
+      backgroundColor: Colors.primaryFaint,
+    },
+    measureLabel: {
+      flex: 1,
+      fontSize: Typography.base,
+      color: Colors.textSecondary,
+      fontWeight: Typography.medium,
+    },
+    addMeasureBtn: {
+      paddingVertical: Spacing.md,
+      alignItems: 'center',
+    },
+    addMeasureText: {
+      fontSize: Typography.sm,
+      color: Colors.primary,
+      fontWeight: Typography.semibold,
+    },
+    photoRow: {
+      flexDirection: 'row',
+      gap: Spacing.md,
+    },
+    photoBtn: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: Spacing.sm,
+      paddingVertical: Spacing.md,
+      borderRadius: Radius.md,
+      borderWidth: 1.5,
+      borderColor: Colors.border,
+      borderStyle: 'dashed',
+      backgroundColor: Colors.surface,
+    },
+    photoBtnText: {
+      fontSize: Typography.sm,
+      color: Colors.textSecondary,
+      fontWeight: Typography.medium,
+    },
+    photoPreview: {
+      width: '100%',
+      height: 200,
+      borderRadius: Radius.lg,
+      resizeMode: 'cover',
+    },
+    photoChangeHint: {
+      fontSize: Typography.xs,
+      color: Colors.textTertiary,
+      textAlign: 'center',
+      marginTop: Spacing.sm,
+    },
+    balanceRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: Spacing.md,
+      paddingHorizontal: Spacing.md,
+      backgroundColor: Colors.borderLight,
+      borderRadius: Radius.md,
+      marginBottom: Spacing.md,
+    },
+    balanceLabel: {
+      fontSize: Typography.sm,
+      color: Colors.textSecondary,
+      fontWeight: Typography.medium,
+    },
+    balanceValue: {
+      fontSize: Typography.md,
+      fontWeight: Typography.bold,
+      color: Colors.ready,
+    },
+    // Modal
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.4)',
+      justifyContent: 'flex-end',
+    },
+    modalSheet: {
+      backgroundColor: Colors.surface,
+      borderTopLeftRadius: Radius.xxl,
+      borderTopRightRadius: Radius.xxl,
+      paddingHorizontal: Spacing.base,
+      paddingBottom: 36,
+      maxHeight: '80%',
+    },
+    modalHandle: {
+      width: 40,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: Colors.border,
+      alignSelf: 'center',
+      marginTop: Spacing.md,
+      marginBottom: Spacing.lg,
+    },
+    modalTitle: {
+      fontSize: Typography.lg,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+      marginBottom: Spacing.md,
+    },
+    modalItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.md,
+      paddingVertical: Spacing.md,
+    },
+    modalItemName: {
+      fontSize: Typography.base,
+      fontWeight: Typography.semibold,
+      color: Colors.textPrimary,
+    },
+    modalItemPhone: {
+      fontSize: Typography.xs,
+      color: Colors.textTertiary,
+      marginTop: 2,
+    },
+    modalEmpty: {
+      textAlign: 'center',
+      padding: Spacing.xl,
+      color: Colors.textTertiary,
+      fontSize: Typography.sm,
+    },
+    modalActions: {
+      marginTop: Spacing.lg,
+      gap: Spacing.sm,
+    },
+  }), [Colors]);
 
   // ─── Form State ───────────────────────────────────────────────────────────
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>(prefilledCustomerId || '');
@@ -67,7 +342,7 @@ const JobCreateScreen: React.FC = () => {
   const [price, setPrice] = useState('');
   const [deposit, setDeposit] = useState('');
   const [notes, setNotes] = useState('');
-  const [photoUris: samplePhotoUri ? [samplePhotoUri] : [], setSamplePhotoUri] = useState<string | undefined>();
+  const [samplePhotoUri, setSamplePhotoUri] = useState<string | undefined>();
   const [selectedMeasurementId, setSelectedMeasurementId] = useState<string | undefined>();
   const [status] = useState<JobStatus>('Pending');
   const [loading, setLoading] = useState(false);
@@ -194,7 +469,7 @@ const JobCreateScreen: React.FC = () => {
           keyboardShouldPersistTaps="handled"
         >
           {/* ─── Customer Selector ─── */}
-          <FormSection title="Customer">
+          <FormSection title="Customer" styles={styles}>
             <TouchableOpacity
               onPress={() => setShowCustomerPicker(true)}
               style={styles.selectorRow}
@@ -213,7 +488,7 @@ const JobCreateScreen: React.FC = () => {
           </FormSection>
 
           {/* ─── Outfit Type ─── */}
-          <FormSection title="Outfit Type">
+          <FormSection title="Outfit Type" styles={styles}>
             <View style={styles.chipWrap}>
               {OUTFIT_TYPES.map((type) => (
                 <Chip
@@ -249,7 +524,7 @@ const JobCreateScreen: React.FC = () => {
           </FormSection>
 
           {/* ─── Style & Fabric ─── */}
-          <FormSection title="Details">
+          <FormSection title="Details" styles={styles}>
             <InputField
               label="Style"
               value={style}
@@ -265,7 +540,7 @@ const JobCreateScreen: React.FC = () => {
           </FormSection>
 
           {/* ─── Delivery Date ─── */}
-          <FormSection title="Delivery Date">
+          <FormSection title="Delivery Date" styles={styles}>
             <View style={styles.presetRow}>
               {DELIVERY_PRESETS.map((preset) => {
                 const val = preset.getValue();
@@ -299,7 +574,7 @@ const JobCreateScreen: React.FC = () => {
 
           {/* ─── Measurements ─── */}
           {selectedCustomerId && (
-            <FormSection title="Measurements">
+            <FormSection title="Measurements" styles={styles}>
               {customerMeasurements.length > 0 ? (
                 <View>
                   <Text style={styles.measureHint}>Use saved measurements</Text>
@@ -361,7 +636,7 @@ const JobCreateScreen: React.FC = () => {
           )}
 
           {/* ─── Sample Photo ─── */}
-          <FormSection title="Sample Reference">
+          <FormSection title="Sample Reference" styles={styles}>
             {samplePhotoUri ? (
               <TouchableOpacity onPress={handlePhotoOptions} activeOpacity={0.85}>
                 <Image source={{ uri: samplePhotoUri }} style={styles.photoPreview} />
@@ -382,7 +657,7 @@ const JobCreateScreen: React.FC = () => {
           </FormSection>
 
           {/* ─── Financials ─── */}
-          <FormSection title="Payment">
+          <FormSection title="Payment" styles={styles}>
             <InputField
               label="Total Price (₦)"
               value={price}
@@ -408,7 +683,7 @@ const JobCreateScreen: React.FC = () => {
           </FormSection>
 
           {/* ─── Notes ─── */}
-          <FormSection title="Notes">
+          <FormSection title="Notes" styles={styles}>
             <InputField
               label=""
               value={notes}
@@ -436,6 +711,8 @@ const JobCreateScreen: React.FC = () => {
         visible={showCustomerPicker}
         customers={customers}
         selectedId={selectedCustomerId}
+        styles={styles}
+        Colors={Colors}
         onSelect={(id) => {
           setSelectedCustomerId(id);
           setSelectedMeasurementId(undefined);
@@ -453,9 +730,10 @@ const JobCreateScreen: React.FC = () => {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-const FormSection: React.FC<{ title: string; children: React.ReactNode }> = ({
+const FormSection: React.FC<{ title: string; children: React.ReactNode; styles: any }> = ({
   title,
   children,
+  styles,
 }) => (
   <View style={styles.formSection}>
     <Text style={styles.formSectionTitle}>{title}</Text>
@@ -467,6 +745,8 @@ interface CustomerPickerModalProps {
   visible: boolean;
   customers: Customer[];
   selectedId: string;
+  styles: any;
+  Colors: any;
   onSelect: (id: string) => void;
   onClose: () => void;
   onCreateNew: () => void;
@@ -476,6 +756,8 @@ const CustomerPickerModal: React.FC<CustomerPickerModalProps> = ({
   visible,
   customers,
   selectedId,
+  styles,
+  Colors,
   onSelect,
   onClose,
   onCreateNew,
@@ -519,280 +801,5 @@ const CustomerPickerModal: React.FC<CustomerPickerModalProps> = ({
     </View>
   </Modal>
 );
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.md,
-  },
-  headerTitle: {
-    fontSize: Typography.md,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-  },
-  scroll: {
-    paddingHorizontal: Spacing.base,
-    paddingBottom: Spacing.xl,
-  },
-  formSection: {
-    marginBottom: Spacing.xl,
-  },
-  formSectionTitle: {
-    fontSize: Typography.xs,
-    fontWeight: Typography.bold,
-    color: Colors.textTertiary,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: Spacing.md,
-  },
-  selectorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.md,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 14,
-    justifyContent: 'space-between',
-  },
-  selectorSelected: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  selectorValue: {
-    fontSize: Typography.base,
-    color: Colors.textPrimary,
-    fontWeight: Typography.medium,
-  },
-  selectorPlaceholder: {
-    fontSize: Typography.base,
-    color: Colors.textTertiary,
-  },
-  chipWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  customOutfitWrap: {
-    marginTop: Spacing.md,
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    borderWidth: 1.5,
-    borderColor: Colors.primary,
-    padding: Spacing.md,
-  },
-  customOutfitLabel: {
-    fontSize: Typography.xs,
-    fontWeight: Typography.semibold,
-    color: Colors.primary,
-    marginBottom: Spacing.sm,
-    textTransform: 'uppercase' as const,
-    letterSpacing: 0.4,
-  },
-  customOutfitInput: {
-    fontSize: Typography.base,
-    color: Colors.textPrimary,
-    paddingVertical: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  presetRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
-    flexWrap: 'wrap',
-  },
-  presetBtn: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radius.full,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surface,
-  },
-  presetBtnActive: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primaryFaint,
-  },
-  presetText: {
-    fontSize: Typography.sm,
-    color: Colors.textSecondary,
-    fontWeight: Typography.medium,
-  },
-  presetTextActive: {
-    color: Colors.primary,
-    fontWeight: Typography.semibold,
-  },
-  dateDisplayRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.sm,
-  },
-  dateLabel: {
-    fontSize: Typography.sm,
-    color: Colors.textSecondary,
-  },
-  dateValue: {
-    fontSize: Typography.sm,
-    fontWeight: Typography.semibold,
-    color: Colors.primary,
-  },
-  measureHint: {
-    fontSize: Typography.xs,
-    color: Colors.textTertiary,
-    marginBottom: Spacing.sm,
-  },
-  measureRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Radius.md,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surface,
-    marginBottom: Spacing.sm,
-  },
-  measureRowActive: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primaryFaint,
-  },
-  measureLabel: {
-    flex: 1,
-    fontSize: Typography.base,
-    color: Colors.textSecondary,
-    fontWeight: Typography.medium,
-  },
-  addMeasureBtn: {
-    paddingVertical: Spacing.md,
-    alignItems: 'center',
-  },
-  addMeasureText: {
-    fontSize: Typography.sm,
-    color: Colors.primary,
-    fontWeight: Typography.semibold,
-  },
-  photoRow: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-  },
-  photoBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.md,
-    borderRadius: Radius.md,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    borderStyle: 'dashed',
-    backgroundColor: Colors.surface,
-  },
-  photoBtnText: {
-    fontSize: Typography.sm,
-    color: Colors.textSecondary,
-    fontWeight: Typography.medium,
-  },
-  photoPreview: {
-    width: '100%',
-    height: 200,
-    borderRadius: Radius.lg,
-    resizeMode: 'cover',
-  },
-  photoChangeHint: {
-    fontSize: Typography.xs,
-    color: Colors.textTertiary,
-    textAlign: 'center',
-    marginTop: Spacing.sm,
-  },
-  balanceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.md,
-    backgroundColor: Colors.borderLight,
-    borderRadius: Radius.md,
-    marginBottom: Spacing.md,
-  },
-  balanceLabel: {
-    fontSize: Typography.sm,
-    color: Colors.textSecondary,
-    fontWeight: Typography.medium,
-  },
-  balanceValue: {
-    fontSize: Typography.md,
-    fontWeight: Typography.bold,
-    color: Colors.ready,
-  },
-  // Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end',
-  },
-  modalSheet: {
-    backgroundColor: Colors.surface,
-    borderTopLeftRadius: Radius.xxl,
-    borderTopRightRadius: Radius.xxl,
-    paddingHorizontal: Spacing.base,
-    paddingBottom: 36,
-    maxHeight: '80%',
-  },
-  modalHandle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Colors.border,
-    alignSelf: 'center',
-    marginTop: Spacing.md,
-    marginBottom: Spacing.lg,
-  },
-  modalTitle: {
-    fontSize: Typography.lg,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-    marginBottom: Spacing.md,
-  },
-  modalItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    paddingVertical: Spacing.md,
-  },
-  modalItemName: {
-    fontSize: Typography.base,
-    fontWeight: Typography.semibold,
-    color: Colors.textPrimary,
-  },
-  modalItemPhone: {
-    fontSize: Typography.xs,
-    color: Colors.textTertiary,
-    marginTop: 2,
-  },
-  modalEmpty: {
-    textAlign: 'center',
-    padding: Spacing.xl,
-    color: Colors.textTertiary,
-    fontSize: Typography.sm,
-  },
-  modalActions: {
-    marginTop: Spacing.lg,
-    gap: Spacing.sm,
-  },
-});
 
 export default JobCreateScreen;

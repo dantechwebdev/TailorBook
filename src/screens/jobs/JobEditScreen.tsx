@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { useStore } from '../../context/store';
-import { Colors, Typography, Spacing, Radius, OUTFIT_TYPES } from '../../constants/theme';
+import { Typography, Spacing, Radius, OUTFIT_TYPES } from '../../constants/theme';
 import {
   BackIcon,
   CameraIcon,
@@ -34,6 +34,7 @@ import {
   formatNaira,
 } from '../../utils/helpers';
 import { OutfitType, JobStatus, Customer } from '../../types';
+import { useTheme } from '../../context/ThemeContext';
 
 const DELIVERY_PRESETS = [
   { label: 'Tomorrow', getValue: () => addDaysISO(1) },
@@ -49,6 +50,92 @@ const JobEditScreen: React.FC = () => {
 
   const { getJob, updateJob, customers, getMeasurementsByCustomer } = useStore();
   const job = getJob(jobId);
+  const { colors: Colors } = useTheme();
+
+  const styles = useMemo(() => StyleSheet.create({
+    container: { flex: 1, backgroundColor: Colors.background },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: Spacing.base,
+      paddingVertical: Spacing.md,
+    },
+    headerTitle: { fontSize: Typography.md, fontWeight: Typography.bold, color: Colors.textPrimary },
+    scroll: { paddingHorizontal: Spacing.base, paddingBottom: Spacing.xl },
+    formSection: { marginBottom: Spacing.xl },
+    formSectionTitle: {
+      fontSize: Typography.xs, fontWeight: Typography.bold, color: Colors.textTertiary,
+      textTransform: 'uppercase', letterSpacing: 1, marginBottom: Spacing.md,
+    },
+    selectorRow: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: Colors.surface, borderRadius: Radius.md,
+      borderWidth: 1.5, borderColor: Colors.border,
+      paddingHorizontal: Spacing.md, paddingVertical: 14,
+      justifyContent: 'space-between',
+    },
+    selectorValue: { fontSize: Typography.base, color: Colors.textPrimary, fontWeight: Typography.medium },
+    chipWrap: { flexDirection: 'row', flexWrap: 'wrap' },
+    customOutfitWrap: {
+      marginTop: Spacing.md,
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.lg,
+      borderWidth: 1.5,
+      borderColor: Colors.primary,
+      padding: Spacing.md,
+    },
+    customOutfitLabel: {
+      fontSize: Typography.xs,
+      fontWeight: Typography.semibold,
+      color: Colors.primary,
+      marginBottom: Spacing.sm,
+      textTransform: 'uppercase',
+      letterSpacing: 0.4,
+    },
+    customOutfitInput: {
+      fontSize: Typography.base,
+      color: Colors.textPrimary,
+      paddingVertical: Spacing.sm,
+      borderBottomWidth: 1,
+      borderBottomColor: Colors.border,
+    },
+    presetRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md, flexWrap: 'wrap' },
+    presetBtn: {
+      paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm,
+      borderRadius: Radius.full, borderWidth: 1.5, borderColor: Colors.border, backgroundColor: Colors.surface,
+    },
+    presetBtnActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryFaint },
+    presetText: { fontSize: Typography.sm, color: Colors.textSecondary, fontWeight: Typography.medium },
+    presetTextActive: { color: Colors.primary, fontWeight: Typography.semibold },
+    dateDisplayRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingHorizontal: Spacing.sm },
+    dateLabel: { fontSize: Typography.sm, color: Colors.textSecondary },
+    dateValue: { fontSize: Typography.sm, fontWeight: Typography.semibold, color: Colors.primary },
+    measureRow: {
+      flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
+      paddingVertical: Spacing.md, paddingHorizontal: Spacing.md,
+      borderRadius: Radius.md, borderWidth: 1.5, borderColor: Colors.border,
+      backgroundColor: Colors.surface, marginBottom: Spacing.sm,
+    },
+    measureRowActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryFaint },
+    measureLabel: { flex: 1, fontSize: Typography.base, color: Colors.textSecondary, fontWeight: Typography.medium },
+    photoRow: { flexDirection: 'row', gap: Spacing.md },
+    photoBtn: {
+      flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+      gap: Spacing.sm, paddingVertical: Spacing.md, borderRadius: Radius.md,
+      borderWidth: 1.5, borderColor: Colors.border, borderStyle: 'dashed', backgroundColor: Colors.surface,
+    },
+    photoBtnText: { fontSize: Typography.sm, color: Colors.textSecondary, fontWeight: Typography.medium },
+    photoPreview: { width: '100%', height: 200, borderRadius: Radius.lg, resizeMode: 'cover' },
+    photoChangeHint: { fontSize: Typography.xs, color: Colors.textTertiary, textAlign: 'center', marginTop: Spacing.sm },
+    balanceRow: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      paddingVertical: Spacing.md, paddingHorizontal: Spacing.md,
+      backgroundColor: Colors.borderLight, borderRadius: Radius.md, marginBottom: Spacing.md,
+    },
+    balanceLabel: { fontSize: Typography.sm, color: Colors.textSecondary, fontWeight: Typography.medium },
+    balanceValue: { fontSize: Typography.md, fontWeight: Typography.bold, color: Colors.ready },
+  }), [Colors]);
 
   const isCustomOutfit = !!job && !OUTFIT_TYPES.includes(job.outfitType as any);
   const [outfitType, setOutfitType] = useState<string>(isCustomOutfit ? 'Other' : (job?.outfitType || 'Senator'));
@@ -335,90 +422,5 @@ const JobEditScreen: React.FC = () => {
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.md,
-  },
-  headerTitle: { fontSize: Typography.md, fontWeight: Typography.bold, color: Colors.textPrimary },
-  scroll: { paddingHorizontal: Spacing.base, paddingBottom: Spacing.xl },
-  formSection: { marginBottom: Spacing.xl },
-  formSectionTitle: {
-    fontSize: Typography.xs, fontWeight: Typography.bold, color: Colors.textTertiary,
-    textTransform: 'uppercase', letterSpacing: 1, marginBottom: Spacing.md,
-  },
-  selectorRow: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: Colors.surface, borderRadius: Radius.md,
-    borderWidth: 1.5, borderColor: Colors.border,
-    paddingHorizontal: Spacing.md, paddingVertical: 14,
-    justifyContent: 'space-between',
-  },
-  selectorValue: { fontSize: Typography.base, color: Colors.textPrimary, fontWeight: Typography.medium },
-  chipWrap: { flexDirection: 'row', flexWrap: 'wrap' },
-  customOutfitWrap: {
-    marginTop: Spacing.md,
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    borderWidth: 1.5,
-    borderColor: Colors.primary,
-    padding: Spacing.md,
-  },
-  customOutfitLabel: {
-    fontSize: Typography.xs,
-    fontWeight: Typography.semibold,
-    color: Colors.primary,
-    marginBottom: Spacing.sm,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-  },
-  customOutfitInput: {
-    fontSize: Typography.base,
-    color: Colors.textPrimary,
-    paddingVertical: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  presetRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md, flexWrap: 'wrap' },
-  presetBtn: {
-    paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm,
-    borderRadius: Radius.full, borderWidth: 1.5, borderColor: Colors.border, backgroundColor: Colors.surface,
-  },
-  presetBtnActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryFaint },
-  presetText: { fontSize: Typography.sm, color: Colors.textSecondary, fontWeight: Typography.medium },
-  presetTextActive: { color: Colors.primary, fontWeight: Typography.semibold },
-  dateDisplayRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingHorizontal: Spacing.sm },
-  dateLabel: { fontSize: Typography.sm, color: Colors.textSecondary },
-  dateValue: { fontSize: Typography.sm, fontWeight: Typography.semibold, color: Colors.primary },
-  measureRow: {
-    flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
-    paddingVertical: Spacing.md, paddingHorizontal: Spacing.md,
-    borderRadius: Radius.md, borderWidth: 1.5, borderColor: Colors.border,
-    backgroundColor: Colors.surface, marginBottom: Spacing.sm,
-  },
-  measureRowActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryFaint },
-  measureLabel: { flex: 1, fontSize: Typography.base, color: Colors.textSecondary, fontWeight: Typography.medium },
-  photoRow: { flexDirection: 'row', gap: Spacing.md },
-  photoBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: Spacing.sm, paddingVertical: Spacing.md, borderRadius: Radius.md,
-    borderWidth: 1.5, borderColor: Colors.border, borderStyle: 'dashed', backgroundColor: Colors.surface,
-  },
-  photoBtnText: { fontSize: Typography.sm, color: Colors.textSecondary, fontWeight: Typography.medium },
-  photoPreview: { width: '100%', height: 200, borderRadius: Radius.lg, resizeMode: 'cover' },
-  photoChangeHint: { fontSize: Typography.xs, color: Colors.textTertiary, textAlign: 'center', marginTop: Spacing.sm },
-  balanceRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingVertical: Spacing.md, paddingHorizontal: Spacing.md,
-    backgroundColor: Colors.borderLight, borderRadius: Radius.md, marginBottom: Spacing.md,
-  },
-  balanceLabel: { fontSize: Typography.sm, color: Colors.textSecondary, fontWeight: Typography.medium },
-  balanceValue: { fontSize: Typography.md, fontWeight: Typography.bold, color: Colors.ready },
-});
 
 export default JobEditScreen;

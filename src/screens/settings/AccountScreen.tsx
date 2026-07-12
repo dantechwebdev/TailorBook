@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -16,12 +16,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { Colors, Typography, Spacing, Radius, Shadow } from '../../constants/theme';
+import { Typography, Spacing, Radius, Shadow } from '../../constants/theme';
 import { MenuIcon } from '../../components/common/Icons';
 import { Card, Divider, Button } from '../../components/common/UI';
 import { useStore } from '../../context/store';
 import { TailorSettings } from '../../types';
 import { getInitials, getAvatarColor } from '../../utils/helpers';
+import { useTheme } from '../../context/ThemeContext';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -41,6 +42,7 @@ const CURRENCIES = [
 const AccountScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { jobs, customers, settings, loadSettings, saveSettings } = useStore();
+  const { colors: Colors } = useTheme();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [editingProfile, setEditingProfile] = useState(false);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
@@ -58,6 +60,168 @@ const AccountScreen: React.FC = () => {
   });
 
   const [formWorkDays, setFormWorkDays] = useState<string[]>(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']);
+
+  const styles = useMemo(() => StyleSheet.create({
+    container: { flex: 1, backgroundColor: Colors.background },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.base, paddingVertical: Spacing.md },
+    headerTitle: { fontSize: Typography.xl, fontWeight: Typography.bold, color: Colors.textPrimary },
+    scroll: { paddingHorizontal: Spacing.base },
+
+    profileCard: { marginBottom: Spacing.xl },
+    profileRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+    profileInfo: { flex: 1 },
+    profileName: { fontSize: Typography.lg, fontWeight: Typography.bold, color: Colors.textPrimary },
+    profileRole: { fontSize: Typography.sm, color: Colors.textSecondary, marginTop: 2 },
+    profileLocation: { fontSize: Typography.xs, color: Colors.textTertiary, marginTop: 2 },
+    editProfileBtn: {
+      paddingVertical: Spacing.sm,
+      paddingHorizontal: Spacing.md,
+      borderRadius: Radius.lg,
+      backgroundColor: Colors.primaryFaint,
+    },
+    editProfileText: { fontSize: Typography.sm, color: Colors.primary, fontWeight: Typography.semibold },
+    statsRow: { flexDirection: 'row' },
+    statDivider: { width: 1, backgroundColor: Colors.borderLight },
+
+    workDayRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginBottom: Spacing.sm },
+    workDayChip: {
+      paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs,
+      borderRadius: Radius.full,
+      backgroundColor: Colors.background,
+      borderWidth: 1.5,
+      borderColor: Colors.border,
+    },
+    workDayChipActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryFaint },
+    workDayText: { fontSize: Typography.xs, fontWeight: Typography.semibold, color: Colors.textTertiary },
+    workDayTextActive: { color: Colors.primary },
+    editScheduleLink: { alignSelf: 'flex-start' },
+    editScheduleLinkText: { fontSize: Typography.sm, color: Colors.primary, fontWeight: Typography.medium },
+
+    section: { marginBottom: Spacing.xl },
+    sectionLabel: {
+      fontSize: Typography.xs,
+      fontWeight: Typography.bold,
+      color: Colors.textTertiary,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      marginBottom: Spacing.sm,
+    },
+    settingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 14,
+      paddingHorizontal: Spacing.base,
+    },
+    settingLabel: { fontSize: Typography.base, color: Colors.textPrimary, fontWeight: Typography.medium },
+    settingSubtitle: { fontSize: Typography.xs, color: Colors.textTertiary, marginTop: 2 },
+
+    planRow: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.md },
+    planBadge: {
+      backgroundColor: Colors.borderLight, paddingHorizontal: 10,
+      paddingVertical: 4, borderRadius: Radius.full,
+    },
+    planBadgeText: { fontSize: Typography.xs, fontWeight: Typography.bold, color: Colors.textSecondary, letterSpacing: 1 },
+    planName: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textPrimary },
+    planDesc: { fontSize: Typography.xs, color: Colors.textTertiary, marginTop: 2 },
+    upgradeBtn: {
+      backgroundColor: Colors.primary, borderRadius: Radius.md,
+      paddingVertical: 12, alignItems: 'center',
+    },
+    upgradeText: { color: Colors.white, fontSize: Typography.sm, fontWeight: Typography.semibold },
+
+    versionText: {
+      textAlign: 'center', fontSize: Typography.xs,
+      color: Colors.textTertiary, marginBottom: Spacing.md,
+    },
+
+    // Modals
+    modalContainer: { flex: 1, backgroundColor: Colors.background },
+    modalHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: Spacing.base,
+      paddingVertical: Spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: Colors.border,
+    },
+    modalTitle: { fontSize: Typography.md, fontWeight: Typography.bold, color: Colors.textPrimary },
+    modalCancel: { fontSize: Typography.base, color: Colors.textSecondary },
+    modalSave: { fontSize: Typography.base, color: Colors.primary, fontWeight: Typography.bold },
+    modalScroll: { flex: 1, padding: Spacing.base },
+
+    // Photo section in edit modal
+    photoSection: {
+      alignItems: 'center',
+      marginBottom: Spacing.xl,
+      position: 'relative',
+    },
+    cameraOverlay: {
+      position: 'absolute',
+      bottom: 28,
+      right: '33%',
+      width: 28, height: 28, borderRadius: 14,
+      backgroundColor: Colors.primary,
+      alignItems: 'center', justifyContent: 'center',
+      borderWidth: 2, borderColor: Colors.background,
+    },
+    photoHint: {
+      fontSize: Typography.xs,
+      color: Colors.textTertiary,
+      marginTop: Spacing.sm,
+    },
+    removePhotoText: {
+      fontSize: Typography.sm,
+      color: Colors.overdue,
+      fontWeight: Typography.medium,
+      marginTop: Spacing.xs,
+    },
+
+    profileField: { marginBottom: Spacing.lg },
+    fieldLabel: {
+      fontSize: Typography.sm,
+      fontWeight: Typography.semibold,
+      color: Colors.textSecondary,
+      marginBottom: Spacing.sm,
+    },
+    fieldInput: {
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.lg,
+      paddingHorizontal: Spacing.base,
+      paddingVertical: Spacing.md,
+      fontSize: Typography.base,
+      color: Colors.textPrimary,
+      ...Shadow.sm,
+    },
+
+    daysRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+    dayChip: {
+      paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm,
+      borderRadius: Radius.full,
+      backgroundColor: Colors.surface,
+      borderWidth: 1.5,
+      borderColor: Colors.border,
+    },
+    dayChipActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryFaint },
+    dayChipText: { fontSize: Typography.sm, fontWeight: Typography.semibold, color: Colors.textSecondary },
+    dayChipTextActive: { color: Colors.primary },
+
+    // Currency modal
+    currencyRow: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.lg,
+      padding: Spacing.base,
+      borderWidth: 2,
+      borderColor: 'transparent',
+      ...Shadow.sm,
+      gap: Spacing.md,
+      marginBottom: Spacing.sm,
+    },
+    currencyRowSelected: { borderColor: Colors.primary, backgroundColor: Colors.primaryFaint },
+    currencySymbol: { fontSize: Typography.lg, fontWeight: Typography.bold, color: Colors.textPrimary, width: 36 },
+    currencyLabel: { flex: 1, fontSize: Typography.base, color: Colors.textSecondary },
+  }), [Colors]);
 
   useEffect(() => {
     loadSettings();
@@ -150,7 +314,7 @@ const AccountScreen: React.FC = () => {
         <Card style={styles.profileCard}>
           <View style={styles.profileRow}>
             {/* Avatar / Photo */}
-            <ProfileAvatar photoUri={photoUri} name={displayName} size={64} />
+            <ProfileAvatar photoUri={photoUri} name={displayName} size={64} Colors={Colors} />
 
             <View style={styles.profileInfo}>
               <Text style={styles.profileName}>{displayName}</Text>
@@ -169,13 +333,14 @@ const AccountScreen: React.FC = () => {
           </View>
           <Divider style={{ marginVertical: Spacing.md }} />
           <View style={styles.statsRow}>
-            <StatItem label="Customers" value={String(customers.length)} />
+            <StatItem label="Customers" value={String(customers.length)} Colors={Colors} />
             <View style={styles.statDivider} />
-            <StatItem label="Total Jobs" value={String(jobs.length)} />
+            <StatItem label="Total Jobs" value={String(jobs.length)} Colors={Colors} />
             <View style={styles.statDivider} />
             <StatItem
               label="Delivered"
               value={String(jobs.filter((j) => j.status === 'Delivered').length)}
+              Colors={Colors}
             />
           </View>
         </Card>
@@ -215,6 +380,8 @@ const AccountScreen: React.FC = () => {
             <SettingRow
               label="Job Reminders"
               subtitle="Get notified about upcoming jobs"
+              styles={styles}
+              Colors={Colors}
               right={
                 <Switch
                   value={notificationsEnabled}
@@ -228,6 +395,8 @@ const AccountScreen: React.FC = () => {
             <SettingRow
               label="Currency"
               subtitle={`${settings?.currency || '₦'} — tap to change`}
+              styles={styles}
+              Colors={Colors}
               onPress={() => setShowCurrencyPicker(true)}
             />
           </Card>
@@ -256,11 +425,11 @@ const AccountScreen: React.FC = () => {
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Support</Text>
           <Card padding={0}>
-            <SettingRow label="Help & FAQ" onPress={() => {}} />
+            <SettingRow label="Help & FAQ" styles={styles} Colors={Colors} onPress={() => {}} />
             <Divider />
-            <SettingRow label="Send Feedback" onPress={() => {}} />
+            <SettingRow label="Send Feedback" styles={styles} Colors={Colors} onPress={() => {}} />
             <Divider />
-            <SettingRow label="Privacy Policy" onPress={() => {}} />
+            <SettingRow label="Privacy Policy" styles={styles} Colors={Colors} onPress={() => {}} />
           </Card>
         </View>
 
@@ -320,7 +489,7 @@ const AccountScreen: React.FC = () => {
             {/* ─── Photo Picker ─── */}
             <View style={styles.photoSection}>
               <TouchableOpacity onPress={pickPhoto} activeOpacity={0.85}>
-                <ProfileAvatar photoUri={form.profilePhotoUri || ''} name={form.tailorName || displayName} size={88} />
+                <ProfileAvatar photoUri={form.profilePhotoUri || ''} name={form.tailorName || displayName} size={88} Colors={Colors} />
                 <View style={styles.cameraOverlay}>
                   <Ionicons name="camera" size={16} color={Colors.white} />
                 </View>
@@ -338,12 +507,16 @@ const AccountScreen: React.FC = () => {
               placeholder="e.g. Tunde Balogun"
               value={form.tailorName}
               onChangeText={(v) => setForm((f) => ({ ...f, tailorName: v }))}
+              styles={styles}
+              Colors={Colors}
             />
             <ProfileField
               label="Shop Name"
               placeholder="e.g. Tunde Stitches"
               value={form.shopName}
               onChangeText={(v) => setForm((f) => ({ ...f, shopName: v }))}
+              styles={styles}
+              Colors={Colors}
             />
             <ProfileField
               label="Phone Number"
@@ -351,12 +524,16 @@ const AccountScreen: React.FC = () => {
               value={form.phone}
               onChangeText={(v) => setForm((f) => ({ ...f, phone: v }))}
               keyboardType="phone-pad"
+              styles={styles}
+              Colors={Colors}
             />
             <ProfileField
               label="Location"
               placeholder="e.g. Lagos, Nigeria"
               value={form.location}
               onChangeText={(v) => setForm((f) => ({ ...f, location: v }))}
+              styles={styles}
+              Colors={Colors}
             />
 
             {/* ─── Work Days ─── */}
@@ -389,8 +566,8 @@ const AccountScreen: React.FC = () => {
 
 // ─── ProfileAvatar ────────────────────────────────────────────────────────────
 
-const ProfileAvatar: React.FC<{ photoUri: string; name: string; size: number }> = ({
-  photoUri, name, size,
+const ProfileAvatar: React.FC<{ photoUri: string; name: string; size: number; Colors: any }> = ({
+  photoUri, name, size, Colors,
 }) => {
   const initials = getInitials(name);
   const bgColor = getAvatarColor(name);
@@ -425,7 +602,7 @@ const ProfileAvatar: React.FC<{ photoUri: string; name: string; size: number }> 
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-const StatItem: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+const StatItem: React.FC<{ label: string; value: string; Colors: any }> = ({ label, value, Colors }) => (
   <View style={{ alignItems: 'center', flex: 1 }}>
     <Text style={{ fontSize: Typography.xl, fontWeight: Typography.bold, color: Colors.primary }}>
       {value}
@@ -439,7 +616,9 @@ const SettingRow: React.FC<{
   subtitle?: string;
   onPress?: () => void;
   right?: React.ReactNode;
-}> = ({ label, subtitle, onPress, right }) => (
+  styles: any;
+  Colors: any;
+}> = ({ label, subtitle, onPress, right, styles, Colors }) => (
   <TouchableOpacity
     onPress={onPress}
     style={styles.settingRow}
@@ -460,7 +639,9 @@ const ProfileField: React.FC<{
   value: string;
   onChangeText: (v: string) => void;
   keyboardType?: any;
-}> = ({ label, placeholder, value, onChangeText, keyboardType }) => (
+  styles: any;
+  Colors: any;
+}> = ({ label, placeholder, value, onChangeText, keyboardType, styles, Colors }) => (
   <View style={styles.profileField}>
     <Text style={styles.fieldLabel}>{label}</Text>
     <TextInput
@@ -474,169 +655,5 @@ const ProfileField: React.FC<{
     />
   </View>
 );
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.base, paddingVertical: Spacing.md },
-  headerTitle: { fontSize: Typography.xl, fontWeight: Typography.bold, color: Colors.textPrimary },
-  scroll: { paddingHorizontal: Spacing.base },
-
-  profileCard: { marginBottom: Spacing.xl },
-  profileRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  profileInfo: { flex: 1 },
-  profileName: { fontSize: Typography.lg, fontWeight: Typography.bold, color: Colors.textPrimary },
-  profileRole: { fontSize: Typography.sm, color: Colors.textSecondary, marginTop: 2 },
-  profileLocation: { fontSize: Typography.xs, color: Colors.textTertiary, marginTop: 2 },
-  editProfileBtn: {
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Radius.lg,
-    backgroundColor: Colors.primaryFaint,
-  },
-  editProfileText: { fontSize: Typography.sm, color: Colors.primary, fontWeight: Typography.semibold },
-  statsRow: { flexDirection: 'row' },
-  statDivider: { width: 1, backgroundColor: Colors.borderLight },
-
-  workDayRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginBottom: Spacing.sm },
-  workDayChip: {
-    paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.background,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-  },
-  workDayChipActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryFaint },
-  workDayText: { fontSize: Typography.xs, fontWeight: Typography.semibold, color: Colors.textTertiary },
-  workDayTextActive: { color: Colors.primary },
-  editScheduleLink: { alignSelf: 'flex-start' },
-  editScheduleLinkText: { fontSize: Typography.sm, color: Colors.primary, fontWeight: Typography.medium },
-
-  section: { marginBottom: Spacing.xl },
-  sectionLabel: {
-    fontSize: Typography.xs,
-    fontWeight: Typography.bold,
-    color: Colors.textTertiary,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: Spacing.sm,
-  },
-  settingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: Spacing.base,
-  },
-  settingLabel: { fontSize: Typography.base, color: Colors.textPrimary, fontWeight: Typography.medium },
-  settingSubtitle: { fontSize: Typography.xs, color: Colors.textTertiary, marginTop: 2 },
-
-  planRow: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.md },
-  planBadge: {
-    backgroundColor: Colors.borderLight, paddingHorizontal: 10,
-    paddingVertical: 4, borderRadius: Radius.full,
-  },
-  planBadgeText: { fontSize: Typography.xs, fontWeight: Typography.bold, color: Colors.textSecondary, letterSpacing: 1 },
-  planName: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textPrimary },
-  planDesc: { fontSize: Typography.xs, color: Colors.textTertiary, marginTop: 2 },
-  upgradeBtn: {
-    backgroundColor: Colors.primary, borderRadius: Radius.md,
-    paddingVertical: 12, alignItems: 'center',
-  },
-  upgradeText: { color: Colors.white, fontSize: Typography.sm, fontWeight: Typography.semibold },
-
-  versionText: {
-    textAlign: 'center', fontSize: Typography.xs,
-    color: Colors.textTertiary, marginBottom: Spacing.md,
-  },
-
-  // Modals
-  modalContainer: { flex: 1, backgroundColor: Colors.background },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  modalTitle: { fontSize: Typography.md, fontWeight: Typography.bold, color: Colors.textPrimary },
-  modalCancel: { fontSize: Typography.base, color: Colors.textSecondary },
-  modalSave: { fontSize: Typography.base, color: Colors.primary, fontWeight: Typography.bold },
-  modalScroll: { flex: 1, padding: Spacing.base },
-
-  // Photo section in edit modal
-  photoSection: {
-    alignItems: 'center',
-    marginBottom: Spacing.xl,
-    position: 'relative',
-  },
-  cameraOverlay: {
-    position: 'absolute',
-    bottom: 28,
-    right: '33%',
-    width: 28, height: 28, borderRadius: 14,
-    backgroundColor: Colors.primary,
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: Colors.background,
-  },
-  photoHint: {
-    fontSize: Typography.xs,
-    color: Colors.textTertiary,
-    marginTop: Spacing.sm,
-  },
-  removePhotoText: {
-    fontSize: Typography.sm,
-    color: Colors.overdue,
-    fontWeight: Typography.medium,
-    marginTop: Spacing.xs,
-  },
-
-  profileField: { marginBottom: Spacing.lg },
-  fieldLabel: {
-    fontSize: Typography.sm,
-    fontWeight: Typography.semibold,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.sm,
-  },
-  fieldInput: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.md,
-    fontSize: Typography.base,
-    color: Colors.textPrimary,
-    ...Shadow.sm,
-  },
-
-  daysRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
-  dayChip: {
-    paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.surface,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-  },
-  dayChipActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryFaint },
-  dayChipText: { fontSize: Typography.sm, fontWeight: Typography.semibold, color: Colors.textSecondary },
-  dayChipTextActive: { color: Colors.primary },
-
-  // Currency modal
-  currencyRow: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    padding: Spacing.base,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    ...Shadow.sm,
-    gap: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
-  currencyRowSelected: { borderColor: Colors.primary, backgroundColor: Colors.primaryFaint },
-  currencySymbol: { fontSize: Typography.lg, fontWeight: Typography.bold, color: Colors.textPrimary, width: 36 },
-  currencyLabel: { flex: 1, fontSize: Typography.base, color: Colors.textSecondary },
-});
 
 export default AccountScreen;

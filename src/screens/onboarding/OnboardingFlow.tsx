@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -28,8 +28,9 @@ import {
   IconProps,
 } from '../../../assets/icons/custom';
 import { useStore } from '../../context/store';
-import { Colors, Typography, Spacing, Radius, Shadow } from '../../constants/theme';
+import { Typography, Spacing, Radius, Shadow } from '../../constants/theme';
 import { OutfitType } from '../../types';
+import { useTheme } from '../../context/ThemeContext';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -73,6 +74,7 @@ interface Props {
 
 const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
   const { settings, saveSettings } = useStore();
+  const { colors: Colors } = useTheme();
 
   const [step, setStep] = useState(0);
   const [tailorName, setTailorName] = useState('');
@@ -83,6 +85,200 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
   const [workDays, setWorkDays] = useState<string[]>(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']);
   const [currency, setCurrency] = useState('₦');
   const [done, setDone] = useState(false);
+
+  const styles = useMemo(() => StyleSheet.create({
+    safeArea: { flex: 1, backgroundColor: Colors.background },
+    dotsRow: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      paddingTop: Spacing.lg,
+      gap: Spacing.sm,
+    },
+    dot: {
+      width: 8, height: 8, borderRadius: 4,
+      backgroundColor: Colors.borderLight,
+    },
+    dotActive: { backgroundColor: Colors.primary, width: 24 },
+    scrollContent: { paddingHorizontal: Spacing.base, paddingBottom: 60 },
+
+    stepIconWrap: {
+      alignItems: 'center',
+      marginTop: Spacing.xl,
+      marginBottom: Spacing.md,
+    },
+    stepTitle: {
+      fontSize: Typography.xl + 2,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+      textAlign: 'center',
+      marginBottom: Spacing.sm,
+    },
+    stepSub: {
+      fontSize: Typography.base,
+      color: Colors.textSecondary,
+      textAlign: 'center',
+      lineHeight: 22,
+      marginBottom: Spacing.xl,
+    },
+
+    // Photo step
+    photoPicker: {
+      width: 180,
+      height: 180,
+      borderRadius: 90,
+      overflow: 'hidden',
+      marginBottom: Spacing.md,
+      ...Shadow.md,
+    },
+    photoPreview: { width: '100%', height: '100%' },
+    photoPlaceholder: {
+      width: '100%', height: '100%',
+      backgroundColor: Colors.surface,
+      alignItems: 'center', justifyContent: 'center',
+      borderWidth: 2,
+      borderColor: Colors.border,
+      borderRadius: 90,
+      borderStyle: 'dashed',
+      gap: Spacing.sm,
+    },
+    photoPlaceholderText: {
+      fontSize: Typography.sm,
+      color: Colors.textTertiary,
+      textAlign: 'center',
+    },
+    removePhotoText: {
+      fontSize: Typography.sm,
+      color: Colors.overdue,
+      fontWeight: Typography.medium,
+    },
+
+    inputGroup: { marginBottom: Spacing.md },
+    inputLabel: {
+      fontSize: Typography.sm,
+      fontWeight: Typography.semibold,
+      color: Colors.textSecondary,
+      marginBottom: Spacing.sm,
+    },
+    input: {
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.lg,
+      paddingHorizontal: Spacing.base,
+      paddingVertical: Spacing.md + 2,
+      fontSize: Typography.base,
+      color: Colors.textPrimary,
+      ...Shadow.sm,
+    },
+
+    apparelGrid: {
+      flexDirection: 'row', flexWrap: 'wrap',
+      gap: Spacing.md,
+    },
+    apparelCard: {
+      width: '30%',
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.xl,
+      padding: Spacing.md,
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: 'transparent',
+      ...Shadow.sm,
+      minHeight: 90,
+      justifyContent: 'center',
+      position: 'relative',
+    },
+    apparelCardSelected: { borderColor: Colors.primary, backgroundColor: Colors.primaryFaint },
+    apparelBadge: {
+      position: 'absolute', top: 6, right: 6,
+      width: 18, height: 18, borderRadius: 9,
+      backgroundColor: Colors.primary,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    apparelBadgeText: { color: Colors.white, fontSize: 10, fontWeight: Typography.bold },
+    apparelName: { fontSize: Typography.xs, fontWeight: Typography.semibold, color: Colors.textSecondary },
+    defaultHint: {
+      textAlign: 'center',
+      marginTop: Spacing.md,
+      fontSize: Typography.sm,
+      color: Colors.primary,
+      fontWeight: Typography.medium,
+    },
+
+    daysGrid: {
+      flexDirection: 'row', flexWrap: 'wrap',
+      gap: Spacing.md, justifyContent: 'center',
+    },
+    dayChip: {
+      paddingHorizontal: Spacing.xl,
+      paddingVertical: Spacing.md,
+      borderRadius: Radius.full,
+      backgroundColor: Colors.surface,
+      borderWidth: 2,
+      borderColor: 'transparent',
+      ...Shadow.sm,
+    },
+    dayChipActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryFaint },
+    dayChipText: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textSecondary },
+    dayChipTextActive: { color: Colors.primary },
+
+    currencyList: { gap: Spacing.sm },
+    currencyRow: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.lg,
+      padding: Spacing.base,
+      borderWidth: 2,
+      borderColor: 'transparent',
+      ...Shadow.sm,
+      gap: Spacing.md,
+    },
+    currencyRowSelected: { borderColor: Colors.primary, backgroundColor: Colors.primaryFaint },
+    currencySymbol: { fontSize: Typography.lg, fontWeight: Typography.bold, color: Colors.textPrimary, width: 36 },
+    currencyLabel: { flex: 1, fontSize: Typography.base, color: Colors.textSecondary },
+
+    footer: { marginTop: Spacing.xxl, paddingBottom: Spacing.xxl, alignItems: 'center' },
+    nextBtn: {
+      width: '100%', backgroundColor: Colors.primary,
+      paddingVertical: Spacing.md + 4,
+      borderRadius: Radius.lg, alignItems: 'center',
+      ...Shadow.md,
+    },
+    nextBtnDisabled: { backgroundColor: Colors.border },
+    nextBtnText: { fontSize: Typography.lg, fontWeight: Typography.bold, color: Colors.white },
+    skipText: { fontSize: Typography.sm, color: Colors.textTertiary },
+    backText: { fontSize: Typography.sm, color: Colors.textSecondary },
+
+    // Completion screen
+    completionContainer: {
+      flex: 1, alignItems: 'center', justifyContent: 'center',
+      paddingHorizontal: Spacing.xl,
+    },
+    completionTitle: {
+      fontSize: Typography.xl + 4,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+      textAlign: 'center',
+      marginBottom: Spacing.md,
+    },
+    completionSub: {
+      fontSize: Typography.base, color: Colors.textSecondary,
+      textAlign: 'center', lineHeight: 24,
+      marginBottom: Spacing.xxxl,
+    },
+    completionBtnGroup: { width: '100%', gap: Spacing.md },
+    completionBtn: {
+      borderRadius: Radius.xl, padding: Spacing.xl,
+      alignItems: 'center', ...Shadow.md,
+    },
+    completionBtnPrimary: { backgroundColor: Colors.primary },
+    completionBtnPrimaryLabel: {
+      fontSize: Typography.md, fontWeight: Typography.bold,
+      color: Colors.white, marginBottom: 4,
+    },
+    completionBtnSub: { fontSize: Typography.sm, color: 'rgba(255,255,255,0.8)' },
+
+    doneContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.lg },
+    doneTitle: { fontSize: Typography.xl, fontWeight: Typography.bold, color: Colors.textPrimary },
+  }), [Colors]);
 
   const toggleApparel = (type: OutfitType) => {
     setSelectedApparels((prev) =>
@@ -434,201 +630,5 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
     </SafeAreaView>
   );
 };
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: Colors.background },
-  dotsRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    paddingTop: Spacing.lg,
-    gap: Spacing.sm,
-  },
-  dot: {
-    width: 8, height: 8, borderRadius: 4,
-    backgroundColor: Colors.borderLight,
-  },
-  dotActive: { backgroundColor: Colors.primary, width: 24 },
-  scrollContent: { paddingHorizontal: Spacing.base, paddingBottom: 60 },
-
-  stepIconWrap: {
-    alignItems: 'center',
-    marginTop: Spacing.xl,
-    marginBottom: Spacing.md,
-  },
-  stepTitle: {
-    fontSize: Typography.xl + 2,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-    textAlign: 'center',
-    marginBottom: Spacing.sm,
-  },
-  stepSub: {
-    fontSize: Typography.base,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: Spacing.xl,
-  },
-
-  // Photo step
-  photoPicker: {
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    overflow: 'hidden',
-    marginBottom: Spacing.md,
-    ...Shadow.md,
-  },
-  photoPreview: { width: '100%', height: '100%' },
-  photoPlaceholder: {
-    width: '100%', height: '100%',
-    backgroundColor: Colors.surface,
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: Colors.border,
-    borderRadius: 90,
-    borderStyle: 'dashed',
-    gap: Spacing.sm,
-  },
-  photoPlaceholderText: {
-    fontSize: Typography.sm,
-    color: Colors.textTertiary,
-    textAlign: 'center',
-  },
-  removePhotoText: {
-    fontSize: Typography.sm,
-    color: Colors.overdue,
-    fontWeight: Typography.medium,
-  },
-
-  inputGroup: { marginBottom: Spacing.md },
-  inputLabel: {
-    fontSize: Typography.sm,
-    fontWeight: Typography.semibold,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.sm,
-  },
-  input: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.md + 2,
-    fontSize: Typography.base,
-    color: Colors.textPrimary,
-    ...Shadow.sm,
-  },
-
-  apparelGrid: {
-    flexDirection: 'row', flexWrap: 'wrap',
-    gap: Spacing.md,
-  },
-  apparelCard: {
-    width: '30%',
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.xl,
-    padding: Spacing.md,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
-    ...Shadow.sm,
-    minHeight: 90,
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  apparelCardSelected: { borderColor: Colors.primary, backgroundColor: Colors.primaryFaint },
-  apparelBadge: {
-    position: 'absolute', top: 6, right: 6,
-    width: 18, height: 18, borderRadius: 9,
-    backgroundColor: Colors.primary,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  apparelBadgeText: { color: Colors.white, fontSize: 10, fontWeight: Typography.bold },
-  apparelName: { fontSize: Typography.xs, fontWeight: Typography.semibold, color: Colors.textSecondary },
-  defaultHint: {
-    textAlign: 'center',
-    marginTop: Spacing.md,
-    fontSize: Typography.sm,
-    color: Colors.primary,
-    fontWeight: Typography.medium,
-  },
-
-  daysGrid: {
-    flexDirection: 'row', flexWrap: 'wrap',
-    gap: Spacing.md, justifyContent: 'center',
-  },
-  dayChip: {
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.surface,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    ...Shadow.sm,
-  },
-  dayChipActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryFaint },
-  dayChipText: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textSecondary },
-  dayChipTextActive: { color: Colors.primary },
-
-  currencyList: { gap: Spacing.sm },
-  currencyRow: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    padding: Spacing.base,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    ...Shadow.sm,
-    gap: Spacing.md,
-  },
-  currencyRowSelected: { borderColor: Colors.primary, backgroundColor: Colors.primaryFaint },
-  currencySymbol: { fontSize: Typography.lg, fontWeight: Typography.bold, color: Colors.textPrimary, width: 36 },
-  currencyLabel: { flex: 1, fontSize: Typography.base, color: Colors.textSecondary },
-
-  footer: { marginTop: Spacing.xxl, paddingBottom: Spacing.xxl, alignItems: 'center' },
-  nextBtn: {
-    width: '100%', backgroundColor: Colors.primary,
-    paddingVertical: Spacing.md + 4,
-    borderRadius: Radius.lg, alignItems: 'center',
-    ...Shadow.md,
-  },
-  nextBtnDisabled: { backgroundColor: Colors.border },
-  nextBtnText: { fontSize: Typography.lg, fontWeight: Typography.bold, color: Colors.white },
-  skipText: { fontSize: Typography.sm, color: Colors.textTertiary },
-  backText: { fontSize: Typography.sm, color: Colors.textSecondary },
-
-  // Completion screen
-  completionContainer: {
-    flex: 1, alignItems: 'center', justifyContent: 'center',
-    paddingHorizontal: Spacing.xl,
-  },
-  completionTitle: {
-    fontSize: Typography.xl + 4,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-    textAlign: 'center',
-    marginBottom: Spacing.md,
-  },
-  completionSub: {
-    fontSize: Typography.base, color: Colors.textSecondary,
-    textAlign: 'center', lineHeight: 24,
-    marginBottom: Spacing.xxxl,
-  },
-  completionBtnGroup: { width: '100%', gap: Spacing.md },
-  completionBtn: {
-    borderRadius: Radius.xl, padding: Spacing.xl,
-    alignItems: 'center', ...Shadow.md,
-  },
-  completionBtnPrimary: { backgroundColor: Colors.primary },
-  completionBtnPrimaryLabel: {
-    fontSize: Typography.md, fontWeight: Typography.bold,
-    color: Colors.white, marginBottom: 4,
-  },
-  completionBtnSub: { fontSize: Typography.sm, color: 'rgba(255,255,255,0.8)' },
-
-  doneContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.lg },
-  doneTitle: { fontSize: Typography.xl, fontWeight: Typography.bold, color: Colors.textPrimary },
-});
 
 export default OnboardingFlow;

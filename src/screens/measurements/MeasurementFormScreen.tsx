@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,12 +13,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useStore } from '../../context/store';
-import { Colors, Typography, Spacing, Radius, Shadow } from '../../constants/theme';
+import { Typography, Spacing, Radius, Shadow } from '../../constants/theme';
 import { MEASUREMENT_FIELDS, TEMPLATE_LABELS } from '../../constants/theme';
 import { BackIcon, CheckIcon } from '../../components/common/Icons';
 import { Button, Chip } from '../../components/common/UI';
 import { MeasurementTemplate } from '../../types';
 import { format } from 'date-fns';
+import { useTheme } from '../../context/ThemeContext';
 
 const TEMPLATES: MeasurementTemplate[] = [
   'mens_senator',
@@ -35,6 +36,7 @@ const MeasurementFormScreen: React.FC = () => {
   const { customerId, jobId, existingMeasurementId } = route.params || {};
 
   const { addMeasurement, updateMeasurement, getMeasurementsByCustomer, getCustomer } = useStore();
+  const { colors: Colors } = useTheme();
   const customer = getCustomer(customerId);
   const existingMeasurements = getMeasurementsByCustomer(customerId);
 
@@ -53,6 +55,115 @@ const MeasurementFormScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const fields = MEASUREMENT_FIELDS[template] || [];
+
+  const styles = useMemo(() => StyleSheet.create({
+    container: { flex: 1, backgroundColor: Colors.background },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: Spacing.base,
+      paddingVertical: Spacing.md,
+    },
+    headerTitle: {
+      fontSize: Typography.md,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+      textAlign: 'center',
+    },
+    headerSub: {
+      fontSize: Typography.xs,
+      color: Colors.textSecondary,
+      textAlign: 'center',
+    },
+    scroll: { paddingHorizontal: Spacing.base, paddingBottom: Spacing.xl },
+    section: { marginBottom: Spacing.xl },
+    sectionTitle: {
+      fontSize: Typography.xs,
+      fontWeight: Typography.bold,
+      color: Colors.textTertiary,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      marginBottom: Spacing.md,
+    },
+    existingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.md,
+      padding: Spacing.md,
+      marginBottom: Spacing.sm,
+      borderWidth: 1,
+      borderColor: Colors.border,
+    },
+    existingLabel: {
+      fontSize: Typography.base,
+      fontWeight: Typography.semibold,
+      color: Colors.textPrimary,
+    },
+    existingDate: {
+      fontSize: Typography.xs,
+      color: Colors.textTertiary,
+      marginTop: 2,
+    },
+    copyText: {
+      fontSize: Typography.sm,
+      color: Colors.primary,
+      fontWeight: Typography.semibold,
+    },
+    templateWrap: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+    },
+    fieldsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: Spacing.md,
+    },
+    fieldItem: {
+      width: '47%',
+    },
+    fieldLabel: {
+      fontSize: Typography.xs,
+      color: Colors.textSecondary,
+      fontWeight: Typography.medium,
+      marginBottom: 6,
+    },
+    fieldInputWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.sm,
+      borderWidth: 1.5,
+      borderColor: Colors.border,
+      paddingHorizontal: Spacing.md,
+      paddingVertical: 10,
+    },
+    fieldInput: {
+      flex: 1,
+      fontSize: Typography.base,
+      color: Colors.textPrimary,
+      padding: 0,
+    },
+    fieldUnit: {
+      fontSize: Typography.sm,
+      color: Colors.textTertiary,
+      fontWeight: Typography.medium,
+    },
+    labelInput: {
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.md,
+      borderWidth: 1.5,
+      borderColor: Colors.border,
+      paddingHorizontal: Spacing.md,
+      paddingVertical: 14,
+    },
+    labelInputText: {
+      fontSize: Typography.base,
+      color: Colors.textPrimary,
+    },
+  }), [Colors]);
 
   const handleSave = async () => {
     const hasData = Object.values(data).some((v) => v.trim().length > 0);
@@ -226,114 +337,5 @@ const MeasurementFormScreen: React.FC = () => {
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.md,
-  },
-  headerTitle: {
-    fontSize: Typography.md,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-    textAlign: 'center',
-  },
-  headerSub: {
-    fontSize: Typography.xs,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-  },
-  scroll: { paddingHorizontal: Spacing.base, paddingBottom: Spacing.xl },
-  section: { marginBottom: Spacing.xl },
-  sectionTitle: {
-    fontSize: Typography.xs,
-    fontWeight: Typography.bold,
-    color: Colors.textTertiary,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: Spacing.md,
-  },
-  existingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  existingLabel: {
-    fontSize: Typography.base,
-    fontWeight: Typography.semibold,
-    color: Colors.textPrimary,
-  },
-  existingDate: {
-    fontSize: Typography.xs,
-    color: Colors.textTertiary,
-    marginTop: 2,
-  },
-  copyText: {
-    fontSize: Typography.sm,
-    color: Colors.primary,
-    fontWeight: Typography.semibold,
-  },
-  templateWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  fieldsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.md,
-  },
-  fieldItem: {
-    width: '47%',
-  },
-  fieldLabel: {
-    fontSize: Typography.xs,
-    color: Colors.textSecondary,
-    fontWeight: Typography.medium,
-    marginBottom: 6,
-  },
-  fieldInputWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.sm,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 10,
-  },
-  fieldInput: {
-    flex: 1,
-    fontSize: Typography.base,
-    color: Colors.textPrimary,
-    padding: 0,
-  },
-  fieldUnit: {
-    fontSize: Typography.sm,
-    color: Colors.textTertiary,
-    fontWeight: Typography.medium,
-  },
-  labelInput: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.md,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 14,
-  },
-  labelInputText: {
-    fontSize: Typography.base,
-    color: Colors.textPrimary,
-  },
-});
 
 export default MeasurementFormScreen;

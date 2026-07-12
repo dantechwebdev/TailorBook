@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,11 +9,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { useStore } from '../../context/store';
-import { Colors, Typography, Spacing, Radius, Shadow } from '../../constants/theme';
+import { Typography, Spacing, Radius, Shadow } from '../../constants/theme';
 import { NotificationsIcon, CheckIcon, AlertCircleIcon, JobsIcon, ClockIcon, MenuIcon } from '../../components/common/Icons';
 import { EmptyState } from '../../components/common/UI';
 import { AppNotification, NotificationType } from '../../types';
 import { formatDateTime } from '../../utils/helpers';
+import { useTheme } from '../../context/ThemeContext';
 
 const TABS = ['All', 'Jobs', 'System'] as const;
 type Tab = typeof TABS[number];
@@ -21,6 +22,7 @@ type Tab = typeof TABS[number];
 const NotificationsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { notifications, markNotificationRead, markAllRead } = useStore();
+  const { colors: Colors } = useTheme();
   const [activeTab, setActiveTab] = useState<Tab>('All');
 
   const filtered = notifications.filter((n) => {
@@ -39,6 +41,124 @@ const NotificationsScreen: React.FC = () => {
         params: { jobId: notification.jobId },
       });
     }
+  };
+
+  const styles = useMemo(() => StyleSheet.create({
+    container: { flex: 1, backgroundColor: Colors.background },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: Spacing.base,
+      paddingVertical: Spacing.md,
+    },
+    headerTitle: {
+      fontSize: Typography.xl,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+    },
+    markAllText: {
+      fontSize: Typography.sm,
+      color: Colors.primary,
+      fontWeight: Typography.semibold,
+    },
+    tabs: {
+      flexDirection: 'row',
+      paddingHorizontal: Spacing.base,
+      marginBottom: Spacing.md,
+      gap: Spacing.sm,
+    },
+    tab: {
+      paddingVertical: Spacing.sm,
+      paddingHorizontal: Spacing.md,
+      borderRadius: Radius.full,
+      backgroundColor: Colors.surface,
+      borderWidth: 1.5,
+      borderColor: Colors.border,
+    },
+    tabActive: {
+      backgroundColor: Colors.primaryFaint,
+      borderColor: Colors.primary,
+    },
+    tabText: {
+      fontSize: Typography.sm,
+      color: Colors.textSecondary,
+      fontWeight: Typography.medium,
+    },
+    tabTextActive: {
+      color: Colors.primary,
+      fontWeight: Typography.semibold,
+    },
+    list: {
+      paddingHorizontal: Spacing.base,
+      paddingBottom: Spacing.xxxl,
+      flexGrow: 1,
+    },
+    notifCard: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.lg,
+      padding: Spacing.md,
+      gap: Spacing.md,
+      ...Shadow.sm,
+    },
+    notifCardUnread: {
+      backgroundColor: Colors.white,
+      borderLeftWidth: 3,
+      borderLeftColor: Colors.primary,
+    },
+    notifIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+    },
+    notifContent: { flex: 1, gap: 3 },
+    notifTitle: {
+      fontSize: Typography.sm,
+      fontWeight: Typography.semibold,
+      color: Colors.textSecondary,
+      lineHeight: 18,
+    },
+    notifMessage: {
+      fontSize: Typography.sm,
+      color: Colors.textPrimary,
+      lineHeight: 20,
+    },
+    notifTime: {
+      fontSize: Typography.xs,
+      color: Colors.textTertiary,
+      marginTop: 2,
+    },
+    unreadDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: Colors.primary,
+      marginTop: 4,
+      flexShrink: 0,
+    },
+  }), [Colors]);
+
+  const NOTIF_ICONS: Record<NotificationType, React.ReactNode> = {
+    overdue: <ClockIcon size={18} color={Colors.overdue} />,
+    due_today: <AlertCircleIcon size={18} color={Colors.overdue} />,
+    due_soon: <NotificationsIcon size={18} color={Colors.dueSoon} />,
+    completed: <CheckIcon size={18} color={Colors.ready} />,
+    payment: <CheckIcon size={18} color={Colors.ready} />,
+    system: <NotificationsIcon size={18} color={Colors.primary} />,
+  };
+
+  const NOTIF_BG: Record<NotificationType, string> = {
+    overdue: Colors.overdueLight,
+    due_today: Colors.overdueLight,
+    due_soon: Colors.dueSoonLight,
+    completed: Colors.readyLight,
+    payment: Colors.readyLight,
+    system: Colors.primaryFaint,
   };
 
   return (
@@ -83,7 +203,23 @@ const NotificationsScreen: React.FC = () => {
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
-          <NotificationItem notification={item} onPress={() => handlePress(item)} />
+          <TouchableOpacity
+            onPress={() => handlePress(item)}
+            activeOpacity={0.8}
+            style={[styles.notifCard, !item.read && styles.notifCardUnread]}
+          >
+            <View style={[styles.notifIcon, { backgroundColor: NOTIF_BG[item.type] }]}>
+              {NOTIF_ICONS[item.type]}
+            </View>
+            <View style={styles.notifContent}>
+              <Text style={[styles.notifTitle, !item.read && { color: Colors.textPrimary }]}>
+                {item.title}
+              </Text>
+              <Text style={styles.notifMessage} numberOfLines={2}>{item.message}</Text>
+              <Text style={styles.notifTime}>{formatDateTime(item.createdAt)}</Text>
+            </View>
+            {!item.read && <View style={styles.unreadDot} />}
+          </TouchableOpacity>
         )}
         ItemSeparatorComponent={() => <View style={{ height: Spacing.sm }} />}
         ListEmptyComponent={
@@ -97,146 +233,5 @@ const NotificationsScreen: React.FC = () => {
     </SafeAreaView>
   );
 };
-
-const NOTIF_ICONS: Record<NotificationType, React.ReactNode> = {
-  overdue: <ClockIcon size={18} color={Colors.overdue} />,
-  due_today: <AlertCircleIcon size={18} color={Colors.overdue} />,
-  due_soon: <NotificationsIcon size={18} color={Colors.dueSoon} />,
-  completed: <CheckIcon size={18} color={Colors.ready} />,
-  payment: <CheckIcon size={18} color={Colors.ready} />,
-  system: <NotificationsIcon size={18} color={Colors.primary} />,
-};
-
-const NOTIF_BG: Record<NotificationType, string> = {
-  overdue: Colors.overdueLight,
-  due_today: Colors.overdueLight,
-  due_soon: Colors.dueSoonLight,
-  completed: Colors.readyLight,
-  payment: Colors.readyLight,
-  system: Colors.primaryFaint,
-};
-
-const NotificationItem: React.FC<{
-  notification: AppNotification;
-  onPress: () => void;
-}> = ({ notification, onPress }) => (
-  <TouchableOpacity
-    onPress={onPress}
-    activeOpacity={0.8}
-    style={[styles.notifCard, !notification.read && styles.notifCardUnread]}
-  >
-    <View style={[styles.notifIcon, { backgroundColor: NOTIF_BG[notification.type] }]}>
-      {NOTIF_ICONS[notification.type]}
-    </View>
-    <View style={styles.notifContent}>
-      <Text style={[styles.notifTitle, !notification.read && { color: Colors.textPrimary }]}>
-        {notification.title}
-      </Text>
-      <Text style={styles.notifMessage} numberOfLines={2}>{notification.message}</Text>
-      <Text style={styles.notifTime}>{formatDateTime(notification.createdAt)}</Text>
-    </View>
-    {!notification.read && <View style={styles.unreadDot} />}
-  </TouchableOpacity>
-);
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.md,
-  },
-  headerTitle: {
-    fontSize: Typography.xl,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-  },
-  markAllText: {
-    fontSize: Typography.sm,
-    color: Colors.primary,
-    fontWeight: Typography.semibold,
-  },
-  tabs: {
-    flexDirection: 'row',
-    paddingHorizontal: Spacing.base,
-    marginBottom: Spacing.md,
-    gap: Spacing.sm,
-  },
-  tab: {
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.surface,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-  },
-  tabActive: {
-    backgroundColor: Colors.primaryFaint,
-    borderColor: Colors.primary,
-  },
-  tabText: {
-    fontSize: Typography.sm,
-    color: Colors.textSecondary,
-    fontWeight: Typography.medium,
-  },
-  tabTextActive: {
-    color: Colors.primary,
-    fontWeight: Typography.semibold,
-  },
-  list: {
-    paddingHorizontal: Spacing.base,
-    paddingBottom: Spacing.xxxl,
-    flexGrow: 1,
-  },
-  notifCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    padding: Spacing.md,
-    gap: Spacing.md,
-    ...Shadow.sm,
-  },
-  notifCardUnread: {
-    backgroundColor: Colors.white,
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.primary,
-  },
-  notifIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  notifContent: { flex: 1, gap: 3 },
-  notifTitle: {
-    fontSize: Typography.sm,
-    fontWeight: Typography.semibold,
-    color: Colors.textSecondary,
-    lineHeight: 18,
-  },
-  notifMessage: {
-    fontSize: Typography.sm,
-    color: Colors.textPrimary,
-    lineHeight: 20,
-  },
-  notifTime: {
-    fontSize: Typography.xs,
-    color: Colors.textTertiary,
-    marginTop: 2,
-  },
-  unreadDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.primary,
-    marginTop: 4,
-    flexShrink: 0,
-  },
-});
 
 export default NotificationsScreen;

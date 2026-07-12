@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,8 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { Colors, Typography, Spacing, Radius, Shadow } from '../../../constants/theme';
+import { Typography, Spacing, Radius, Shadow } from '../../../constants/theme';
+import { useTheme } from '../../../context/ThemeContext';
 import { useStore } from '../../../context/store';
 import { OrderDraft } from './index';
 import { format } from 'date-fns';
@@ -30,7 +31,115 @@ function formatDate(iso: string): string {
 
 const StepReview: React.FC<Props> = ({ draft, onDone }) => {
   const { addCustomer, addJob, addMeasurement } = useStore();
+  const { colors: Colors } = useTheme();
   const [isCreating, setIsCreating] = useState(false);
+
+  const styles = useMemo(() => StyleSheet.create({
+    container: { flex: 1, backgroundColor: Colors.background },
+    content: { paddingBottom: 100 },
+    promptBlock: {
+      paddingHorizontal: Spacing.base,
+      paddingTop: Spacing.xl,
+      paddingBottom: Spacing.lg,
+    },
+    question: {
+      fontSize: Typography.xl,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+      marginBottom: 6,
+    },
+    subtitle: { fontSize: Typography.base, color: Colors.textSecondary },
+    card: {
+      marginHorizontal: Spacing.base,
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.xl,
+      padding: Spacing.base,
+      ...Shadow.md,
+    },
+    reviewSection: { marginBottom: Spacing.md },
+    reviewSectionTitle: {
+      fontSize: Typography.sm,
+      fontWeight: Typography.bold,
+      color: Colors.textTertiary,
+      textTransform: 'uppercase',
+      letterSpacing: 0.6,
+      marginBottom: Spacing.sm,
+    },
+    reviewRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingVertical: 5,
+    },
+    reviewLabel: { fontSize: Typography.sm, color: Colors.textSecondary },
+    reviewValue: {
+      fontSize: Typography.sm,
+      fontWeight: Typography.semibold,
+      color: Colors.textPrimary,
+      textAlign: 'right',
+      flex: 1,
+      marginLeft: Spacing.md,
+    },
+    newBadge: {
+      marginTop: 6,
+      backgroundColor: Colors.primaryFaint,
+      borderRadius: Radius.sm,
+      paddingHorizontal: Spacing.sm,
+      paddingVertical: 4,
+      alignSelf: 'flex-start',
+    },
+    newBadgeText: { fontSize: Typography.xs, color: Colors.primary, fontWeight: Typography.medium },
+    divider: { height: 1, backgroundColor: Colors.borderLight, marginVertical: Spacing.md },
+    notesText: { fontSize: Typography.sm, color: Colors.textSecondary, lineHeight: 20 },
+    aiCard: {
+      marginHorizontal: Spacing.base,
+      marginTop: Spacing.lg,
+      backgroundColor: Colors.primaryFaint,
+      borderRadius: Radius.lg,
+      padding: Spacing.md,
+      borderLeftWidth: 3,
+      borderLeftColor: Colors.primary,
+    },
+    aiLabel: {
+      fontSize: Typography.sm,
+      fontWeight: Typography.bold,
+      color: Colors.primary,
+      marginBottom: 4,
+    },
+    aiText: { fontSize: Typography.sm, color: Colors.textSecondary, lineHeight: 20 },
+    aiDisclaimer: {
+      fontSize: Typography.xs,
+      color: Colors.textTertiary,
+      marginTop: 6,
+      fontStyle: 'italic',
+    },
+    footer: {
+      padding: Spacing.base,
+      paddingTop: Spacing.xl,
+      paddingBottom: Spacing.xxl,
+      alignItems: 'center',
+    },
+    createBtn: {
+      width: '100%',
+      backgroundColor: Colors.ready,
+      paddingVertical: Spacing.lg,
+      borderRadius: Radius.lg,
+      alignItems: 'center',
+      ...Shadow.md,
+    },
+    createBtnLoading: { opacity: 0.7 },
+    createBtnText: {
+      fontSize: Typography.lg,
+      fontWeight: Typography.bold,
+      color: Colors.white,
+      letterSpacing: 0.3,
+    },
+    footerHint: {
+      fontSize: Typography.xs,
+      color: Colors.textTertiary,
+      marginTop: Spacing.md,
+      textAlign: 'center',
+    },
+  }), [Colors]);
 
   const customerName = draft.isNewCustomer
     ? draft.newCustomerName
@@ -101,6 +210,35 @@ const StepReview: React.FC<Props> = ({ draft, onDone }) => {
       setIsCreating(false);
     }
   };
+
+  // ─── Sub-components ───────────────────────────────────────────────────────────
+
+  const ReviewSection: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
+    <View style={styles.reviewSection}>
+      <Text style={styles.reviewSectionTitle}>{title}</Text>
+      {children}
+    </View>
+  );
+
+  const ReviewRow: React.FC<{
+    label: string;
+    value: string;
+    valueColor?: string;
+    bold?: boolean;
+  }> = ({ label, value, valueColor = Colors.textPrimary, bold }) => (
+    <View style={styles.reviewRow}>
+      <Text style={styles.reviewLabel}>{label}</Text>
+      <Text
+        style={[
+          styles.reviewValue,
+          { color: valueColor },
+          bold && { fontWeight: Typography.bold, fontSize: Typography.md },
+        ]}
+      >
+        {value}
+      </Text>
+    </View>
+  );
 
   return (
     <ScrollView
@@ -219,143 +357,5 @@ const StepReview: React.FC<Props> = ({ draft, onDone }) => {
     </ScrollView>
   );
 };
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-const ReviewSection: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-  <View style={styles.reviewSection}>
-    <Text style={styles.reviewSectionTitle}>{title}</Text>
-    {children}
-  </View>
-);
-
-const ReviewRow: React.FC<{
-  label: string;
-  value: string;
-  valueColor?: string;
-  bold?: boolean;
-}> = ({ label, value, valueColor = Colors.textPrimary, bold }) => (
-  <View style={styles.reviewRow}>
-    <Text style={styles.reviewLabel}>{label}</Text>
-    <Text
-      style={[
-        styles.reviewValue,
-        { color: valueColor },
-        bold && { fontWeight: Typography.bold, fontSize: Typography.md },
-      ]}
-    >
-      {value}
-    </Text>
-  </View>
-);
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  content: { paddingBottom: 100 },
-  promptBlock: {
-    paddingHorizontal: Spacing.base,
-    paddingTop: Spacing.xl,
-    paddingBottom: Spacing.lg,
-  },
-  question: {
-    fontSize: Typography.xl,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-    marginBottom: 6,
-  },
-  subtitle: { fontSize: Typography.base, color: Colors.textSecondary },
-  card: {
-    marginHorizontal: Spacing.base,
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.xl,
-    padding: Spacing.base,
-    ...Shadow.md,
-  },
-  reviewSection: { marginBottom: Spacing.md },
-  reviewSectionTitle: {
-    fontSize: Typography.sm,
-    fontWeight: Typography.bold,
-    color: Colors.textTertiary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    marginBottom: Spacing.sm,
-  },
-  reviewRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 5,
-  },
-  reviewLabel: { fontSize: Typography.sm, color: Colors.textSecondary },
-  reviewValue: {
-    fontSize: Typography.sm,
-    fontWeight: Typography.semibold,
-    color: Colors.textPrimary,
-    textAlign: 'right',
-    flex: 1,
-    marginLeft: Spacing.md,
-  },
-  newBadge: {
-    marginTop: 6,
-    backgroundColor: Colors.primaryFaint,
-    borderRadius: Radius.sm,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    alignSelf: 'flex-start',
-  },
-  newBadgeText: { fontSize: Typography.xs, color: Colors.primary, fontWeight: Typography.medium },
-  divider: { height: 1, backgroundColor: Colors.borderLight, marginVertical: Spacing.md },
-  notesText: { fontSize: Typography.sm, color: Colors.textSecondary, lineHeight: 20 },
-  aiCard: {
-    marginHorizontal: Spacing.base,
-    marginTop: Spacing.lg,
-    backgroundColor: Colors.primaryFaint,
-    borderRadius: Radius.lg,
-    padding: Spacing.md,
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.primary,
-  },
-  aiLabel: {
-    fontSize: Typography.sm,
-    fontWeight: Typography.bold,
-    color: Colors.primary,
-    marginBottom: 4,
-  },
-  aiText: { fontSize: Typography.sm, color: Colors.textSecondary, lineHeight: 20 },
-  aiDisclaimer: {
-    fontSize: Typography.xs,
-    color: Colors.textTertiary,
-    marginTop: 6,
-    fontStyle: 'italic',
-  },
-  footer: {
-    padding: Spacing.base,
-    paddingTop: Spacing.xl,
-    paddingBottom: Spacing.xxl,
-    alignItems: 'center',
-  },
-  createBtn: {
-    width: '100%',
-    backgroundColor: Colors.ready,
-    paddingVertical: Spacing.lg,
-    borderRadius: Radius.lg,
-    alignItems: 'center',
-    ...Shadow.md,
-  },
-  createBtnLoading: { opacity: 0.7 },
-  createBtnText: {
-    fontSize: Typography.lg,
-    fontWeight: Typography.bold,
-    color: Colors.white,
-    letterSpacing: 0.3,
-  },
-  footerHint: {
-    fontSize: Typography.xs,
-    color: Colors.textTertiary,
-    marginTop: Spacing.md,
-    textAlign: 'center',
-  },
-});
 
 export default StepReview;

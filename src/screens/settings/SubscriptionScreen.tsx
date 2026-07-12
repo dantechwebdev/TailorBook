@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,9 +9,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
-import { Colors, Typography, Spacing, Radius, Shadow } from '../../constants/theme';
+import { Typography, Spacing, Radius, Shadow } from '../../constants/theme';
 import { CheckIcon, SubscriptionIcon, MenuIcon } from '../../components/common/Icons';
 import { Button } from '../../components/common/UI';
+import { useTheme } from '../../context/ThemeContext';
 
 const FREE_FEATURES = [
   'Up to 50 customers',
@@ -35,6 +36,192 @@ const PRO_FEATURES = [
 
 const SubscriptionScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const { colors: Colors } = useTheme();
+
+  const styles = useMemo(() => StyleSheet.create({
+    container: { flex: 1, backgroundColor: Colors.background },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: Spacing.base,
+      paddingVertical: Spacing.md,
+    },
+    headerTitle: { fontSize: Typography.xl, fontWeight: Typography.bold, color: Colors.textPrimary },
+    scroll: { paddingHorizontal: Spacing.base },
+    currentPlanBadge: {
+      alignItems: 'center',
+      marginBottom: Spacing.xl,
+    },
+    currentPlanLabel: {
+      fontSize: Typography.xs,
+      fontWeight: Typography.bold,
+      color: Colors.textTertiary,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      marginBottom: 4,
+    },
+    currentPlanName: {
+      fontSize: Typography.lg,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+    },
+    proCard: {
+      backgroundColor: Colors.primary,
+      borderRadius: Radius.xl,
+      padding: Spacing.lg,
+      marginBottom: Spacing.xl,
+      ...Shadow.lg,
+    },
+    proCardTop: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.md,
+      marginBottom: Spacing.lg,
+    },
+    proIconWrap: {
+      width: 52,
+      height: 52,
+      borderRadius: 26,
+      backgroundColor: 'rgba(255,255,255,0.15)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    proTitle: {
+      fontSize: Typography.lg,
+      fontWeight: Typography.bold,
+      color: Colors.white,
+    },
+    proSubtitle: {
+      fontSize: Typography.sm,
+      color: 'rgba(255,255,255,0.7)',
+      marginTop: 2,
+    },
+    proPriceRow: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      gap: 4,
+      marginBottom: 4,
+    },
+    proPrice: {
+      fontSize: 36,
+      fontWeight: Typography.extrabold,
+      color: Colors.white,
+    },
+    proPricePer: {
+      fontSize: Typography.base,
+      color: 'rgba(255,255,255,0.7)',
+    },
+    proAnnual: {
+      fontSize: Typography.xs,
+      color: 'rgba(255,255,255,0.6)',
+      marginBottom: Spacing.lg,
+    },
+    upgradeBtn: {
+      backgroundColor: Colors.white,
+      borderRadius: Radius.lg,
+      paddingVertical: 14,
+      alignItems: 'center',
+    },
+    upgradeBtnText: {
+      fontSize: Typography.base,
+      fontWeight: Typography.bold,
+      color: Colors.primary,
+    },
+    section: { marginBottom: Spacing.xl },
+    sectionLabel: {
+      fontSize: Typography.xs,
+      fontWeight: Typography.bold,
+      color: Colors.textTertiary,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      marginBottom: Spacing.md,
+    },
+    planCard: {
+      backgroundColor: Colors.surface,
+      borderRadius: Radius.lg,
+      padding: Spacing.base,
+      marginBottom: Spacing.md,
+      ...Shadow.sm,
+    },
+    proCardHighlight: {
+      borderWidth: 2,
+      borderColor: Colors.primary + '40',
+      backgroundColor: Colors.primaryFaint,
+    },
+    planCardHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: Spacing.md,
+    },
+    planCardTitle: {
+      fontSize: Typography.md,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+    },
+    freeBadge: {
+      backgroundColor: Colors.borderLight,
+      paddingHorizontal: 10,
+      paddingVertical: 3,
+      borderRadius: Radius.full,
+    },
+    freeBadgeText: {
+      fontSize: Typography.xs,
+      fontWeight: Typography.bold,
+      color: Colors.textSecondary,
+      letterSpacing: 1,
+    },
+    proBadge: {
+      backgroundColor: Colors.primaryFaint,
+      paddingHorizontal: 10,
+      paddingVertical: 3,
+      borderRadius: Radius.full,
+      borderWidth: 1,
+      borderColor: Colors.primary + '40',
+    },
+    proBadgeText: {
+      fontSize: Typography.xs,
+      fontWeight: Typography.bold,
+      color: Colors.primary,
+      letterSpacing: 0.5,
+    },
+    planEverythingNote: {
+      fontSize: Typography.xs,
+      color: Colors.textTertiary,
+      fontStyle: 'italic',
+      marginBottom: Spacing.sm,
+    },
+    featureRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.sm,
+      paddingVertical: 5,
+    },
+    featureText: {
+      fontSize: Typography.sm,
+      color: Colors.textSecondary,
+      flex: 1,
+    },
+    reassuranceRow: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: Spacing.lg,
+      flexWrap: 'wrap',
+      marginBottom: Spacing.xl,
+    },
+    reassuranceItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+    },
+    reassuranceText: {
+      fontSize: Typography.xs,
+      color: Colors.textSecondary,
+      fontWeight: Typography.medium,
+    },
+  }), [Colors]);
+
   const handleUpgrade = () => {
     Alert.alert(
       'Coming Soon',
@@ -99,7 +286,10 @@ const SubscriptionScreen: React.FC = () => {
               </View>
             </View>
             {FREE_FEATURES.map((f) => (
-              <FeatureRow key={f} label={f} included />
+              <View key={f} style={styles.featureRow}>
+                <CheckIcon size={14} color={Colors.ready} />
+                <Text style={styles.featureText}>{f}</Text>
+              </View>
             ))}
           </View>
 
@@ -113,7 +303,10 @@ const SubscriptionScreen: React.FC = () => {
             </View>
             <Text style={styles.planEverythingNote}>Everything in Basic, plus:</Text>
             {PRO_FEATURES.map((f) => (
-              <FeatureRow key={f} label={f} included pro />
+              <View key={f} style={styles.featureRow}>
+                <CheckIcon size={14} color={Colors.primary} />
+                <Text style={[styles.featureText, { color: Colors.textPrimary, fontWeight: Typography.medium }]}>{f}</Text>
+              </View>
             ))}
           </View>
         </View>
@@ -133,202 +326,5 @@ const SubscriptionScreen: React.FC = () => {
     </SafeAreaView>
   );
 };
-
-const FeatureRow: React.FC<{ label: string; included: boolean; pro?: boolean }> = ({
-  label,
-  included,
-  pro = false,
-}) => (
-  <View style={styles.featureRow}>
-    <CheckIcon size={14} color={pro ? Colors.primary : Colors.ready} />
-    <Text style={[styles.featureText, pro && { color: Colors.textPrimary, fontWeight: Typography.medium }]}>
-      {label}
-    </Text>
-  </View>
-);
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.md,
-  },
-  headerTitle: { fontSize: Typography.xl, fontWeight: Typography.bold, color: Colors.textPrimary },
-  scroll: { paddingHorizontal: Spacing.base },
-  currentPlanBadge: {
-    alignItems: 'center',
-    marginBottom: Spacing.xl,
-  },
-  currentPlanLabel: {
-    fontSize: Typography.xs,
-    fontWeight: Typography.bold,
-    color: Colors.textTertiary,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginBottom: 4,
-  },
-  currentPlanName: {
-    fontSize: Typography.lg,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-  },
-  proCard: {
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.xl,
-    padding: Spacing.lg,
-    marginBottom: Spacing.xl,
-    ...Shadow.lg,
-  },
-  proCardTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    marginBottom: Spacing.lg,
-  },
-  proIconWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  proTitle: {
-    fontSize: Typography.lg,
-    fontWeight: Typography.bold,
-    color: Colors.white,
-  },
-  proSubtitle: {
-    fontSize: Typography.sm,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 2,
-  },
-  proPriceRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 4,
-    marginBottom: 4,
-  },
-  proPrice: {
-    fontSize: 36,
-    fontWeight: Typography.extrabold,
-    color: Colors.white,
-  },
-  proPricePer: {
-    fontSize: Typography.base,
-    color: 'rgba(255,255,255,0.7)',
-  },
-  proAnnual: {
-    fontSize: Typography.xs,
-    color: 'rgba(255,255,255,0.6)',
-    marginBottom: Spacing.lg,
-  },
-  upgradeBtn: {
-    backgroundColor: Colors.white,
-    borderRadius: Radius.lg,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  upgradeBtnText: {
-    fontSize: Typography.base,
-    fontWeight: Typography.bold,
-    color: Colors.primary,
-  },
-  section: { marginBottom: Spacing.xl },
-  sectionLabel: {
-    fontSize: Typography.xs,
-    fontWeight: Typography.bold,
-    color: Colors.textTertiary,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: Spacing.md,
-  },
-  planCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    padding: Spacing.base,
-    marginBottom: Spacing.md,
-    ...Shadow.sm,
-  },
-  proCardHighlight: {
-    borderWidth: 2,
-    borderColor: Colors.primary + '40',
-    backgroundColor: Colors.primaryFaint,
-  },
-  planCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.md,
-  },
-  planCardTitle: {
-    fontSize: Typography.md,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-  },
-  freeBadge: {
-    backgroundColor: Colors.borderLight,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: Radius.full,
-  },
-  freeBadgeText: {
-    fontSize: Typography.xs,
-    fontWeight: Typography.bold,
-    color: Colors.textSecondary,
-    letterSpacing: 1,
-  },
-  proBadge: {
-    backgroundColor: Colors.primaryFaint,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: Radius.full,
-    borderWidth: 1,
-    borderColor: Colors.primary + '40',
-  },
-  proBadgeText: {
-    fontSize: Typography.xs,
-    fontWeight: Typography.bold,
-    color: Colors.primary,
-    letterSpacing: 0.5,
-  },
-  planEverythingNote: {
-    fontSize: Typography.xs,
-    color: Colors.textTertiary,
-    fontStyle: 'italic',
-    marginBottom: Spacing.sm,
-  },
-  featureRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingVertical: 5,
-  },
-  featureText: {
-    fontSize: Typography.sm,
-    color: Colors.textSecondary,
-    flex: 1,
-  },
-  reassuranceRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: Spacing.lg,
-    flexWrap: 'wrap',
-    marginBottom: Spacing.xl,
-  },
-  reassuranceItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  reassuranceText: {
-    fontSize: Typography.xs,
-    color: Colors.textSecondary,
-    fontWeight: Typography.medium,
-  },
-});
 
 export default SubscriptionScreen;

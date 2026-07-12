@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,8 @@ import {
   Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { Colors, Typography, Spacing, Radius, Shadow } from '../../../constants/theme';
+import { Typography, Spacing, Radius, Shadow } from '../../../constants/theme';
+import { useTheme } from '../../../context/ThemeContext';
 import { OrderDraft } from './index';
 
 const MAX_PHOTOS = 6;
@@ -22,8 +23,128 @@ interface Props {
 }
 
 const StepPhotos: React.FC<Props> = ({ draft, onChange, onNext }) => {
+  const { colors: Colors } = useTheme();
   const [loading, setLoading] = useState(false);
   const photos = draft.photoUris || [];
+
+  const styles = useMemo(() => StyleSheet.create({
+    container: { flex: 1, backgroundColor: Colors.background },
+    content: { paddingBottom: 100 },
+    promptBlock: {
+      paddingHorizontal: Spacing.base,
+      paddingTop: Spacing.xl,
+      paddingBottom: Spacing.lg,
+    },
+    question: {
+      fontSize: Typography.xl,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+      marginBottom: 6,
+    },
+    subtitle: {
+      fontSize: Typography.base,
+      color: Colors.textSecondary,
+      lineHeight: 22,
+    },
+    photoGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      paddingHorizontal: Spacing.base,
+      gap: Spacing.sm,
+    },
+    photoWrapper: {
+      width: '31%',
+      aspectRatio: 3 / 4,
+      borderRadius: Radius.lg,
+      overflow: 'hidden',
+      position: 'relative',
+    },
+    photo: {
+      width: '100%',
+      height: '100%',
+      borderRadius: Radius.lg,
+    },
+    removeBtn: {
+      position: 'absolute',
+      top: 4,
+      right: 4,
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      backgroundColor: 'rgba(0,0,0,0.6)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    removeBtnText: { color: Colors.white, fontSize: 11, fontWeight: Typography.bold },
+    addMoreCard: {
+      width: '31%',
+      aspectRatio: 3 / 4,
+      borderRadius: Radius.lg,
+      backgroundColor: Colors.surface,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 2,
+      borderColor: Colors.borderLight,
+      borderStyle: 'dashed',
+    },
+    addMoreIcon: { fontSize: 28, color: Colors.textTertiary },
+    addMoreText: { fontSize: Typography.xs, color: Colors.textTertiary, marginTop: 4 },
+    emptyBlock: {
+      alignItems: 'center',
+      paddingHorizontal: Spacing.xxl,
+      paddingVertical: Spacing.xl,
+    },
+    emptyIcon: { fontSize: 52, marginBottom: Spacing.md },
+    emptyTitle: {
+      fontSize: Typography.lg,
+      fontWeight: Typography.bold,
+      color: Colors.textSecondary,
+      marginBottom: Spacing.sm,
+    },
+    emptyHint: {
+      fontSize: Typography.sm,
+      color: Colors.textTertiary,
+      textAlign: 'center',
+      lineHeight: 20,
+    },
+    addBtnGroup: {
+      flexDirection: 'row',
+      gap: Spacing.md,
+      paddingHorizontal: Spacing.base,
+      marginTop: Spacing.lg,
+    },
+    addBtn: {
+      flex: 1,
+      backgroundColor: Colors.primary,
+      borderRadius: Radius.xl,
+      paddingVertical: Spacing.xl,
+      alignItems: 'center',
+      ...Shadow.sm,
+      gap: Spacing.sm,
+    },
+    addBtnIcon: { fontSize: 32 },
+    addBtnLabel: {
+      fontSize: Typography.base,
+      fontWeight: Typography.bold,
+      color: Colors.white,
+    },
+    footer: {
+      padding: Spacing.base,
+      paddingTop: Spacing.xl,
+      paddingBottom: Spacing.xxl,
+    },
+    nextBtn: {
+      backgroundColor: Colors.primary,
+      paddingVertical: Spacing.md + 2,
+      borderRadius: Radius.lg,
+      alignItems: 'center',
+    },
+    nextBtnText: {
+      fontSize: Typography.base,
+      color: Colors.white,
+      fontWeight: Typography.bold,
+    },
+  }), [Colors]);
 
   const requestCameraPermission = async () => {
     if (Platform.OS === 'web') return true;
@@ -189,124 +310,5 @@ const StepPhotos: React.FC<Props> = ({ draft, onChange, onNext }) => {
     </ScrollView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  content: { paddingBottom: 100 },
-  promptBlock: {
-    paddingHorizontal: Spacing.base,
-    paddingTop: Spacing.xl,
-    paddingBottom: Spacing.lg,
-  },
-  question: {
-    fontSize: Typography.xl,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-    marginBottom: 6,
-  },
-  subtitle: {
-    fontSize: Typography.base,
-    color: Colors.textSecondary,
-    lineHeight: 22,
-  },
-  photoGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: Spacing.base,
-    gap: Spacing.sm,
-  },
-  photoWrapper: {
-    width: '31%',
-    aspectRatio: 3 / 4,
-    borderRadius: Radius.lg,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  photo: {
-    width: '100%',
-    height: '100%',
-    borderRadius: Radius.lg,
-  },
-  removeBtn: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  removeBtnText: { color: Colors.white, fontSize: 11, fontWeight: Typography.bold },
-  addMoreCard: {
-    width: '31%',
-    aspectRatio: 3 / 4,
-    borderRadius: Radius.lg,
-    backgroundColor: Colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: Colors.borderLight,
-    borderStyle: 'dashed',
-  },
-  addMoreIcon: { fontSize: 28, color: Colors.textTertiary },
-  addMoreText: { fontSize: Typography.xs, color: Colors.textTertiary, marginTop: 4 },
-  emptyBlock: {
-    alignItems: 'center',
-    paddingHorizontal: Spacing.xxl,
-    paddingVertical: Spacing.xl,
-  },
-  emptyIcon: { fontSize: 52, marginBottom: Spacing.md },
-  emptyTitle: {
-    fontSize: Typography.lg,
-    fontWeight: Typography.bold,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.sm,
-  },
-  emptyHint: {
-    fontSize: Typography.sm,
-    color: Colors.textTertiary,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  addBtnGroup: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-    paddingHorizontal: Spacing.base,
-    marginTop: Spacing.lg,
-  },
-  addBtn: {
-    flex: 1,
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.xl,
-    paddingVertical: Spacing.xl,
-    alignItems: 'center',
-    ...Shadow.sm,
-    gap: Spacing.sm,
-  },
-  addBtnIcon: { fontSize: 32 },
-  addBtnLabel: {
-    fontSize: Typography.base,
-    fontWeight: Typography.bold,
-    color: Colors.white,
-  },
-  footer: {
-    padding: Spacing.base,
-    paddingTop: Spacing.xl,
-    paddingBottom: Spacing.xxl,
-  },
-  nextBtn: {
-    backgroundColor: Colors.primary,
-    paddingVertical: Spacing.md + 2,
-    borderRadius: Radius.lg,
-    alignItems: 'center',
-  },
-  nextBtnText: {
-    fontSize: Typography.base,
-    color: Colors.white,
-    fontWeight: Typography.bold,
-  },
-});
 
 export default StepPhotos;

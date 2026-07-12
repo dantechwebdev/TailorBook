@@ -1,16 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { Colors, Typography, Spacing, Radius } from '../../../constants/theme';
+import { Typography, Spacing, Radius } from '../../../constants/theme';
 import { BackIcon } from '../../../components/common/Icons';
 import { Customer, DeliveryType, MeasurementTemplate, OutfitType } from '../../../types';
 import { useStore } from '../../../context/store';
+import { useTheme } from '../../../context/ThemeContext';
 import StepCustomer from './StepCustomer';
 import StepGarment from './StepGarment';
 import StepPhotos from './StepPhotos';
@@ -54,6 +55,7 @@ const NewOrderFlow: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { settings } = useStore();
+  const { colors: Colors } = useTheme();
 
   const initialStep = route.params?.step ?? 0;
   const prefilledCustomerId = route.params?.customerId;
@@ -78,19 +80,54 @@ const NewOrderFlow: React.FC = () => {
     draftMeasurement: null,
   }));
 
+  const styles = useMemo(() => StyleSheet.create({
+    container: { flex: 1, backgroundColor: Colors.background },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: Spacing.base,
+      paddingVertical: Spacing.md,
+    },
+    backBtn: { width: 40, alignItems: 'flex-start' },
+    headerCenter: { flex: 1, alignItems: 'center' },
+    headerTitle: {
+      fontSize: Typography.md,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+    },
+    headerStep: {
+      fontSize: Typography.xs,
+      color: Colors.textSecondary,
+      marginTop: 2,
+    },
+    progressTrack: {
+      height: 3,
+      backgroundColor: Colors.borderLight,
+      marginHorizontal: Spacing.base,
+      borderRadius: Radius.full,
+      overflow: 'hidden',
+    },
+    progressFill: {
+      height: '100%',
+      backgroundColor: Colors.primary,
+      borderRadius: Radius.full,
+    },
+    content: { flex: 1 },
+  }), [Colors]);
+
   const updateDraft = (patch: Partial<OrderDraft>) => {
     setDraft((prev) => ({ ...prev, ...patch }));
   };
 
   const goNext = () => {
-    if (step < STEPS.length - 1) setStep((s) => s + 1);
+    if (step < STEPS.length - 1) setStep((s: number) => s + 1);
   };
 
   const goBack = () => {
     if (step === 0) {
       navigation.goBack();
     } else {
-      setStep((s) => s - 1);
+      setStep((s: number) => s - 1);
     }
   };
 
@@ -190,40 +227,5 @@ const NewOrderFlow: React.FC = () => {
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.md,
-  },
-  backBtn: { width: 40, alignItems: 'flex-start' },
-  headerCenter: { flex: 1, alignItems: 'center' },
-  headerTitle: {
-    fontSize: Typography.md,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-  },
-  headerStep: {
-    fontSize: Typography.xs,
-    color: Colors.textSecondary,
-    marginTop: 2,
-  },
-  progressTrack: {
-    height: 3,
-    backgroundColor: Colors.borderLight,
-    marginHorizontal: Spacing.base,
-    borderRadius: Radius.full,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.full,
-  },
-  content: { flex: 1 },
-});
 
 export default NewOrderFlow;

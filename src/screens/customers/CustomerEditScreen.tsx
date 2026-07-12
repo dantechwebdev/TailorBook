@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,10 +12,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useStore } from '../../context/store';
-import { Colors, Typography, Spacing, Radius } from '../../constants/theme';
+import { Typography, Spacing, Radius } from '../../constants/theme';
 import { BackIcon } from '../../components/common/Icons';
 import { Button, InputField, Avatar } from '../../components/common/UI';
 import { isValidName, isValidPhone } from '../../utils/helpers';
+import { useTheme } from '../../context/ThemeContext';
 
 const CustomerEditScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -23,7 +24,40 @@ const CustomerEditScreen: React.FC = () => {
   const { customerId } = route.params || {};
 
   const { getCustomer, updateCustomer } = useStore();
+  const { colors: Colors } = useTheme();
   const existing = getCustomer(customerId);
+
+  const styles = useMemo(() => StyleSheet.create({
+    container: { flex: 1, backgroundColor: Colors.background },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: Spacing.base,
+      paddingVertical: Spacing.md,
+    },
+    headerTitle: {
+      fontSize: Typography.md,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+    },
+    scroll: { paddingHorizontal: Spacing.base, paddingBottom: Spacing.xxxl },
+    avatarSection: {
+      alignItems: 'center',
+      paddingVertical: Spacing.xl,
+      gap: Spacing.md,
+    },
+    avatarName: {
+      fontSize: Typography.lg,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+    },
+    avatarPlaceholder: {
+      fontSize: Typography.sm,
+      color: Colors.textTertiary,
+    },
+    form: { gap: Spacing.xs },
+  }), [Colors]);
 
   const [name, setName] = useState(existing?.name || '');
   const [phone, setPhone] = useState(existing?.phone || '');
@@ -139,37 +173,5 @@ const CustomerEditScreen: React.FC = () => {
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.md,
-  },
-  headerTitle: {
-    fontSize: Typography.md,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-  },
-  scroll: { paddingHorizontal: Spacing.base, paddingBottom: Spacing.xxxl },
-  avatarSection: {
-    alignItems: 'center',
-    paddingVertical: Spacing.xl,
-    gap: Spacing.md,
-  },
-  avatarName: {
-    fontSize: Typography.lg,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-  },
-  avatarPlaceholder: {
-    fontSize: Typography.sm,
-    color: Colors.textTertiary,
-  },
-  form: { gap: Spacing.xs },
-});
 
 export default CustomerEditScreen;

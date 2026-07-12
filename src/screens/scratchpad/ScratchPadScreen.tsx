@@ -6,9 +6,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { useStore } from '../../context/store';
-import { Colors, Typography, Spacing, Radius, Shadow } from '../../constants/theme';
+import { Typography, Spacing, Radius, Shadow } from '../../constants/theme';
 import { MenuIcon, NotepadIcon, PlusIcon, TrashIcon, CheckIcon, CloseIcon } from '../../components/common/Icons';
 import { ScratchNote } from '../../types';
+import { useTheme } from '../../context/ThemeContext';
 
 // ─── Reminder presets ─────────────────────────────────────────────────────────
 
@@ -78,6 +79,7 @@ function formatTimeAgo(iso: string): string {
 const ScratchPadScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { scratchNotes, addScratchNote, updateScratchNote, toggleScratchNote, deleteScratchNote } = useStore();
+  const { colors: Colors } = useTheme();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [editingNote, setEditingNote] = useState<ScratchNote | null>(null);
@@ -88,6 +90,118 @@ const ScratchPadScreen: React.FC = () => {
 
   const activeNotes = useMemo(() => scratchNotes.filter((n) => !n.isDone), [scratchNotes]);
   const doneNotes = useMemo(() => scratchNotes.filter((n) => n.isDone), [scratchNotes]);
+
+  const styles = useMemo(() => StyleSheet.create({
+    container: { flex: 1, backgroundColor: Colors.background },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: Spacing.base, paddingVertical: Spacing.md,
+    },
+    headerTitle: { fontSize: Typography.xl, fontWeight: Typography.bold, color: Colors.textPrimary },
+    scroll: { paddingHorizontal: Spacing.base, paddingTop: Spacing.sm },
+
+    // ── Empty state ──
+    emptyState: {
+      alignItems: 'center', justifyContent: 'center',
+      paddingTop: 80, gap: Spacing.md,
+    },
+    emptyTitle: { fontSize: Typography.lg, fontWeight: Typography.semibold, color: Colors.textSecondary },
+    emptySub: { fontSize: Typography.sm, color: Colors.textTertiary, textAlign: 'center', paddingHorizontal: Spacing.xxl },
+
+    // ── Note card ──
+    card: {
+      flexDirection: 'row', alignItems: 'flex-start',
+      backgroundColor: Colors.surface, borderRadius: Radius.lg,
+      padding: Spacing.md, marginBottom: Spacing.md,
+      gap: Spacing.md, ...Shadow.sm,
+    },
+    cardDone: { opacity: 0.6 },
+    checkBtn: { paddingTop: 2 },
+    checkCircle: {
+      width: 22, height: 22, borderRadius: 11,
+      borderWidth: 2, borderColor: Colors.border,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    checkCircleDone: { backgroundColor: Colors.ready, borderColor: Colors.ready },
+    cardBody: { flex: 1, gap: 4 },
+    cardText: { fontSize: Typography.base, color: Colors.textPrimary, lineHeight: 22 },
+    cardTextDone: { textDecorationLine: 'line-through', color: Colors.textSecondary },
+    cardMeta: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: Spacing.sm, marginTop: 2 },
+    cardTime: { fontSize: Typography.xs, color: Colors.textTertiary },
+    reminderBadge: {
+      backgroundColor: Colors.primaryFaint, borderRadius: Radius.full,
+      paddingHorizontal: Spacing.sm, paddingVertical: 2,
+    },
+    reminderBadgeText: { fontSize: Typography.xs, color: Colors.primary, fontWeight: Typography.medium },
+    deleteBtn: { paddingTop: 3 },
+
+    // ── Done section ──
+    doneSection: { marginTop: Spacing.md },
+    doneSectionHeader: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingVertical: Spacing.sm, marginBottom: Spacing.sm,
+    },
+    doneSectionTitle: { fontSize: Typography.sm, fontWeight: Typography.semibold, color: Colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 },
+    doneSectionChevron: { fontSize: Typography.xs, color: Colors.textTertiary },
+
+    // ── FAB ──
+    fab: {
+      position: 'absolute', right: Spacing.xl, bottom: Spacing.xl,
+      width: 56, height: 56, borderRadius: 28,
+      backgroundColor: Colors.primary,
+      alignItems: 'center', justifyContent: 'center',
+      ...Shadow.md,
+    } as any,
+
+    // ── Modal / Sheet ──
+    overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
+    sheetWrap: { position: 'absolute', bottom: 0, left: 0, right: 0 },
+    sheet: {
+      backgroundColor: Colors.surface,
+      borderTopLeftRadius: Radius.xxl, borderTopRightRadius: Radius.xxl,
+      padding: Spacing.xl, paddingBottom: 40, gap: Spacing.md,
+    },
+    sheetHandle: {
+      width: 36, height: 4, borderRadius: 2,
+      backgroundColor: Colors.border, alignSelf: 'center', marginBottom: Spacing.sm,
+    },
+    sheetTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    sheetTitle: { fontSize: Typography.lg, fontWeight: Typography.bold, color: Colors.textPrimary },
+    textInput: {
+      backgroundColor: Colors.background, borderRadius: Radius.lg,
+      padding: Spacing.md, fontSize: Typography.base, color: Colors.textPrimary,
+      minHeight: 100, maxHeight: 180,
+      borderWidth: 1, borderColor: Colors.border,
+    },
+    charCount: { fontSize: Typography.xs, color: Colors.textTertiary, textAlign: 'right', marginTop: -8 },
+    reminderLabel: { fontSize: Typography.sm, fontWeight: Typography.semibold, color: Colors.textSecondary },
+    existingReminder: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      backgroundColor: Colors.primaryFaint, borderRadius: Radius.md,
+      padding: Spacing.md,
+    },
+    existingReminderText: { fontSize: Typography.sm, color: Colors.primary, fontWeight: Typography.medium },
+    clearReminderBtn: { paddingHorizontal: Spacing.sm },
+    clearReminderText: { fontSize: Typography.sm, color: Colors.overdue, fontWeight: Typography.semibold },
+    presetRow: { marginHorizontal: -Spacing.xl, paddingHorizontal: Spacing.xl },
+    presetChip: {
+      flexDirection: 'row', alignItems: 'center', gap: Spacing.xs,
+      borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.full,
+      paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md,
+      marginRight: Spacing.sm, backgroundColor: Colors.surface,
+    },
+    presetChipActive: { backgroundColor: Colors.primaryFaint, borderColor: Colors.primary },
+    presetEmoji: { fontSize: 14 },
+    presetText: { fontSize: Typography.sm, color: Colors.textSecondary, fontWeight: Typography.medium },
+    presetTextActive: { color: Colors.primary, fontWeight: Typography.semibold },
+    presetConfirm: { fontSize: Typography.xs, color: Colors.primary, fontStyle: 'italic' },
+    saveBtn: {
+      backgroundColor: Colors.primary, borderRadius: Radius.lg,
+      paddingVertical: Spacing.md + 2, alignItems: 'center', marginTop: Spacing.sm,
+    },
+    saveBtnDisabled: { opacity: 0.4 },
+    saveBtnText: { color: Colors.white, fontSize: Typography.base, fontWeight: Typography.bold },
+  }), [Colors]);
 
   const openAdd = () => {
     setEditingNote(null);
@@ -174,6 +288,8 @@ const ScratchPadScreen: React.FC = () => {
           <NoteCard
             key={note.id}
             note={note}
+            styles={styles}
+            Colors={Colors}
             onToggle={() => toggleScratchNote(note.id)}
             onEdit={() => openEdit(note)}
             onDelete={() => deleteScratchNote(note.id)}
@@ -197,6 +313,8 @@ const ScratchPadScreen: React.FC = () => {
               <NoteCard
                 key={note.id}
                 note={note}
+                styles={styles}
+                Colors={Colors}
                 done
                 onToggle={() => toggleScratchNote(note.id)}
                 onEdit={() => openEdit(note)}
@@ -313,7 +431,9 @@ const NoteCard: React.FC<{
   onToggle: () => void;
   onEdit: () => void;
   onDelete: () => void;
-}> = ({ note, done, onToggle, onEdit, onDelete }) => (
+  styles: any;
+  Colors: any;
+}> = ({ note, done, onToggle, onEdit, onDelete, styles, Colors }) => (
   <TouchableOpacity style={[styles.card, done && styles.cardDone]} onPress={onEdit} activeOpacity={0.85}>
     <TouchableOpacity onPress={onToggle} style={styles.checkBtn} activeOpacity={0.8}>
       <View style={[styles.checkCircle, done && styles.checkCircleDone]}>
@@ -340,119 +460,5 @@ const NoteCard: React.FC<{
     </TouchableOpacity>
   </TouchableOpacity>
 );
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: Spacing.base, paddingVertical: Spacing.md,
-  },
-  headerTitle: { fontSize: Typography.xl, fontWeight: Typography.bold, color: Colors.textPrimary },
-  scroll: { paddingHorizontal: Spacing.base, paddingTop: Spacing.sm },
-
-  // ── Empty state ──
-  emptyState: {
-    alignItems: 'center', justifyContent: 'center',
-    paddingTop: 80, gap: Spacing.md,
-  },
-  emptyTitle: { fontSize: Typography.lg, fontWeight: Typography.semibold, color: Colors.textSecondary },
-  emptySub: { fontSize: Typography.sm, color: Colors.textTertiary, textAlign: 'center', paddingHorizontal: Spacing.xxl },
-
-  // ── Note card ──
-  card: {
-    flexDirection: 'row', alignItems: 'flex-start',
-    backgroundColor: Colors.surface, borderRadius: Radius.lg,
-    padding: Spacing.md, marginBottom: Spacing.md,
-    gap: Spacing.md, ...Shadow.sm,
-  },
-  cardDone: { opacity: 0.6 },
-  checkBtn: { paddingTop: 2 },
-  checkCircle: {
-    width: 22, height: 22, borderRadius: 11,
-    borderWidth: 2, borderColor: Colors.border,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  checkCircleDone: { backgroundColor: Colors.ready, borderColor: Colors.ready },
-  cardBody: { flex: 1, gap: 4 },
-  cardText: { fontSize: Typography.base, color: Colors.textPrimary, lineHeight: 22 },
-  cardTextDone: { textDecorationLine: 'line-through', color: Colors.textSecondary },
-  cardMeta: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: Spacing.sm, marginTop: 2 },
-  cardTime: { fontSize: Typography.xs, color: Colors.textTertiary },
-  reminderBadge: {
-    backgroundColor: Colors.primaryFaint, borderRadius: Radius.full,
-    paddingHorizontal: Spacing.sm, paddingVertical: 2,
-  },
-  reminderBadgeText: { fontSize: Typography.xs, color: Colors.primary, fontWeight: Typography.medium },
-  deleteBtn: { paddingTop: 3 },
-
-  // ── Done section ──
-  doneSection: { marginTop: Spacing.md },
-  doneSectionHeader: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingVertical: Spacing.sm, marginBottom: Spacing.sm,
-  },
-  doneSectionTitle: { fontSize: Typography.sm, fontWeight: Typography.semibold, color: Colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 },
-  doneSectionChevron: { fontSize: Typography.xs, color: Colors.textTertiary },
-
-  // ── FAB ──
-  fab: {
-    position: 'absolute', right: Spacing.xl, bottom: Spacing.xl,
-    width: 56, height: 56, borderRadius: 28,
-    backgroundColor: Colors.primary,
-    alignItems: 'center', justifyContent: 'center',
-    ...Shadow.md,
-  } as any,
-
-  // ── Modal / Sheet ──
-  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
-  sheetWrap: { position: 'absolute', bottom: 0, left: 0, right: 0 },
-  sheet: {
-    backgroundColor: Colors.surface,
-    borderTopLeftRadius: Radius.xxl, borderTopRightRadius: Radius.xxl,
-    padding: Spacing.xl, paddingBottom: 40, gap: Spacing.md,
-  },
-  sheetHandle: {
-    width: 36, height: 4, borderRadius: 2,
-    backgroundColor: Colors.border, alignSelf: 'center', marginBottom: Spacing.sm,
-  },
-  sheetTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  sheetTitle: { fontSize: Typography.lg, fontWeight: Typography.bold, color: Colors.textPrimary },
-  textInput: {
-    backgroundColor: Colors.background, borderRadius: Radius.lg,
-    padding: Spacing.md, fontSize: Typography.base, color: Colors.textPrimary,
-    minHeight: 100, maxHeight: 180,
-    borderWidth: 1, borderColor: Colors.border,
-  },
-  charCount: { fontSize: Typography.xs, color: Colors.textTertiary, textAlign: 'right', marginTop: -8 },
-  reminderLabel: { fontSize: Typography.sm, fontWeight: Typography.semibold, color: Colors.textSecondary },
-  existingReminder: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: Colors.primaryFaint, borderRadius: Radius.md,
-    padding: Spacing.md,
-  },
-  existingReminderText: { fontSize: Typography.sm, color: Colors.primary, fontWeight: Typography.medium },
-  clearReminderBtn: { paddingHorizontal: Spacing.sm },
-  clearReminderText: { fontSize: Typography.sm, color: Colors.overdue, fontWeight: Typography.semibold },
-  presetRow: { marginHorizontal: -Spacing.xl, paddingHorizontal: Spacing.xl },
-  presetChip: {
-    flexDirection: 'row', alignItems: 'center', gap: Spacing.xs,
-    borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.full,
-    paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md,
-    marginRight: Spacing.sm, backgroundColor: Colors.surface,
-  },
-  presetChipActive: { backgroundColor: Colors.primaryFaint, borderColor: Colors.primary },
-  presetEmoji: { fontSize: 14 },
-  presetText: { fontSize: Typography.sm, color: Colors.textSecondary, fontWeight: Typography.medium },
-  presetTextActive: { color: Colors.primary, fontWeight: Typography.semibold },
-  presetConfirm: { fontSize: Typography.xs, color: Colors.primary, fontStyle: 'italic' },
-  saveBtn: {
-    backgroundColor: Colors.primary, borderRadius: Radius.lg,
-    paddingVertical: Spacing.md + 2, alignItems: 'center', marginTop: Spacing.sm,
-  },
-  saveBtnDisabled: { opacity: 0.4 },
-  saveBtnText: { color: Colors.white, fontSize: Typography.base, fontWeight: Typography.bold },
-});
 
 export default ScratchPadScreen;

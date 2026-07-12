@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,8 +10,9 @@ import {
   TextStyle,
   Image,
 } from 'react-native';
-import { Colors, Typography, Spacing, Radius, Shadow } from '../../constants/theme';
+import { Typography, Spacing, Radius, Shadow } from '../../constants/theme';
 import { getInitials, getAvatarColor } from '../../utils/helpers';
+import { useTheme } from '../../context/ThemeContext';
 
 // ─── Primary Button ───────────────────────────────────────────────────────────
 
@@ -38,7 +39,55 @@ export const Button: React.FC<ButtonProps> = ({
   style,
   fullWidth = true,
 }) => {
+  const { colors: Colors } = useTheme();
   const isDisabled = disabled || loading;
+
+  const styles = useMemo(() => StyleSheet.create({
+    btn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: Radius.lg,
+    },
+    btnFullWidth: { width: '100%' },
+    btnDisabled: { opacity: 0.5 },
+    btnIcon: { marginRight: Spacing.sm },
+
+    btn_primary: {
+      backgroundColor: Colors.primary,
+      ...Shadow.sm,
+    },
+    btn_secondary: {
+      backgroundColor: Colors.primaryFaint,
+      borderWidth: 1.5,
+      borderColor: Colors.primary + '30',
+    },
+    btn_ghost: {
+      backgroundColor: 'transparent',
+    },
+    btn_danger: {
+      backgroundColor: Colors.overdueLight,
+      borderWidth: 1.5,
+      borderColor: Colors.overdue + '30',
+    },
+
+    btn_sm: { paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, borderRadius: Radius.md },
+    btn_md: { paddingVertical: 14, paddingHorizontal: Spacing.lg },
+    btn_lg: { paddingVertical: 16, paddingHorizontal: Spacing.xl },
+
+    btnText: {
+      fontWeight: Typography.semibold,
+      letterSpacing: 0.2,
+    },
+    btnText_primary: { color: Colors.white },
+    btnText_secondary: { color: Colors.primary },
+    btnText_ghost: { color: Colors.primary },
+    btnText_danger: { color: Colors.overdue },
+
+    btnText_sm: { fontSize: Typography.sm },
+    btnText_md: { fontSize: Typography.base },
+    btnText_lg: { fontSize: Typography.md, fontWeight: Typography.bold },
+  }), [Colors]);
 
   return (
     <TouchableOpacity
@@ -71,53 +120,6 @@ export const Button: React.FC<ButtonProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  btn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: Radius.lg,
-  },
-  btnFullWidth: { width: '100%' },
-  btnDisabled: { opacity: 0.5 },
-  btnIcon: { marginRight: Spacing.sm },
-
-  btn_primary: {
-    backgroundColor: Colors.primary,
-    ...Shadow.sm,
-  },
-  btn_secondary: {
-    backgroundColor: Colors.primaryFaint,
-    borderWidth: 1.5,
-    borderColor: Colors.primary + '30',
-  },
-  btn_ghost: {
-    backgroundColor: 'transparent',
-  },
-  btn_danger: {
-    backgroundColor: Colors.overdueLight,
-    borderWidth: 1.5,
-    borderColor: Colors.overdue + '30',
-  },
-
-  btn_sm: { paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, borderRadius: Radius.md },
-  btn_md: { paddingVertical: 14, paddingHorizontal: Spacing.lg },
-  btn_lg: { paddingVertical: 16, paddingHorizontal: Spacing.xl },
-
-  btnText: {
-    fontWeight: Typography.semibold,
-    letterSpacing: 0.2,
-  },
-  btnText_primary: { color: Colors.white },
-  btnText_secondary: { color: Colors.primary },
-  btnText_ghost: { color: Colors.primary },
-  btnText_danger: { color: Colors.overdue },
-
-  btnText_sm: { fontSize: Typography.sm },
-  btnText_md: { fontSize: Typography.base },
-  btnText_lg: { fontSize: Typography.md, fontWeight: Typography.bold },
-});
-
 // ─── Avatar ───────────────────────────────────────────────────────────────────
 
 interface AvatarProps {
@@ -128,6 +130,7 @@ interface AvatarProps {
 }
 
 export const Avatar: React.FC<AvatarProps> = ({ name, size = 44, photoUri, style }) => {
+  const { colors: Colors } = useTheme();
   const initials = getInitials(name);
   const bgColor = getAvatarColor(name);
 
@@ -219,20 +222,23 @@ interface SectionHeaderProps {
   style?: ViewStyle;
 }
 
-export const SectionHeader: React.FC<SectionHeaderProps> = ({ title, action, style }) => (
-  <View style={[{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, style]}>
-    <Text style={{ fontSize: Typography.md, fontWeight: Typography.bold, color: Colors.textPrimary }}>
-      {title}
-    </Text>
-    {action && (
-      <TouchableOpacity onPress={action.onPress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-        <Text style={{ fontSize: Typography.sm, color: Colors.primary, fontWeight: Typography.semibold }}>
-          {action.label}
-        </Text>
-      </TouchableOpacity>
-    )}
-  </View>
-);
+export const SectionHeader: React.FC<SectionHeaderProps> = ({ title, action, style }) => {
+  const { colors: Colors } = useTheme();
+  return (
+    <View style={[{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, style]}>
+      <Text style={{ fontSize: Typography.md, fontWeight: Typography.bold, color: Colors.textPrimary }}>
+        {title}
+      </Text>
+      {action && (
+        <TouchableOpacity onPress={action.onPress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Text style={{ fontSize: Typography.sm, color: Colors.primary, fontWeight: Typography.semibold }}>
+            {action.label}
+          </Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+};
 
 // ─── Card ─────────────────────────────────────────────────────────────────────
 
@@ -244,6 +250,8 @@ interface CardProps {
 }
 
 export const Card: React.FC<CardProps> = ({ children, style, onPress, padding = Spacing.base }) => {
+  const { colors: Colors } = useTheme();
+
   const content = (
     <View
       style={[
@@ -300,60 +308,63 @@ export const InputField: React.FC<InputProps> = ({
   style,
   maxLength,
   autoCapitalize = 'words',
-}) => (
-  <View style={[{ marginBottom: Spacing.md }, style]}>
-    {label && (
-      <Text
+}) => {
+  const { colors: Colors } = useTheme();
+  return (
+    <View style={[{ marginBottom: Spacing.md }, style]}>
+      {label && (
+        <Text
+          style={{
+            fontSize: Typography.sm,
+            fontWeight: Typography.semibold,
+            color: Colors.textSecondary,
+            marginBottom: Spacing.xs,
+            textTransform: 'uppercase',
+            letterSpacing: 0.5,
+          }}
+        >
+          {label}
+        </Text>
+      )}
+      <View
         style={{
-          fontSize: Typography.sm,
-          fontWeight: Typography.semibold,
-          color: Colors.textSecondary,
-          marginBottom: Spacing.xs,
-          textTransform: 'uppercase',
-          letterSpacing: 0.5,
+          flexDirection: 'row',
+          alignItems: multiline ? 'flex-start' : 'center',
+          backgroundColor: Colors.surface,
+          borderRadius: Radius.md,
+          borderWidth: 1.5,
+          borderColor: error ? Colors.overdue : Colors.border,
+          paddingHorizontal: Spacing.md,
+          paddingVertical: multiline ? Spacing.md : 0,
+          minHeight: multiline ? 90 : 52,
         }}
       >
-        {label}
-      </Text>
-    )}
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: multiline ? 'flex-start' : 'center',
-        backgroundColor: Colors.surface,
-        borderRadius: Radius.md,
-        borderWidth: 1.5,
-        borderColor: error ? Colors.overdue : Colors.border,
-        paddingHorizontal: Spacing.md,
-        paddingVertical: multiline ? Spacing.md : 0,
-        minHeight: multiline ? 90 : 52,
-      }}
-    >
-      {icon && <View style={{ marginRight: Spacing.sm, paddingTop: multiline ? 2 : 0 }}>{icon}</View>}
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={Colors.textTertiary}
-        keyboardType={keyboardType}
-        multiline={multiline}
-        numberOfLines={multiline ? numberOfLines : undefined}
-        maxLength={maxLength}
-        autoCapitalize={autoCapitalize}
-        style={{
-          flex: 1,
-          fontSize: Typography.base,
-          color: Colors.textPrimary,
-          paddingVertical: multiline ? 0 : 14,
-          textAlignVertical: multiline ? 'top' : 'center',
-        }}
-      />
+        {icon && <View style={{ marginRight: Spacing.sm, paddingTop: multiline ? 2 : 0 }}>{icon}</View>}
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={Colors.textTertiary}
+          keyboardType={keyboardType}
+          multiline={multiline}
+          numberOfLines={multiline ? numberOfLines : undefined}
+          maxLength={maxLength}
+          autoCapitalize={autoCapitalize}
+          style={{
+            flex: 1,
+            fontSize: Typography.base,
+            color: Colors.textPrimary,
+            paddingVertical: multiline ? 0 : 14,
+            textAlignVertical: multiline ? 'top' : 'center',
+          }}
+        />
+      </View>
+      {error && (
+        <Text style={{ fontSize: Typography.xs, color: Colors.overdue, marginTop: 4 }}>{error}</Text>
+      )}
     </View>
-    {error && (
-      <Text style={{ fontSize: Typography.xs, color: Colors.overdue, marginTop: 4 }}>{error}</Text>
-    )}
-  </View>
-);
+  );
+};
 
 // ─── Empty State ──────────────────────────────────────────────────────────────
 
@@ -364,50 +375,53 @@ interface EmptyStateProps {
   action?: { label: string; onPress: () => void };
 }
 
-export const EmptyState: React.FC<EmptyStateProps> = ({ icon, title, subtitle, action }) => (
-  <View style={{ alignItems: 'center', paddingVertical: Spacing.xxxl, paddingHorizontal: Spacing.xl }}>
-    <View
-      style={{
-        width: 72,
-        height: 72,
-        borderRadius: 36,
-        backgroundColor: Colors.primaryFaint,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: Spacing.lg,
-      }}
-    >
-      {icon}
-    </View>
-    <Text
-      style={{
-        fontSize: Typography.lg,
-        fontWeight: Typography.bold,
-        color: Colors.textPrimary,
-        textAlign: 'center',
-        marginBottom: Spacing.sm,
-      }}
-    >
-      {title}
-    </Text>
-    {subtitle && (
-      <Text
+export const EmptyState: React.FC<EmptyStateProps> = ({ icon, title, subtitle, action }) => {
+  const { colors: Colors } = useTheme();
+  return (
+    <View style={{ alignItems: 'center', paddingVertical: Spacing.xxxl, paddingHorizontal: Spacing.xl }}>
+      <View
         style={{
-          fontSize: Typography.sm,
-          color: Colors.textSecondary,
-          textAlign: 'center',
-          lineHeight: 20,
-          marginBottom: action ? Spacing.lg : 0,
+          width: 72,
+          height: 72,
+          borderRadius: 36,
+          backgroundColor: Colors.primaryFaint,
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: Spacing.lg,
         }}
       >
-        {subtitle}
+        {icon}
+      </View>
+      <Text
+        style={{
+          fontSize: Typography.lg,
+          fontWeight: Typography.bold,
+          color: Colors.textPrimary,
+          textAlign: 'center',
+          marginBottom: Spacing.sm,
+        }}
+      >
+        {title}
       </Text>
-    )}
-    {action && (
-      <Button label={action.label} onPress={action.onPress} variant="primary" fullWidth={false} />
-    )}
-  </View>
-);
+      {subtitle && (
+        <Text
+          style={{
+            fontSize: Typography.sm,
+            color: Colors.textSecondary,
+            textAlign: 'center',
+            lineHeight: 20,
+            marginBottom: action ? Spacing.lg : 0,
+          }}
+        >
+          {subtitle}
+        </Text>
+      )}
+      {action && (
+        <Button label={action.label} onPress={action.onPress} variant="primary" fullWidth={false} />
+      )}
+    </View>
+  );
+};
 
 // ─── Chip / Quick Select ──────────────────────────────────────────────────────
 
@@ -423,56 +437,64 @@ export const Chip: React.FC<ChipProps> = ({
   label,
   selected,
   onPress,
-  color = Colors.primary,
+  color,
   style,
-}) => (
-  <TouchableOpacity
-    onPress={onPress}
-    activeOpacity={0.7}
-    style={[
-      {
-        paddingHorizontal: Spacing.md,
-        paddingVertical: Spacing.sm,
-        borderRadius: Radius.full,
-        borderWidth: 1.5,
-        borderColor: selected ? color : Colors.border,
-        backgroundColor: selected ? color + '15' : Colors.surface,
-        marginRight: Spacing.sm,
-        marginBottom: Spacing.sm,
-      },
-      style,
-    ]}
-  >
-    <Text
-      style={{
-        fontSize: Typography.sm,
-        fontWeight: selected ? Typography.semibold : Typography.regular,
-        color: selected ? color : Colors.textSecondary,
-      }}
+}) => {
+  const { colors: Colors } = useTheme();
+  const activeColor = color ?? Colors.primary;
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.7}
+      style={[
+        {
+          paddingHorizontal: Spacing.md,
+          paddingVertical: Spacing.sm,
+          borderRadius: Radius.full,
+          borderWidth: 1.5,
+          borderColor: selected ? activeColor : Colors.border,
+          backgroundColor: selected ? activeColor + '15' : Colors.surface,
+          marginRight: Spacing.sm,
+          marginBottom: Spacing.sm,
+        },
+        style,
+      ]}
     >
-      {label}
-    </Text>
-  </TouchableOpacity>
-);
+      <Text
+        style={{
+          fontSize: Typography.sm,
+          fontWeight: selected ? Typography.semibold : Typography.regular,
+          color: selected ? activeColor : Colors.textSecondary,
+        }}
+      >
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+};
 
 // ─── Divider ──────────────────────────────────────────────────────────────────
 
-export const Divider: React.FC<{ style?: ViewStyle }> = ({ style }) => (
-  <View style={[{ height: 1, backgroundColor: Colors.divider }, style]} />
-);
+export const Divider: React.FC<{ style?: ViewStyle }> = ({ style }) => {
+  const { colors: Colors } = useTheme();
+  return <View style={[{ height: 1, backgroundColor: Colors.divider }, style]} />;
+};
 
 // ─── Loading Screen ───────────────────────────────────────────────────────────
 
-export const LoadingScreen: React.FC<{ message?: string }> = ({ message }) => (
-  <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.background }}>
-    <ActivityIndicator size="large" color={Colors.primary} />
-    {message && (
-      <Text style={{ marginTop: Spacing.md, color: Colors.textSecondary, fontSize: Typography.sm }}>
-        {message}
-      </Text>
-    )}
-  </View>
-);
+export const LoadingScreen: React.FC<{ message?: string }> = ({ message }) => {
+  const { colors: Colors } = useTheme();
+  return (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.background }}>
+      <ActivityIndicator size="large" color={Colors.primary} />
+      {message && (
+        <Text style={{ marginTop: Spacing.md, color: Colors.textSecondary, fontSize: Typography.sm }}>
+          {message}
+        </Text>
+      )}
+    </View>
+  );
+};
 
 // ─── Row Item ────────────────────────────────────────────────────────────────
 
@@ -495,6 +517,8 @@ export const RowItem: React.FC<RowItemProps> = ({
   style,
   valueStyle,
 }) => {
+  const { colors: Colors } = useTheme();
+
   const content = (
     <View
       style={[
@@ -532,8 +556,11 @@ export const RowItem: React.FC<RowItemProps> = ({
   return content;
 };
 
-const ChevronRightIconInline = () => (
-  <View style={{ marginLeft: 8 }}>
-    <Text style={{ color: Colors.textTertiary, fontSize: 18 }}>›</Text>
-  </View>
-);
+const ChevronRightIconInline = () => {
+  const { colors: Colors } = useTheme();
+  return (
+    <View style={{ marginLeft: 8 }}>
+      <Text style={{ color: Colors.textTertiary, fontSize: 18 }}>›</Text>
+    </View>
+  );
+};
