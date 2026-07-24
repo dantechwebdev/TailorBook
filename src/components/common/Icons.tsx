@@ -308,3 +308,9 @@ export const TailorIcon = ({ size = 40, color = '#4B3FA0' }: IconProps) => (
     <Path d="M9 36C11 32 15 30 20 30C25 30 29 32 31 36" stroke={color} strokeWidth="1.5" strokeLinecap="round" opacity="0.4"/>
   </Svg>
 );
+
+export const CloudIcon = ({ size = 24, color = '#4B3FA0', strokeWidth = 1.8 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M18 10H16.74C16.3659 8.38626 15.4577 6.93912 14.1653 5.89865C12.873 4.85818 11.2667 4.28791 9.61 4.28791C7.95332 4.28791 6.34704 4.85818 5.05468 5.89865C3.76232 6.93912 2.85413 8.38626 2.48 10H2C1.46957 10 0.960859 10.2107 0.585786 10.5858C0.210714 10.9609 0 11.4696 0 12V17C0 17.5304 0.210714 18.0391 0.585786 18.4142C0.960859 18.7893 1.46957 19 2 19H18C18.5304 19 19.0391 18.7893 19.4142 18.4142C19.7893 18.0391 20 17.5304 20 17V12C20 11.4696 19.7893 10.9609 19.4142 10.5858C19.0391 10.2107 18.5304 10 18 10Z" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"/>
+  </Svg>
+);

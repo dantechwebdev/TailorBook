@@ -38,6 +38,9 @@ import {
 import { getFirstName, formatNaira } from '../../utils/helpers';
 import { Job } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
+import FloatingAssistant from '../../components/ai/FloatingAssistant';
+import CloudStatusCard from '../../components/home/CloudStatusCard';
+import { useAuth } from '../../context/AuthContext';
 
 const CARD_WIDTH = Dimensions.get('window').width * 0.68;
 const CARD_HEIGHT = CARD_WIDTH * 1.2;
@@ -147,6 +150,7 @@ const HomeScreen: React.FC = () => {
     loadSettings,
   } = useStore();
   const { colors: Colors } = useTheme();
+  const { authState, syncState, syncNow } = useAuth();
 
   const styles = useMemo(() => StyleSheet.create({
     container: { flex: 1, backgroundColor: Colors.background },
@@ -628,6 +632,16 @@ const HomeScreen: React.FC = () => {
           <Text style={styles.newOrderLabel}>Start New Order</Text>
         </TouchableOpacity>
 
+        {/* ─── Cloud Status Card ─── */}
+        <CloudStatusCard
+          authState={authState}
+          syncState={syncState}
+          onSignIn={() => navigation.navigate('SignIn')}
+          onSignUp={() => navigation.navigate('SignUp')}
+          onManageCloud={() => navigation.navigate('AccountScreen')}
+          onSyncNow={syncNow}
+        />
+
         {/* ─── Today's Tasks ─── */}
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
@@ -854,6 +868,10 @@ const HomeScreen: React.FC = () => {
 
         <View style={{ height: Spacing.xxxl }} />
       </ScrollView>
+
+      {/* ─── Floating AI Assistant ─── */}
+      <FloatingAssistant screen="Dashboard" />
+
     </SafeAreaView>
   );
 };

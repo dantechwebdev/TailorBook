@@ -31,6 +31,8 @@ import { useStore } from '../../context/store';
 import { Typography, Spacing, Radius, Shadow } from '../../constants/theme';
 import { OutfitType } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
+import { useNavigation } from '@react-navigation/native';
+import { authService } from '../../services/AuthenticationService';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -276,6 +278,31 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
     },
     completionBtnSub: { fontSize: Typography.sm, color: 'rgba(255,255,255,0.8)' },
 
+    // Auth upgrade section (below Open My Workshop)
+    authDivider: {
+      flexDirection: 'row', alignItems: 'center',
+      width: '100%', marginTop: Spacing.xxl, marginBottom: Spacing.lg, gap: Spacing.md,
+    },
+    authDividerLine: { flex: 1, height: 1, backgroundColor: Colors.border },
+    authDividerText: { fontSize: Typography.xs, color: Colors.textTertiary, fontWeight: Typography.medium },
+    authTagline: {
+      fontSize: Typography.sm, color: Colors.textSecondary,
+      textAlign: 'center', lineHeight: 20, marginBottom: Spacing.xl,
+      paddingHorizontal: Spacing.md,
+    },
+    authBtnRow: { flexDirection: 'row', width: '100%', gap: Spacing.md },
+    authBtn: {
+      flex: 1, borderRadius: Radius.lg, paddingVertical: 14,
+      alignItems: 'center', justifyContent: 'center',
+      borderWidth: 1.5, borderColor: Colors.border,
+      backgroundColor: Colors.surface, ...Shadow.sm,
+    },
+    authBtnPrimary: {
+      borderColor: Colors.primary, backgroundColor: Colors.primaryFaint,
+    },
+    authBtnText: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textPrimary },
+    authBtnTextPrimary: { color: Colors.primary },
+
     doneContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.lg },
     doneTitle: { fontSize: Typography.xl, fontWeight: Typography.bold, color: Colors.textPrimary },
   }), [Colors]);
@@ -349,9 +376,22 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
 
   // ─── Completion Screen ────────────────────────────────────────────────────────
   if (step === TOTAL_STEPS) {
+    const handleSignIn = () => {
+      handleFinish();
+      // Navigate to sign-in after workshop loads
+      // The auth flow is optional — workshop is already accessible
+    };
+
+    const handleSignUp = () => {
+      handleFinish();
+    };
+
     return (
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.completionContainer}>
+        <ScrollView
+          contentContainerStyle={[styles.completionContainer, { paddingVertical: Spacing.xxxl }]}
+          showsVerticalScrollIndicator={false}
+        >
           <Ionicons name="sparkles" size={64} color={Colors.primary} style={{ marginBottom: Spacing.lg }} />
           <Text style={styles.completionTitle}>
             Welcome to TailorBook{tailorName ? `, ${tailorName}!` : '!'}
@@ -359,7 +399,7 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
           <Text style={styles.completionSub}>
             Your workshop is set up and ready. Hit the button below to start.
           </Text>
-          <View style={styles.completionBtnGroup}>
+          <View style={[styles.completionBtnGroup, { width: '100%' }]}>
             <TouchableOpacity
               style={[styles.completionBtn, styles.completionBtnPrimary]}
               onPress={handleFinish}
@@ -367,10 +407,38 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
             >
               <Ionicons name="storefront-outline" size={32} color={Colors.white} style={{ marginBottom: Spacing.sm }} />
               <Text style={styles.completionBtnPrimaryLabel}>Open My Workshop</Text>
-              <Text style={styles.completionBtnSub}>Your home screen is ready</Text>
+              <Text style={styles.completionBtnSub}>Your data stays on this device</Text>
             </TouchableOpacity>
           </View>
-        </View>
+
+          {/* ─── Optional Cloud Upgrade ─── */}
+          <View style={styles.authDivider}>
+            <View style={styles.authDividerLine} />
+            <Text style={styles.authDividerText}>OPTIONAL</Text>
+            <View style={styles.authDividerLine} />
+          </View>
+
+          <Text style={styles.authTagline}>
+            Create a TailorBook Account to securely back up your workshop and access it from any of your devices.
+          </Text>
+
+          <View style={styles.authBtnRow}>
+            <TouchableOpacity
+              style={styles.authBtn}
+              onPress={handleSignIn}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.authBtnText}>Sign In</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.authBtn, styles.authBtnPrimary]}
+              onPress={handleSignUp}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.authBtnText, styles.authBtnTextPrimary]}>Sign Up</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }

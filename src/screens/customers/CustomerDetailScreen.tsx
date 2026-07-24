@@ -19,6 +19,7 @@ import { formatPhone, formatDeliveryDate } from '../../utils/helpers';
 import { Job } from '../../types';
 import { JOB_STATUS_CONFIG } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
+import FloatingAssistant from '../../components/ai/FloatingAssistant';
 
 const CustomerDetailScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -418,6 +419,23 @@ const CustomerDetailScreen: React.FC = () => {
 
         <View style={{ height: Spacing.xxxl }} />
       </ScrollView>
+
+      {/* ─── Floating AI Assistant ─── */}
+      <FloatingAssistant
+        screen="CustomerDetail"
+        context={{
+          screen: 'CustomerDetail',
+          data: {
+            name: customer.name,
+            totalJobs: jobs.length,
+            activeJobs: jobs.filter((j) => j.status !== 'Delivered').length,
+            outstandingBalance: jobs.reduce((sum, j) => sum + (j.balance || 0), 0),
+            lastOrderDate: jobs[0]?.createdAt ?? null,
+            topOutfitType: null,
+          },
+        }}
+      />
+
     </SafeAreaView>
   );
 };

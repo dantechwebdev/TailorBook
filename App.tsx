@@ -10,8 +10,10 @@ import AppNavigator from './src/navigation/AppNavigator';
 import OnboardingFlow from './src/screens/onboarding/OnboardingFlow';
 import { useStore } from './src/context/store';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
+import { AuthProvider } from './src/context/AuthContext';
 import { Logo } from './src/components/common/Icons';
 import { requestNotificationPermissions, addNotificationResponseListener, clearBadge } from './src/utils/notifications';
+import { aiService } from './src/services/ai/AIService';
 import { Typography, Spacing, LightColors } from './src/constants/theme';
 
 SplashScreen.preventAutoHideAsync();
@@ -81,6 +83,8 @@ function AppContent() {
         await initialize();
         await requestNotificationPermissions();
         await clearBadge();
+        // Initialize AI service in background — non-blocking
+        aiService.initialize().catch(() => {/* non-critical */});
       } catch (e) {
         // Boot errors are non-fatal — log for debugging in development
         if (__DEV__) console.warn('Boot error:', e);
@@ -129,7 +133,12 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <ThemeProvider>
-          <AppContent />
+          {/* AuthProvider wraps everything below ThemeProvider so auth screens
+              can read theme colors. It wraps AppContent so auth state is
+              available to every screen without prop drilling. */}
+          <AuthProvider>
+            <AppContent />
+          </AuthProvider>
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

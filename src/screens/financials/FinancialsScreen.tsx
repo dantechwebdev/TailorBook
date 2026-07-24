@@ -14,6 +14,7 @@ import { MenuIcon, ReportsIcon, ChevronRightIcon } from '../../components/common
 import { formatNaira } from '../../utils/helpers';
 import { Job } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
+import FloatingAssistant from '../../components/ai/FloatingAssistant';
 
 type Period = 'all' | 'month' | 'week';
 
@@ -505,6 +506,13 @@ const FinancialsScreen: React.FC = () => {
           </View>
         )}
       </ScrollView>
+
+      {/* ─── Floating AI Assistant ─── */}
+      <FloatingAssistant
+        screen="BusinessInsights"
+        context={{ screen: 'BusinessInsights', data: { period: period } }}
+      />
+
     </SafeAreaView>
   );
 };

@@ -45,6 +45,7 @@ import {
   WhatsAppMessageType,
 } from '../../utils/whatsapp';
 import { REMINDER_PRESETS, computeReminderDate } from '../../utils/notifications/presets';
+import FloatingAssistant from '../../components/ai/FloatingAssistant';
 
 // ─── Auto-reminder schedule (derived from delivery date) ──────────────────────
 
@@ -854,6 +855,27 @@ const JobDetailScreen: React.FC = () => {
           </View>
         </View>
       </Modal>
+
+      {/* ─── Floating AI Assistant ─── */}
+      <FloatingAssistant
+        screen="JobDetail"
+        context={{
+          screen: 'JobDetail',
+          data: {
+            outfitType: job.outfitType,
+            status: job.status,
+            customerName: job.customerName,
+            deliveryDate: job.deliveryDate,
+            daysUntilDue: Math.ceil(
+              (new Date(job.deliveryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+            ),
+            price: job.price,
+            balance: job.balance,
+            hasPhoto: (job.photoUris?.length ?? 0) > 0,
+            hasMeasurements: !!measurements,
+          },
+        }}
+      />
 
       {/* ─── Studio Coming Soon Modal ─── */}
       <Modal visible={showStudio} transparent animationType="fade" presentationStyle="overFullScreen" onRequestClose={() => setShowStudio(false)}>

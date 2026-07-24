@@ -107,15 +107,22 @@ export interface TailorSettings {
   phone: string;
   location: string;
   currency: string;
-  workDays: string;            // JSON array e.g. '["Mon","Tue","Wed","Thu","Fri","Sat"]'
-  defaultApparel: string;      // e.g. 'Senator'
-  onboardingComplete: string;  // '0' or '1'
-  profilePhotoUri?: string;    // optional tailor/storefront photo URI
-  appearance?: string;         // 'system' | 'light' | 'dark'
-  notificationsEnabled?: string; // '1' = enabled (default), '0' = disabled
+  workDays: string;
+  defaultApparel: string;
+  onboardingComplete: string;
+  profilePhotoUri?: string;
+  appearance?: string;
+  notificationsEnabled?: string;
+  // Cloud sync settings (stored as strings for SQLite key-value compatibility)
+  syncEnabled?: string;       // '1' | '0'
+  syncMode?: string;          // 'wifi_only' | 'wifi_and_data'
+  autoSync?: string;          // '1' | '0'
+  syncTime?: string;          // HH:MM e.g. '02:00'
+  lastBackupAt?: string;      // ISO timestamp
+  lastSyncAt?: string;        // ISO timestamp
 }
 
-// ─── Today Task (derived from jobs for Home screen) ────────────────────────
+// ─── Today Task ───────────────────────────────────────────────────────────────
 
 export type TaskType =
   | 'pickup_today'
@@ -133,7 +140,7 @@ export interface TodayTask {
   job: Job;
 }
 
-// ─── Job Reminder Types ───────────────────────────────────────────────────────
+// ─── Reminder Types ───────────────────────────────────────────────────────────
 
 export interface JobReminder {
   id: string;
@@ -159,8 +166,8 @@ export interface ReminderPreset {
 export interface ScratchNote {
   id: string;
   text: string;
-  reminderAt?: string;       // ISO datetime — when to fire the push notification
-  notifIdentifier?: string;  // expo-notifications identifier for cancellation
+  reminderAt?: string;
+  notifIdentifier?: string;
   isDone: boolean;
   createdAt: string;
   updatedAt: string;
@@ -202,3 +209,160 @@ export type JobStackParamList = {
     existingMeasurementId?: string;
   };
 };
+
+// ─── Authentication Types ─────────────────────────────────────────────────────
+
+export type AuthProvider = 'email' | 'google' | 'apple';
+
+export type AuthStatus =
+  | 'idle'
+  | 'unauthenticated'
+  | 'authenticated'
+  | 'loading';
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  displayName?: string;
+  avatarUrl?: string;
+  provider: AuthProvider;
+  createdAt: string;
+  plan?: 'free' | 'pro' | 'enterprise';
+  planExpiresAt?: string;
+}
+
+export interface AuthSession {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: number;
+  user: AuthUser;
+}
+
+export interface AuthState {
+  status: AuthStatus;
+  user: AuthUser | null;
+  session: AuthSession | null;
+  error: string | null;
+}
+
+export interface SignInCredentials {
+  email: string;
+  password: string;
+}
+
+export interface SignUpCredentials {
+  email: string;
+  password: string;
+  displayName?: string;
+}
+
+export interface AuthResult {
+  success: boolean;
+  user?: AuthUser;
+  error?: string;
+}
+
+// ─── Cloud Sync Types ─────────────────────────────────────────────────────────
+
+export type SyncStatus =
+  | 'idle'
+  | 'syncing'
+  | 'success'
+  | 'error'
+  | 'offline';
+
+export interface CloudSyncState {
+  status: SyncStatus;
+  lastSyncAt: string | null;
+  lastBackupAt: string | null;
+  errorMessage: string | null;
+  isEnabled: boolean;
+  autoSync: boolean;
+  syncMode: 'wifi_only' | 'wifi_and_data';
+  syncTime: string;
+}
+
+export interface SyncResult {
+  success: boolean;
+  itemsSynced: number;
+  conflicts: number;
+  timestamp: string;
+  error?: string;
+}
+
+// ─── Workshop Health Types ────────────────────────────────────────────────────
+
+export type HealthStatus = 'excellent' | 'good' | 'attention' | 'critical';
+
+export interface WorkshopHealth {
+  status: HealthStatus;
+  score: number;
+  headline: string;
+  items: HealthItem[];
+}
+
+export interface HealthItem {
+  type: 'positive' | 'warning' | 'critical' | 'neutral';
+  message: string;
+}
+
+// ─── AI Types ─────────────────────────────────────────────────────────────────
+
+export type AIProvider = 'gemini' | 'openai' | 'claude' | 'mock';
+
+export interface AIMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: string;
+}
+
+export interface AIContext {
+  screen: string;
+  jobId?: string;
+  customerId?: string;
+  data?: Record<string, unknown>;
+}
+
+export interface AIConversation {
+  id: string;
+  messages: AIMessage[];
+  context: AIContext;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AICompletionRequest {
+  messages: AIMessage[];
+  context?: AIContext;
+  maxTokens?: number;
+  temperature?: number;
+}
+
+export interface AICompletionResponse {
+  content: string;
+  provider: AIProvider;
+  tokensUsed?: number;
+}
+
+// ─── Business Insights Types ──────────────────────────────────────────────────
+
+export interface BusinessInsight {
+  period: 'week' | 'month' | 'all';
+  totalRevenue: number;
+  totalDeposits: number;
+  totalOutstanding: number;
+  totalJobs: number;
+  completedJobs: number;
+  overdueJobs: number;
+  totalCustomers: number;
+  newCustomers: number;
+  topOutfitType: string | null;
+  completionRate: number;
+  averageJobValue: number;
+  narratives: BusinessNarrative[];
+}
+
+export interface BusinessNarrative {
+  type: 'positive' | 'warning' | 'neutral';
+  message: string;
+}

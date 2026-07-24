@@ -24,6 +24,10 @@ import TailorStudioScreen from '../screens/tailorstudio/TailorStudioScreen';
 import ScratchPadScreen from '../screens/scratchpad/ScratchPadScreen';
 import DrawerContent from '../components/common/DrawerContent';
 
+// ─── Auth Screens (optional cloud upgrade, never blocks workshop access) ──────
+import SignInScreen from '../screens/auth/SignInScreen';
+import SignUpScreen from '../screens/auth/SignUpScreen';
+
 // ─── Navigator Instances ──────────────────────────────────────────────────────
 
 const Drawer = createDrawerNavigator();
@@ -33,9 +37,21 @@ const JobStack = createStackNavigator();
 
 // ─── Stack Navigators ─────────────────────────────────────────────────────────
 
+// Home stack includes auth screens so they can be reached from the cloud CTA
+// on the dashboard without leaving the main navigation hierarchy.
 const HomeStackNav = () => (
   <HomeStack.Navigator screenOptions={{ headerShown: false }}>
     <HomeStack.Screen name="Home" component={HomeScreen} />
+    <HomeStack.Screen
+      name="SignIn"
+      component={SignInScreen}
+      options={{ animation: 'slide_from_bottom' } as any}
+    />
+    <HomeStack.Screen
+      name="SignUp"
+      component={SignUpScreen}
+      options={{ animation: 'slide_from_bottom' } as any}
+    />
   </HomeStack.Navigator>
 );
 
