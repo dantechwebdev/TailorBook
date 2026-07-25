@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { useStore } from '../../context/store';
-import { Typography, Spacing, Radius, Shadow, JOB_STATUS_CONFIG } from '../../constants/theme';
+import { Typography, Spacing, Radius, Shadow, getJobStatusConfig } from '../../constants/theme';
 import { MenuIcon, ClockIcon } from '../../components/common/Icons';
 import { StatusBadge, EmptyState } from '../../components/common/UI';
 import { formatNaira, getFirstName } from '../../utils/helpers';
@@ -146,7 +146,7 @@ const ScheduleScreen: React.FC = () => {
 
   const JobCard: React.FC<{ job: Job }> = useCallback(({ job }) => (
     <TouchableOpacity onPress={() => goToJob(job.id)} activeOpacity={0.8} style={styles.jobCard}>
-      <View style={[styles.jobStatusBar, { backgroundColor: JOB_STATUS_CONFIG[job.status]?.color ?? C.primary }]} />
+      <View style={[styles.jobStatusBar, { backgroundColor: getJobStatusConfig(C)[job.status]?.color ?? C.primary }]} />
       <View style={styles.jobCardContent}>
         <View style={styles.jobCardTop}>
           <Text style={styles.jobCardName} numberOfLines={1}>{getFirstName(job.customerName)}'s {job.outfitType}</Text>

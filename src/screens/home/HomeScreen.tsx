@@ -21,7 +21,7 @@ import {
   IconProps,
 } from '../../../assets/icons/custom';
 import { useStore } from '../../context/store';
-import { Typography, Spacing, Radius, Shadow, JOB_STATUS_CONFIG } from '../../constants/theme';
+import { Typography, Spacing, Radius, Shadow, getJobStatusConfig } from '../../constants/theme';
 import { MenuIcon, NotificationsIcon, ChevronRightIcon } from '../../components/common/Icons';
 import { getFirstName, formatNaira } from '../../utils/helpers';
 import { Job } from '../../types';
@@ -132,7 +132,7 @@ const HomeScreen: React.FC = () => {
     pendingWaybills, outstandingBalances, unreadNotificationCount,
     settings, initialize, refreshJobs, loadSettings,
   } = useStore();
-  const { colors: Colors } = useTheme();
+  const { colors: Colors, isDark } = useTheme();
   const { authState, syncState, syncNow } = useAuth();
 
   // ── Entrance animations ──────────────────────────────────────────────────
@@ -379,15 +379,18 @@ const HomeScreen: React.FC = () => {
     },
     balanceWaBtn: {
       width: 36, height: 36, borderRadius: 18,
-      backgroundColor: '#E8FFF1', alignItems: 'center', justifyContent: 'center',
+      // WhatsApp-tinted pill — adapts light/dark, brand green (#25D366) stays fixed
+      backgroundColor: isDark ? '#123321' : '#E8FFF1',
+      alignItems: 'center', justifyContent: 'center',
       marginLeft: Spacing.sm,
     },
 
-    // Improvement #6 — WhatsApp Digest: branded green pill icon, stronger identity
+    // Improvement #6 — WhatsApp Digest: branded green pill icon, stronger identity.
+    // Background/border/text tints adapt per theme; #25D366 is the fixed WhatsApp brand color.
     digestCard: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: '#F0FFF7',
+      backgroundColor: isDark ? '#0F2A1C' : '#F0FFF7',
       borderWidth: 1.5,
       borderColor: '#25D36640',
       borderRadius: Radius.lg,
@@ -396,7 +399,7 @@ const HomeScreen: React.FC = () => {
       marginHorizontal: Spacing.base,
       marginBottom: Spacing.xl,
       gap: Spacing.md,
-      // Subtle green shadow
+      // Subtle green shadow — brand color, theme-independent
       shadowColor: '#25D366',
       shadowOffset: { width: 0, height: 3 },
       shadowOpacity: 0.12,
@@ -405,7 +408,7 @@ const HomeScreen: React.FC = () => {
     },
     digestIconWrap: {
       width: 40, height: 40, borderRadius: 20,
-      backgroundColor: '#25D366',
+      backgroundColor: '#25D366', // fixed WhatsApp brand green
       alignItems: 'center', justifyContent: 'center',
       flexShrink: 0,
     },
@@ -418,11 +421,11 @@ const HomeScreen: React.FC = () => {
     digestTitle: {
       fontSize: Typography.base,
       fontWeight: Typography.bold,
-      color: '#1a7a3f',
+      color: isDark ? '#6FE39B' : '#1a7a3f',
     },
     digestSub: {
       fontSize: Typography.xs,
-      color: '#1a7a3f99',
+      color: isDark ? '#6FE39B99' : '#1a7a3f99',
       marginTop: 2,
       lineHeight: 16,
     },
@@ -482,7 +485,7 @@ const HomeScreen: React.FC = () => {
       color: Colors.white,
       letterSpacing: 0.3,
     },
-  }), [Colors]);
+  }), [Colors, isDark]);
 
   const [refreshing, setRefreshing] = React.useState(false);
 
@@ -937,11 +940,6 @@ const OUTFIT_ICON_MAP: Record<string, React.FC<IconProps>> = {
   Trouser: TrouserIcon,
 };
 
-const STATUS_BG: Record<string, string> = {
-  Pending: '#E8F4FD', Cutting: '#FFF3CD', Sewing: '#E8F8E8',
-  Finishing: '#FFF0E8', Ready: '#E8F8E8', Delivered: '#F0F0F0',
-};
-
 const RecentJobCard: React.FC<{ job: Job; onPress: () => void; styles: any; Colors: any }> = ({ job, onPress, styles, Colors }) => {
   const photos = useMemo(() => {
     if (!job.photoUris?.length) return [];
@@ -967,8 +965,9 @@ const RecentJobCard: React.FC<{ job: Job; onPress: () => void; styles: any; Colo
     return () => clearInterval(interval);
   }, [photos.length]);
 
-  const cfg = JOB_STATUS_CONFIG[job.status as keyof typeof JOB_STATUS_CONFIG];
-  const bgColor = STATUS_BG[job.status] || Colors.surface;
+  // Recomputed from the live palette (Colors prop is theme-reactive via useTheme upstream)
+  const cfg = getJobStatusConfig(Colors)[job.status as keyof ReturnType<typeof getJobStatusConfig>];
+  const bgColor = cfg?.bgColor || Colors.surface;
   const OutfitIconCmp = OUTFIT_ICON_MAP[job.outfitType] ?? OtherIcon;
 
   return (

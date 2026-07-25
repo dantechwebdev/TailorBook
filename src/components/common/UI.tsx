@@ -182,7 +182,7 @@ export const Avatar: React.FC<AvatarProps> = ({ name, size = 44, photoUri, style
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 
-import { JOB_STATUS_CONFIG } from '../../constants/theme';
+import { getJobStatusConfig } from '../../constants/theme';
 import { JobStatus } from '../../types';
 
 interface StatusBadgeProps {
@@ -191,7 +191,10 @@ interface StatusBadgeProps {
 }
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' }) => {
-  const config = JOB_STATUS_CONFIG[status];
+  const { colors: Colors } = useTheme();
+  // Recomputed on every render from the live palette — never stale, no memo
+  // needed since getJobStatusConfig is a cheap pure object literal build.
+  const config = getJobStatusConfig(Colors)[status];
   return (
     <View
       style={{

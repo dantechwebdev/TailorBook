@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { useStore } from '../../context/store';
-import { Typography, Spacing, Radius, Shadow, JOB_STATUS_CONFIG } from '../../constants/theme';
+import { Typography, Spacing, Radius, Shadow, getJobStatusConfig } from '../../constants/theme';
 import { SearchIcon, PlusIcon, CustomersIcon, ChevronRightIcon, MenuIcon } from '../../components/common/Icons';
 import { Avatar, EmptyState } from '../../components/common/UI';
 import { formatPhone, formatNaira } from '../../utils/helpers';
@@ -42,6 +42,8 @@ const CustomerListScreen: React.FC = () => {
     const activeJobs = jobs.filter((j: Job) => j.status !== 'Delivered');
     const mostUrgent = activeJobs[0];
     const totalBalance = activeJobs.reduce((s: number, j: Job) => s + (j.balance || 0), 0);
+    // Recomputed from the live palette on every theme change (C is a hook dep below)
+    const statusConfig = getJobStatusConfig(C);
 
     return (
       <TouchableOpacity
@@ -56,7 +58,7 @@ const CustomerListScreen: React.FC = () => {
           {/* Improvement #4 — most urgent active job shown inline */}
           {mostUrgent ? (
             <View style={styles.jobPreview}>
-              <View style={[styles.jobDot, { backgroundColor: (JOB_STATUS_CONFIG as any)[mostUrgent.status]?.color ?? C.primary }]} />
+              <View style={[styles.jobDot, { backgroundColor: statusConfig[mostUrgent.status]?.color ?? C.primary }]} />
               <Text style={styles.jobPreviewText} numberOfLines={1}>
                 {mostUrgent.outfitType} · {mostUrgent.status}
               </Text>
@@ -143,7 +145,7 @@ function makeStyles(C: any) {
     jobPreview: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },
     jobDot: { width: 6, height: 6, borderRadius: 3 },
     jobPreviewText: { fontSize: Typography.xs, color: C.textSecondary, fontWeight: Typography.medium, flex: 1 },
-    allDoneText: { fontSize: Typography.xs, color: C.ready ?? '#34A853', fontWeight: Typography.medium, marginTop: 3 },
+    allDoneText: { fontSize: Typography.xs, color: C.ready, fontWeight: Typography.medium, marginTop: 3 },
     right: { alignItems: 'flex-end', gap: 4 },
     countBadge: { backgroundColor: C.primaryFaint, paddingHorizontal: 8, paddingVertical: 3, borderRadius: Radius.full },
     countText: { fontSize: Typography.xs, color: C.primary, fontWeight: Typography.semibold },

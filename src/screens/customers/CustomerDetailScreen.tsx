@@ -17,7 +17,7 @@ import { BackIcon, EditIcon, PhoneIcon, BriefcasePlusIcon, TrashIcon, Measuremen
 import { Avatar, StatusBadge, Card, Button, EmptyState } from '../../components/common/UI';
 import { formatPhone, formatDeliveryDate } from '../../utils/helpers';
 import { Job } from '../../types';
-import { JOB_STATUS_CONFIG } from '../../constants/theme';
+import { getJobStatusConfig } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
 import FloatingAssistant from '../../components/ai/FloatingAssistant';
 
@@ -87,14 +87,14 @@ const CustomerDetailScreen: React.FC = () => {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 4,
-      backgroundColor: '#E8FFF0',
+      backgroundColor: Colors.readyLight,
       paddingHorizontal: Spacing.sm,
       paddingVertical: 3,
       borderRadius: Radius.full,
     },
     waBtnText: {
       fontSize: Typography.xs,
-      color: '#25D366',
+      color: '#25D366', // fixed WhatsApp brand green
       fontWeight: Typography.semibold,
     },
     notesText: {
@@ -459,7 +459,8 @@ const JobRow: React.FC<{ job: Job; last: boolean; onPress: () => void; styles: a
   styles,
   Colors,
 }) => {
-  const config = JOB_STATUS_CONFIG[job.status];
+  // Derived from the live palette passed down as a prop — never stale.
+  const config = getJobStatusConfig(Colors)[job.status];
   return (
     <TouchableOpacity
       onPress={onPress}

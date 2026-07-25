@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { useStore } from '../../context/store';
-import { Typography, Spacing, Radius, Shadow, JOB_STATUS_CONFIG, JOB_STATUSES } from '../../constants/theme';
+import { Typography, Spacing, Radius, Shadow, JOB_STATUSES } from '../../constants/theme';
 import { SearchIcon, PlusIcon, JobsIcon, ChevronRightIcon, MenuIcon, CheckIcon } from '../../components/common/Icons';
 import { Avatar, StatusBadge, Chip, EmptyState } from '../../components/common/UI';
 import { formatDeliveryDate, getDeliveryUrgency } from '../../utils/helpers';

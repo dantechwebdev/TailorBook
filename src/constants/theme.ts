@@ -107,9 +107,6 @@ export const DarkColors = {
   drawerTextMuted: '#A5A3C2',
 } as const;
 
-// Default export — light theme (used by screens not yet theme-aware)
-export const Colors = LightColors;
-
 export type ColorPalette = typeof LightColors;
 export type AppearanceMode = 'system' | 'light' | 'dark';
 
@@ -184,39 +181,59 @@ export const Shadow = {
 } as const;
 
 // ─── Job Status Config ─────────────────────────────────────────────────────────
+// Theme-reactive factory — always call with the active palette from useTheme().
+// This guarantees status colors follow Light/Dark/System instantly, with no
+// stale references and no remount required.
+//
+//   const { colors } = useTheme();
+//   const statusConfig = getJobStatusConfig(colors);
+//   const { color, bgColor, label } = statusConfig[job.status];
 
-export const JOB_STATUS_CONFIG = {
-  Pending: {
-    color: LightColors.pending,
-    bgColor: LightColors.pendingLight,
-    label: 'Pending',
-  },
-  Cutting: {
-    color: LightColors.cutting,
-    bgColor: LightColors.cuttingLight,
-    label: 'Cutting',
-  },
-  Sewing: {
-    color: LightColors.sewing,
-    bgColor: LightColors.sewingLight,
-    label: 'Sewing',
-  },
-  Finishing: {
-    color: LightColors.finishing,
-    bgColor: LightColors.finishingLight,
-    label: 'Finishing',
-  },
-  Ready: {
-    color: LightColors.ready,
-    bgColor: LightColors.readyLight,
-    label: 'Ready',
-  },
-  Delivered: {
-    color: LightColors.delivered,
-    bgColor: LightColors.deliveredLight,
-    label: 'Delivered',
-  },
-} as const;
+export interface JobStatusVisual {
+  color: string;
+  bgColor: string;
+  label: string;
+}
+
+export type JobStatusConfigMap = Record<
+  'Pending' | 'Cutting' | 'Sewing' | 'Finishing' | 'Ready' | 'Delivered',
+  JobStatusVisual
+>;
+
+export function getJobStatusConfig(colors: ColorPalette): JobStatusConfigMap {
+  return {
+    Pending: {
+      color: colors.pending,
+      bgColor: colors.pendingLight,
+      label: 'Pending',
+    },
+    Cutting: {
+      color: colors.cutting,
+      bgColor: colors.cuttingLight,
+      label: 'Cutting',
+    },
+    Sewing: {
+      color: colors.sewing,
+      bgColor: colors.sewingLight,
+      label: 'Sewing',
+    },
+    Finishing: {
+      color: colors.finishing,
+      bgColor: colors.finishingLight,
+      label: 'Finishing',
+    },
+    Ready: {
+      color: colors.ready,
+      bgColor: colors.readyLight,
+      label: 'Ready',
+    },
+    Delivered: {
+      color: colors.delivered,
+      bgColor: colors.deliveredLight,
+      label: 'Delivered',
+    },
+  };
+}
 
 export const OUTFIT_TYPES = [
   'Agbada',

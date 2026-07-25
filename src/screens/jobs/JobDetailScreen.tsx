@@ -20,14 +20,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { parseISO, subDays, isAfter, isBefore, format } from 'date-fns';
 import { useSpringScale, useEntrance, useShimmerPress } from '../../utils/animations';
 import { useStore } from '../../context/store';
+import { useTheme } from '../../context/ThemeContext';
 import {
-  Colors,
   Typography,
   Spacing,
   Radius,
   Shadow,
-  JOB_STATUS_CONFIG,
+  getJobStatusConfig,
   JOB_STATUSES,
+  ColorPalette,
 } from '../../constants/theme';
 import {
   BackIcon,
@@ -128,6 +129,11 @@ const JobDetailScreen: React.FC = () => {
   const customer = job ? getCustomer(job.customerId) : null;
   const currency = settings?.currency || '₦';
   const customReminders = job ? getJobReminders(jobId) : [];
+
+  // ── Theme — live palette, reactive to Light/Dark/System instantly ──────
+  const { colors: Colors, isDark } = useTheme();
+  const styles = useMemo(() => createStyles(Colors, isDark), [Colors, isDark]);
+  const statusConfig = useMemo(() => getJobStatusConfig(Colors), [Colors]);
 
   // ── Entrance animations ────────────────────────────────────────────────
   const heroAnim    = useEntrance(0,   10);  // hero card slides up first
@@ -431,7 +437,7 @@ const JobDetailScreen: React.FC = () => {
             <Animated.View style={badgeScaleStyle}>
               <StatusBadge status={job.status} />
             </Animated.View>
-            <View style={[styles.deliveryTypeChip, job.deliveryType === 'waybill' ? { backgroundColor: '#E8F2FF' } : { backgroundColor: Colors.readyLight }]}>
+            <View style={[styles.deliveryTypeChip, job.deliveryType === 'waybill' ? { backgroundColor: Colors.cuttingLight } : { backgroundColor: Colors.readyLight }]}>
               <Ionicons
                 name={job.deliveryType === 'waybill' ? 'cube-outline' : 'storefront-outline'}
                 size={11}
@@ -477,6 +483,8 @@ const JobDetailScreen: React.FC = () => {
               currentStatus={job.status}
               onChangeStatus={handleStatusChange}
               loading={statusLoading}
+              colors={Colors}
+              styles={styles}
             />
           </Card>
         </View>
@@ -485,10 +493,10 @@ const JobDetailScreen: React.FC = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Payment</Text>
           <Card>
-            <PaymentRow label="Total Price"      value={formatNaira(job.price)} />
-            <PaymentRow label="Deposit Paid"     value={formatNaira(job.deposit)} valueColor={Colors.ready} />
+            <PaymentRow label="Total Price"      value={formatNaira(job.price)} colors={Colors} styles={styles} />
+            <PaymentRow label="Deposit Paid"     value={formatNaira(job.deposit)} valueColor={Colors.ready} colors={Colors} styles={styles} />
             <View style={styles.paymentDivider} />
-            <PaymentRow label="Balance Remaining" value={formatNaira(job.balance)} valueColor={job.balance > 0 ? Colors.overdue : Colors.ready} bold />
+            <PaymentRow label="Balance Remaining" value={formatNaira(job.balance)} valueColor={job.balance > 0 ? Colors.overdue : Colors.ready} bold colors={Colors} styles={styles} />
           </Card>
         </View>
 
@@ -496,9 +504,9 @@ const JobDetailScreen: React.FC = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Details</Text>
           <Card>
-            {job.fabric && <InfoRow label="Fabric"   value={job.fabric} />}
-            <InfoRow label="Created"  value={formatDate(job.createdAt)} />
-            <InfoRow label="Delivery" value={formatDeliveryDate(job.deliveryDate)} last />
+            {job.fabric && <InfoRow label="Fabric"   value={job.fabric} colors={Colors} styles={styles} />}
+            <InfoRow label="Created"  value={formatDate(job.createdAt)} colors={Colors} styles={styles} />
+            <InfoRow label="Delivery" value={formatDeliveryDate(job.deliveryDate)} last colors={Colors} styles={styles} />
           </Card>
         </View>
 
@@ -544,7 +552,7 @@ const JobDetailScreen: React.FC = () => {
               return (
                 <View key={days}>
                   <View style={[styles.reminderRow, isPast && styles.reminderRowPast]}>
-                    <View style={[styles.reminderIconWrap, { backgroundColor: isPast ? Colors.borderLight : '#EEF2FF' }]}>
+                    <View style={[styles.reminderIconWrap, { backgroundColor: isPast ? Colors.borderLight : Colors.cuttingLight }]}>
                       <Ionicons
                         name={isPast ? 'checkmark' : 'time-outline'}
                         size={14}
@@ -575,11 +583,11 @@ const JobDetailScreen: React.FC = () => {
               return (
                 <View key={r.id}>
                   <View style={[styles.reminderRow, isPast && styles.reminderRowPast]}>
-                    <View style={[styles.reminderIconWrap, { backgroundColor: isPast ? Colors.borderLight : '#FFF3E0' }]}>
+                    <View style={[styles.reminderIconWrap, { backgroundColor: isPast ? Colors.borderLight : Colors.dueSoonLight }]}>
                       <Ionicons
                         name={isPast ? 'checkmark' : 'notifications-outline'}
                         size={14}
-                        color={isPast ? Colors.textTertiary : '#E65100'}
+                        color={isPast ? Colors.textTertiary : Colors.dueSoon}
                       />
                     </View>
                     <View style={{ flex: 1 }}>
@@ -633,6 +641,8 @@ const JobDetailScreen: React.FC = () => {
               subtitle="Acknowledge receipt of this order"
               iconName="document-text-outline"
               onPress={() => handleWhatsApp('job_created')}
+              colors={Colors}
+              styles={styles}
             />
             <View style={styles.waDivider} />
             <WhatsAppRow
@@ -641,6 +651,8 @@ const JobDetailScreen: React.FC = () => {
               iconName={job.deliveryType === 'waybill' ? 'cube-outline' : 'bag-check-outline'}
               highlight={job.status === 'Ready'}
               onPress={() => handleWhatsApp(primaryWaType)}
+              colors={Colors}
+              styles={styles}
             />
             <View style={styles.waDivider} />
             <WhatsAppRow
@@ -649,6 +661,8 @@ const JobDetailScreen: React.FC = () => {
               iconName="wallet-outline"
               disabled={job.balance === 0}
               onPress={() => handleWhatsApp('payment_reminder')}
+              colors={Colors}
+              styles={styles}
             />
             <View style={styles.waDivider} />
             <WhatsAppRow
@@ -656,6 +670,8 @@ const JobDetailScreen: React.FC = () => {
               subtitle="Thank customer after handoff"
               iconName="checkmark-done-outline"
               onPress={() => handleWhatsApp('delivery_complete')}
+              colors={Colors}
+              styles={styles}
             />
           </Card>
         </View>
@@ -872,7 +888,7 @@ const JobDetailScreen: React.FC = () => {
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>Change Status</Text>
             {JOB_STATUSES.map((s) => {
-              const config = JOB_STATUS_CONFIG[s as JobStatus];
+              const config = statusConfig[s as JobStatus];
               const isCurrent = job.status === s;
               return (
                 <TouchableOpacity
@@ -949,16 +965,16 @@ const JobDetailScreen: React.FC = () => {
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>Job Summary</Text>
             <ScrollView showsVerticalScrollIndicator={false}>
-              <SummaryItem label="Customer" value={job.customerName} />
-              <SummaryItem label="Outfit"   value={`${job.outfitType}${job.style ? ' · ' + job.style : ''}`} />
-              <SummaryItem label="Status"   value={job.status} />
-              <SummaryItem label="Delivery" value={`${job.deliveryType === 'waybill' ? 'Waybill' : 'Pickup'} · ${formatDeliveryDate(job.deliveryDate)}`} />
-              {job.deliveryAddress && <SummaryItem label="Destination" value={job.deliveryAddress} />}
-              <SummaryItem label="Price"   value={formatNaira(job.price)} />
-              <SummaryItem label="Deposit" value={formatNaira(job.deposit)} />
-              <SummaryItem label="Balance" value={formatNaira(job.balance)} valueColor={job.balance > 0 ? Colors.overdue : Colors.ready} />
-              {job.fabric && <SummaryItem label="Fabric" value={job.fabric} />}
-              {job.notes  && <SummaryItem label="Notes"  value={job.notes} />}
+              <SummaryItem label="Customer" value={job.customerName} styles={styles} />
+              <SummaryItem label="Outfit"   value={`${job.outfitType}${job.style ? ' · ' + job.style : ''}`} styles={styles} />
+              <SummaryItem label="Status"   value={job.status} styles={styles} />
+              <SummaryItem label="Delivery" value={`${job.deliveryType === 'waybill' ? 'Waybill' : 'Pickup'} · ${formatDeliveryDate(job.deliveryDate)}`} styles={styles} />
+              {job.deliveryAddress && <SummaryItem label="Destination" value={job.deliveryAddress} styles={styles} />}
+              <SummaryItem label="Price"   value={formatNaira(job.price)} styles={styles} />
+              <SummaryItem label="Deposit" value={formatNaira(job.deposit)} styles={styles} />
+              <SummaryItem label="Balance" value={formatNaira(job.balance)} valueColor={job.balance > 0 ? Colors.overdue : Colors.ready} styles={styles} />
+              {job.fabric && <SummaryItem label="Fabric" value={job.fabric} styles={styles} />}
+              {job.notes  && <SummaryItem label="Notes"  value={job.notes} styles={styles} />}
             </ScrollView>
             <Button label="Close" onPress={() => setShowSummary(false)} variant="ghost" style={{ marginTop: Spacing.md }} />
           </View>
@@ -978,8 +994,11 @@ const StatusRail: React.FC<{
   currentStatus: JobStatus;
   onChangeStatus: (s: JobStatus) => void;
   loading: boolean;
-}> = ({ currentStatus, onChangeStatus, loading }) => {
+  colors: ColorPalette;
+  styles: ReturnType<typeof createStyles>;
+}> = ({ currentStatus, onChangeStatus, loading, colors, styles }) => {
   const currentIdx = STATUS_PIPELINE.indexOf(currentStatus);
+  const statusConfig = useMemo(() => getJobStatusConfig(colors), [colors]);
 
   // Animated fill progress (0 → 1 across the full rail width)
   const fillProgress = useRef(new Animated.Value(0)).current;
@@ -1011,7 +1030,7 @@ const StatusRail: React.FC<{
           style={[
             styles.railFilled,
             {
-              backgroundColor: Colors.ready,
+              backgroundColor: colors.ready,
               width: fillProgress.interpolate({
                 inputRange: [0, 1],
                 outputRange: ['0%', '100%'],
@@ -1024,7 +1043,7 @@ const StatusRail: React.FC<{
       {/* Dots row — rendered over the track */}
       <View style={styles.rail}>
         {STATUS_PIPELINE.map((s, idx) => {
-          const config    = JOB_STATUS_CONFIG[s];
+          const config    = statusConfig[s];
           const isPast    = idx < currentIdx;
           const isCurrent = idx === currentIdx;
           const isFuture  = idx > currentIdx;
@@ -1042,19 +1061,19 @@ const StatusRail: React.FC<{
               <Animated.View
                 style={[
                   styles.railDot,
-                  isPast    && { backgroundColor: Colors.ready, borderColor: Colors.ready },
+                  isPast    && { backgroundColor: colors.ready, borderColor: colors.ready },
                   isCurrent && {
                     backgroundColor: config.color,
                     borderColor: config.color,
                     width: 18, height: 18, borderRadius: 9,
                     transform: [{ scale: dotScale }],
                   },
-                  isFuture  && { backgroundColor: Colors.surface, borderColor: Colors.border },
+                  isFuture  && { backgroundColor: colors.surface, borderColor: colors.border },
                 ]}
               >
-                {isPast && <CheckIcon size={8} color={Colors.white} strokeWidth={3} />}
+                {isPast && <CheckIcon size={8} color={colors.white} strokeWidth={3} />}
                 {isCurrent && (
-                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.white }} />
+                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.white }} />
                 )}
               </Animated.View>
 
@@ -1062,7 +1081,7 @@ const StatusRail: React.FC<{
               <Text style={[
                 styles.railLabel,
                 isCurrent && { color: config.color, fontWeight: Typography.bold },
-                isFuture  && { color: Colors.textTertiary },
+                isFuture  && { color: colors.textTertiary },
               ]}>
                 {s}
               </Text>
@@ -1075,25 +1094,30 @@ const StatusRail: React.FC<{
   );
 };
 
-const StatusPipeline: React.FC<{ currentStatus: JobStatus }> = ({ currentStatus }) => {
+const StatusPipeline: React.FC<{
+  currentStatus: JobStatus;
+  colors: ColorPalette;
+  styles: ReturnType<typeof createStyles>;
+}> = ({ currentStatus, colors, styles }) => {
   const currentIdx = STATUS_PIPELINE.indexOf(currentStatus);
+  const statusConfig = useMemo(() => getJobStatusConfig(colors), [colors]);
   return (
     <View style={styles.pipeline}>
       {STATUS_PIPELINE.map((s, idx) => {
-        const config = JOB_STATUS_CONFIG[s];
+        const config = statusConfig[s];
         const isPast    = idx < currentIdx;
         const isCurrent = idx === currentIdx;
         return (
           <View key={s} style={styles.pipelineStep}>
             <View style={[
               styles.pipelineDot,
-              isPast    && { backgroundColor: Colors.ready, borderColor: Colors.ready },
+              isPast    && { backgroundColor: colors.ready, borderColor: colors.ready },
               isCurrent && { backgroundColor: config.color, borderColor: config.color, width: 16, height: 16 },
             ]}>
-              {isPast && <CheckIcon size={8} color={Colors.white} strokeWidth={3} />}
+              {isPast && <CheckIcon size={8} color={colors.white} strokeWidth={3} />}
             </View>
             {idx < STATUS_PIPELINE.length - 1 && (
-              <View style={[styles.pipelineLine, isPast && { backgroundColor: Colors.ready }]} />
+              <View style={[styles.pipelineLine, isPast && { backgroundColor: colors.ready }]} />
             )}
             <Text style={[
               styles.pipelineLabel,
@@ -1106,17 +1130,23 @@ const StatusPipeline: React.FC<{ currentStatus: JobStatus }> = ({ currentStatus 
   );
 };
 
-const PaymentRow: React.FC<{ label: string; value: string; valueColor?: string; bold?: boolean }> = ({
-  label, value, valueColor = Colors.textPrimary, bold = false,
+const PaymentRow: React.FC<{
+  label: string; value: string; valueColor?: string; bold?: boolean;
+  colors: ColorPalette; styles: ReturnType<typeof createStyles>;
+}> = ({
+  label, value, valueColor, bold = false, colors, styles,
 }) => (
   <View style={styles.paymentRow}>
     <Text style={styles.paymentLabel}>{label}</Text>
-    <Text style={[styles.paymentValue, { color: valueColor }, bold && { fontWeight: Typography.bold, fontSize: Typography.md }]}>{value}</Text>
+    <Text style={[styles.paymentValue, { color: valueColor ?? colors.textPrimary }, bold && { fontWeight: Typography.bold, fontSize: Typography.md }]}>{value}</Text>
   </View>
 );
 
-const InfoRow: React.FC<{ label: string; value: string; last?: boolean }> = ({ label, value, last }) => (
-  <View style={[styles.infoRow, !last && { borderBottomWidth: 1, borderBottomColor: Colors.borderLight }]}>
+const InfoRow: React.FC<{
+  label: string; value: string; last?: boolean;
+  colors: ColorPalette; styles: ReturnType<typeof createStyles>;
+}> = ({ label, value, last, colors, styles }) => (
+  <View style={[styles.infoRow, !last && { borderBottomWidth: 1, borderBottomColor: colors.borderLight }]}>
     <Text style={styles.infoLabel}>{label}</Text>
     <Text style={styles.infoValue}>{value}</Text>
   </View>
@@ -1124,25 +1154,30 @@ const InfoRow: React.FC<{ label: string; value: string; last?: boolean }> = ({ l
 
 const WhatsAppRow: React.FC<{
   label: string; subtitle?: string; iconName: string; highlight?: boolean; disabled?: boolean; onPress: () => void;
-}> = ({ label, subtitle, iconName, highlight = false, disabled = false, onPress }) => (
+  colors: ColorPalette; styles: ReturnType<typeof createStyles>;
+}> = ({ label, subtitle, iconName, highlight = false, disabled = false, onPress, colors, styles }) => (
   <TouchableOpacity
     onPress={onPress}
     style={[styles.waRow, highlight && styles.waRowHighlight, disabled && styles.waRowDisabled]}
     activeOpacity={disabled ? 1 : 0.8}
     disabled={disabled}
   >
+    {/* #25D366 is the fixed WhatsApp brand green — intentionally theme-independent */}
     <View style={[styles.waIcon, highlight && { backgroundColor: '#25D366' }]}>
-      <Ionicons name={iconName as any} size={20} color={highlight ? Colors.white : '#25D366'} />
+      <Ionicons name={iconName as any} size={20} color={highlight ? colors.white : '#25D366'} />
     </View>
     <View style={{ flex: 1 }}>
-      <Text style={[styles.waLabel, disabled && { color: Colors.textTertiary }]}>{label}</Text>
-      {subtitle ? <Text style={[styles.waSubLabel, disabled && { color: Colors.borderLight }]}>{subtitle}</Text> : null}
+      <Text style={[styles.waLabel, disabled && { color: colors.textTertiary }]}>{label}</Text>
+      {subtitle ? <Text style={[styles.waSubLabel, disabled && { color: colors.borderLight }]}>{subtitle}</Text> : null}
     </View>
-    <Ionicons name="chevron-forward" size={16} color={disabled ? Colors.borderLight : highlight ? '#25D366' : Colors.textTertiary} />
+    <Ionicons name="chevron-forward" size={16} color={disabled ? colors.borderLight : highlight ? '#25D366' : colors.textTertiary} />
   </TouchableOpacity>
 );
 
-const SummaryItem: React.FC<{ label: string; value: string; valueColor?: string }> = ({ label, value, valueColor }) => (
+const SummaryItem: React.FC<{
+  label: string; value: string; valueColor?: string;
+  styles: ReturnType<typeof createStyles>;
+}> = ({ label, value, valueColor, styles }) => (
   <View style={styles.summaryRow}>
     <Text style={styles.summaryLabel}>{label}</Text>
     <Text style={[styles.summaryValue, valueColor ? { color: valueColor } : null]}>{value}</Text>
@@ -1150,17 +1185,20 @@ const SummaryItem: React.FC<{ label: string; value: string; valueColor?: string 
 );
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
+// Theme-reactive factory. Called via useMemo(() => createStyles(Colors), [Colors])
+// inside JobDetailScreen so it re-evaluates instantly on Light/Dark/System change.
 
-const styles = StyleSheet.create({
+const createStyles = (Colors: ColorPalette, isDark: boolean) => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.base, paddingVertical: Spacing.md },
   headerTitle: { fontSize: Typography.md, fontWeight: Typography.bold, color: Colors.textPrimary },
   scroll: { paddingHorizontal: Spacing.base, paddingBottom: Spacing.xxxl },
 
-  notifyBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F0FFF7', borderWidth: 1.5, borderColor: '#25D36640', borderRadius: Radius.lg, paddingHorizontal: Spacing.base, paddingVertical: Spacing.md, marginBottom: Spacing.md, gap: Spacing.md },
+  // WhatsApp-tinted notify banner — background/text adapt per theme; brand green stays fixed
+  notifyBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.readyLight, borderWidth: 1.5, borderColor: '#25D36640', borderRadius: Radius.lg, paddingHorizontal: Spacing.base, paddingVertical: Spacing.md, marginBottom: Spacing.md, gap: Spacing.md },
   notifyBannerLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  notifyBannerTitle: { fontSize: Typography.base, fontWeight: Typography.bold, color: '#1a7a3f' },
-  notifyBannerSub: { fontSize: Typography.xs, color: '#1a7a3f99', marginTop: 2 },
+  notifyBannerTitle: { fontSize: Typography.base, fontWeight: Typography.bold, color: Colors.ready },
+  notifyBannerSub: { fontSize: Typography.xs, color: Colors.textSecondary, marginTop: 2 },
 
   heroCard: { marginBottom: Spacing.xl },
   heroTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: Spacing.md },
@@ -1287,14 +1325,15 @@ const styles = StyleSheet.create({
 
   // WhatsApp rows
   waRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.base, paddingVertical: Spacing.md + 2, gap: Spacing.md },
-  waRowHighlight: { backgroundColor: '#F0FFF7' },
+  waRowHighlight: { backgroundColor: Colors.readyLight },
   waRowDisabled: { opacity: 0.5 },
-  waIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#E8FFF1', alignItems: 'center', justifyContent: 'center' },
+  // #E8FFF1/#25D366 → mint tint adapts per theme; icon itself stays WhatsApp brand green when highlighted
+  waIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.readyLight, alignItems: 'center', justifyContent: 'center' },
   waLabel: { fontSize: Typography.base, color: Colors.textPrimary, fontWeight: Typography.medium },
   waSubLabel: { fontSize: Typography.xs, color: Colors.textSecondary, marginTop: 2 },
   waDivider: { height: 1, backgroundColor: Colors.borderLight, marginHorizontal: Spacing.base },
 
-  growthBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.base, paddingVertical: Spacing.sm, backgroundColor: '#EBF5FF', borderTopWidth: 1, borderTopColor: Colors.borderLight },
+  growthBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.base, paddingVertical: Spacing.sm, backgroundColor: Colors.cuttingLight, borderTopWidth: 1, borderTopColor: Colors.borderLight },
   growthText: { flex: 1, fontSize: Typography.sm, color: Colors.primary, fontWeight: Typography.semibold, marginRight: Spacing.sm },
   growthBtn: { backgroundColor: Colors.primary, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radius.md },
   growthBtnText: { color: Colors.white, fontSize: Typography.sm, fontWeight: Typography.bold },
@@ -1315,8 +1354,8 @@ const styles = StyleSheet.create({
   previewTitle: { fontSize: Typography.base, fontWeight: Typography.bold, color: Colors.textPrimary },
   previewRecipient: { fontSize: Typography.xs, color: Colors.textSecondary, marginTop: 2 },
   previewBubbleWrap: { maxHeight: 220, marginBottom: Spacing.lg },
-  previewBubble: { backgroundColor: '#E8FFF1', borderRadius: Radius.lg, borderTopLeftRadius: 4, padding: Spacing.base },
-  previewBubbleText: { fontSize: Typography.base, color: '#1a4a2e', lineHeight: 22 },
+  previewBubble: { backgroundColor: Colors.readyLight, borderRadius: Radius.lg, borderTopLeftRadius: 4, padding: Spacing.base },
+  previewBubbleText: { fontSize: Typography.base, color: isDark ? '#6FE39B' : '#1a4a2e', lineHeight: 22 },
   sendWaBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#25D366', borderRadius: Radius.lg, paddingVertical: Spacing.md + 2, gap: Spacing.sm, marginBottom: Spacing.md },
   sendWaBtnText: { fontSize: Typography.base, fontWeight: Typography.bold, color: Colors.white },
   cancelPreviewBtn: { alignItems: 'center', paddingVertical: Spacing.sm },
@@ -1335,7 +1374,7 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
   chipText: { fontSize: Typography.sm, color: Colors.textSecondary, fontWeight: Typography.medium },
   chipTextActive: { color: Colors.white, fontWeight: Typography.bold },
-  reminderPreviewBox: { marginTop: Spacing.md, backgroundColor: '#EEF2FF', borderRadius: Radius.md, padding: Spacing.md },
+  reminderPreviewBox: { marginTop: Spacing.md, backgroundColor: Colors.primaryFaint, borderRadius: Radius.md, padding: Spacing.md },
   reminderPreviewText: { fontSize: Typography.sm, color: Colors.primary, lineHeight: 20 },
   reminderInput: { borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.md, paddingHorizontal: Spacing.md, paddingVertical: Platform.OS === 'ios' ? Spacing.md : Spacing.sm, fontSize: Typography.base, color: Colors.textPrimary, backgroundColor: Colors.surface },
   addReminderSaveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primary, borderRadius: Radius.lg, paddingVertical: Spacing.md + 2, gap: Spacing.sm, marginTop: Spacing.lg },
