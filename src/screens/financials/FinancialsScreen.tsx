@@ -1,10 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
@@ -15,6 +11,7 @@ import { formatNaira } from '../../utils/helpers';
 import { Job } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
 import FloatingAssistant from '../../components/ai/FloatingAssistant';
+import { useEntrance, useCountUp } from '../../utils/animations';
 
 type Period = 'all' | 'month' | 'week';
 
@@ -34,6 +31,10 @@ const FinancialsScreen: React.FC = () => {
   const { jobs, customers } = useStore();
   const { colors: Colors } = useTheme();
   const [period, setPeriod] = useState<Period>('all');
+
+  // ── Animations ──────────────────────────────────────────────────────────
+  const headerAnim = useEntrance(0, 6);
+  const statsAnim  = useEntrance(120, 8);
 
   const styles = useMemo(() => StyleSheet.create({
     container: { flex: 1, backgroundColor: Colors.background },
@@ -276,6 +277,22 @@ const FinancialsScreen: React.FC = () => {
       color: Colors.textTertiary,
       fontWeight: Typography.medium,
     },
+    // Improvement #7
+    insightCard: {
+      backgroundColor: Colors.primaryFaint,
+      borderRadius: Radius.lg,
+      paddingHorizontal: Spacing.base,
+      paddingVertical: Spacing.md,
+      marginBottom: Spacing.md,
+      borderLeftWidth: 3,
+      borderLeftColor: Colors.primary,
+    },
+    insightText: {
+      fontSize: Typography.sm,
+      color: Colors.primary,
+      fontWeight: Typography.medium,
+      lineHeight: 20,
+    },
   }), [Colors]);
 
   const filteredJobs = useMemo<Job[]>(() => {
@@ -284,15 +301,41 @@ const FinancialsScreen: React.FC = () => {
     return jobs.filter((j) => isWithin(j.createdAt, 7));
   }, [jobs, period]);
 
+  // Improvement #7 — previous period jobs for comparison
+  const previousJobs = useMemo<Job[]>(() => {
+    if (period === 'all') return [];
+    const days = period === 'month' ? 30 : 7;
+    return jobs.filter((j) => {
+      try {
+        const d = new Date(j.createdAt);
+        const now = new Date();
+        const periodStart = new Date(); periodStart.setDate(now.getDate() - days);
+        const prevStart   = new Date(); prevStart.setDate(now.getDate() - days * 2);
+        return d >= prevStart && d < periodStart;
+      } catch { return false; }
+    });
+  }, [jobs, period]);
+
   const stats = useMemo(() => {
-    const totalRevenue = filteredJobs.reduce((s, j) => s + (j.price || 0), 0);
-    const totalCollected = filteredJobs.reduce((s, j) => s + (j.price || 0) - (j.balance || 0), 0);
-    const totalOutstanding = filteredJobs.reduce((s, j) => s + (j.balance || 0), 0);
-    const jobCount = filteredJobs.length;
-    const deliveredCount = filteredJobs.filter((j) => j.status === 'Delivered').length;
-    const avgJobValue = jobCount > 0 ? totalRevenue / jobCount : 0;
-    return { totalRevenue, totalCollected, totalOutstanding, jobCount, deliveredCount, avgJobValue };
-  }, [filteredJobs]);
+    const totalRevenue    = filteredJobs.reduce((s, j) => s + (j.price || 0), 0);
+    const totalCollected  = filteredJobs.reduce((s, j) => s + (j.price || 0) - (j.balance || 0), 0);
+    const totalOutstanding= filteredJobs.reduce((s, j) => s + (j.balance || 0), 0);
+    const jobCount        = filteredJobs.length;
+    const deliveredCount  = filteredJobs.filter((j) => j.status === 'Delivered').length;
+    const avgJobValue     = jobCount > 0 ? totalRevenue / jobCount : 0;
+
+    // Improvement #7 — compute change vs previous period
+    const prevRevenue     = previousJobs.reduce((s, j) => s + (j.price || 0), 0);
+    const revenueChange   = prevRevenue > 0 ? Math.round(((totalRevenue - prevRevenue) / prevRevenue) * 100) : null;
+    const prevJobCount    = previousJobs.length;
+    const jobCountChange  = prevJobCount > 0 ? Math.round(((jobCount - prevJobCount) / prevJobCount) * 100) : null;
+
+    return {
+      totalRevenue, totalCollected, totalOutstanding,
+      jobCount, deliveredCount, avgJobValue,
+      revenueChange, jobCountChange, prevRevenue,
+    };
+  }, [filteredJobs, previousJobs]);
 
   // ── Customers with outstanding balances ─────────────────────────────────────
   const customerBalances = useMemo(() => {
@@ -331,72 +374,102 @@ const FinancialsScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* ─── Header ─── */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <MenuIcon size={22} color={Colors.textPrimary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Financials</Text>
-        <View style={{ width: 22 }} />
-      </View>
-
-      {/* ─── Period Tabs ─── */}
-      <View style={styles.periodRow}>
-        {PERIODS.map((p) => (
+      {/* ─── Header — fades in on mount ─── */}
+      <Animated.View style={headerAnim.style}>
+        <View style={styles.header}>
           <TouchableOpacity
-            key={p.key}
-            onPress={() => setPeriod(p.key)}
-            style={[styles.periodTab, period === p.key && styles.periodTabActive]}
-            activeOpacity={0.8}
+            onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Text style={[styles.periodTabText, period === p.key && styles.periodTabTextActive]}>
-              {p.label}
-            </Text>
+            <MenuIcon size={22} color={Colors.textPrimary} />
           </TouchableOpacity>
-        ))}
-      </View>
+          <Text style={styles.headerTitle}>Financials</Text>
+          <View style={{ width: 22 }} />
+        </View>
+
+        {/* ─── Period Tabs ─── */}
+        <View style={styles.periodRow}>
+          {PERIODS.map((p) => (
+            <TouchableOpacity
+              key={p.key}
+              onPress={() => setPeriod(p.key)}
+              style={[styles.periodTab, period === p.key && styles.periodTabActive]}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.periodTabText, period === p.key && styles.periodTabTextActive]}>
+                {p.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </Animated.View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
       >
-        {/* ─── Top Stats ─── */}
-        <View style={styles.statsGrid}>
-          <View style={[styles.statCard, { backgroundColor: Colors.primaryFaint }]}>
-            <Text style={[styles.statLabel, { color: Colors.primary }]}>Total Revenue</Text>
-            <Text style={[styles.statValue, { color: Colors.primary }]} numberOfLines={1} adjustsFontSizeToFit>
-              {formatNaira(stats.totalRevenue)}
-            </Text>
-            <Text style={styles.statSub}>{stats.jobCount} job{stats.jobCount !== 1 ? 's' : ''}</Text>
+        {/* ─── Improvement #7: Period comparison — sentence not number ─── */}
+        {period !== 'all' && (
+          <View style={styles.insightCard}>
+            {(() => {
+              const periodLabel = period === 'month' ? 'month' : 'week';
+              let sentence = '';
+              if (stats.revenueChange !== null) {
+                sentence = stats.revenueChange >= 0
+                  ? `📈 Revenue is up ${stats.revenueChange}% vs the previous ${periodLabel}.`
+                  : `📉 Revenue is down ${Math.abs(stats.revenueChange)}% vs last ${periodLabel}.`;
+              } else if (stats.totalRevenue > 0) {
+                sentence = `${stats.jobCount} job${stats.jobCount !== 1 ? 's' : ''} recorded this ${periodLabel}.`;
+              } else {
+                sentence = `No jobs recorded yet this ${periodLabel}.`;
+              }
+              if (customerBalances.length > 0) {
+                sentence += ` ${customerBalances.length} customer${customerBalances.length !== 1 ? 's' : ''} still owe a balance.`;
+              }
+              return <Text style={styles.insightText}>{sentence}</Text>;
+            })()}
           </View>
-          <View style={[styles.statCard, { backgroundColor: Colors.readyLight }]}>
-            <Text style={[styles.statLabel, { color: Colors.ready }]}>Collected</Text>
-            <Text style={[styles.statValue, { color: Colors.ready }]} numberOfLines={1} adjustsFontSizeToFit>
-              {formatNaira(stats.totalCollected)}
-            </Text>
-            <Text style={styles.statSub}>{stats.deliveredCount} delivered</Text>
-          </View>
-        </View>
+        )}
 
+        {/* ─── Top Stats — entrance + count-up on figures ─── */}
+        <Animated.View style={statsAnim.style}>
         <View style={styles.statsGrid}>
-          <View style={[styles.statCard, { backgroundColor: stats.totalOutstanding > 0 ? Colors.overdueLight : Colors.readyLight }]}>
-            <Text style={[styles.statLabel, { color: stats.totalOutstanding > 0 ? Colors.overdue : Colors.ready }]}>Outstanding</Text>
-            <Text style={[styles.statValue, { color: stats.totalOutstanding > 0 ? Colors.overdue : Colors.ready }]} numberOfLines={1} adjustsFontSizeToFit>
-              {formatNaira(stats.totalOutstanding)}
-            </Text>
-            <Text style={styles.statSub}>{customerBalances.length} customer{customerBalances.length !== 1 ? 's' : ''}</Text>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: Colors.accentLight }]}>
-            <Text style={[styles.statLabel, { color: Colors.accent }]}>Avg. Job Value</Text>
-            <Text style={[styles.statValue, { color: Colors.accent }]} numberOfLines={1} adjustsFontSizeToFit>
-              {formatNaira(stats.avgJobValue)}
-            </Text>
-            <Text style={styles.statSub}>per job</Text>
-          </View>
+          <AnimatedStatCard
+            label="Total Revenue"
+            value={stats.totalRevenue}
+            sub={`${stats.jobCount} job${stats.jobCount !== 1 ? 's' : ''}`}
+            bg={Colors.primaryFaint}
+            color={Colors.primary}
+            styles={styles}
+          />
+          <AnimatedStatCard
+            label="Collected"
+            value={stats.totalCollected}
+            sub={`${stats.deliveredCount} delivered`}
+            bg={Colors.readyLight}
+            color={Colors.ready}
+            styles={styles}
+          />
         </View>
+        <View style={styles.statsGrid}>
+          <AnimatedStatCard
+            label="Outstanding"
+            value={stats.totalOutstanding}
+            sub={`${customerBalances.length} customer${customerBalances.length !== 1 ? 's' : ''}`}
+            bg={stats.totalOutstanding > 0 ? Colors.overdueLight : Colors.readyLight}
+            color={stats.totalOutstanding > 0 ? Colors.overdue : Colors.ready}
+            styles={styles}
+          />
+          <AnimatedStatCard
+            label="Avg. Job Value"
+            value={stats.avgJobValue}
+            sub="per job"
+            bg={Colors.accentLight}
+            color={Colors.accent}
+            styles={styles}
+          />
+        </View>
+        </Animated.View>
 
         {/* ─── Outstanding by Customer ─── */}
         <View style={styles.section}>
@@ -514,6 +587,34 @@ const FinancialsScreen: React.FC = () => {
       />
 
     </SafeAreaView>
+  );
+};
+
+// ─── AnimatedStatCard ─────────────────────────────────────────────────────────
+// Calls useCountUp at component level (hooks rule) — each card counts up
+// independently on mount, so all four values animate simultaneously.
+
+const AnimatedStatCard: React.FC<{
+  label: string;
+  value: number;
+  sub: string;
+  bg: string;
+  color: string;
+  styles: any;
+}> = ({ label, value, sub, bg, color, styles }) => {
+  const countedValue = useCountUp(value, 550, 160);
+  return (
+    <View style={[styles.statCard, { backgroundColor: bg }]}>
+      <Text style={[styles.statLabel, { color }]}>{label}</Text>
+      <Text
+        style={[styles.statValue, { color }]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+      >
+        ₦{countedValue}
+      </Text>
+      <Text style={styles.statSub}>{sub}</Text>
+    </View>
   );
 };
 

@@ -1,248 +1,154 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  StyleSheet,
-  TextInput,
-  RefreshControl,
+  View, Text, FlatList, TouchableOpacity,
+  StyleSheet, TextInput, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { useStore } from '../../context/store';
-import { Typography, Spacing, Radius, Shadow } from '../../constants/theme';
-import { SearchIcon, PlusIcon, CustomersIcon, ChevronRightIcon, PhoneIcon, MenuIcon } from '../../components/common/Icons';
+import { Typography, Spacing, Radius, Shadow, JOB_STATUS_CONFIG } from '../../constants/theme';
+import { SearchIcon, PlusIcon, CustomersIcon, ChevronRightIcon, MenuIcon } from '../../components/common/Icons';
 import { Avatar, EmptyState } from '../../components/common/UI';
-import { formatPhone } from '../../utils/helpers';
-import { Customer } from '../../types';
+import { formatPhone, formatNaira } from '../../utils/helpers';
+import { Customer, Job } from '../../types';
 import * as db from '../../utils/database';
 import { useTheme } from '../../context/ThemeContext';
 
 const CustomerListScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { customers, refreshCustomers, getJobsByCustomer } = useStore();
-  const { colors: Colors } = useTheme();
+  const { colors: C } = useTheme();
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [searchResults, setSearchResults] = useState<Customer[] | null>(null);
-
-  const styles = useMemo(() => StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: Colors.background,
-    },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: Spacing.base,
-      paddingVertical: Spacing.md,
-    },
-    headerTitle: {
-      fontSize: Typography.xl,
-      fontWeight: Typography.bold,
-      color: Colors.textPrimary,
-    },
-    addBtn: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      backgroundColor: Colors.primary,
-      alignItems: 'center',
-      justifyContent: 'center',
-      ...Shadow.sm,
-    },
-    searchWrap: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: Colors.surface,
-      borderRadius: Radius.lg,
-      marginHorizontal: Spacing.base,
-      marginBottom: Spacing.md,
-      paddingHorizontal: Spacing.md,
-      paddingVertical: 12,
-      gap: Spacing.sm,
-      ...Shadow.sm,
-    },
-    searchInput: {
-      flex: 1,
-      fontSize: Typography.base,
-      color: Colors.textPrimary,
-      padding: 0,
-    },
-    list: {
-      paddingHorizontal: Spacing.base,
-      paddingBottom: Spacing.xxxl,
-      flexGrow: 1,
-    },
-    customerItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: Colors.surface,
-      borderRadius: Radius.lg,
-      padding: Spacing.md,
-      gap: Spacing.md,
-      ...Shadow.sm,
-    },
-    customerInfo: {
-      flex: 1,
-      gap: 2,
-    },
-    customerName: {
-      fontSize: Typography.base,
-      fontWeight: Typography.semibold,
-      color: Colors.textPrimary,
-    },
-    customerPhone: {
-      fontSize: Typography.sm,
-      color: Colors.textSecondary,
-    },
-    customerNote: {
-      fontSize: Typography.xs,
-      color: Colors.textTertiary,
-      marginTop: 1,
-    },
-    customerRight: {
-      alignItems: 'flex-end',
-      gap: Spacing.xs,
-    },
-    jobCountBadge: {
-      backgroundColor: Colors.primaryFaint,
-      paddingHorizontal: 8,
-      paddingVertical: 3,
-      borderRadius: Radius.full,
-    },
-    jobCountText: {
-      fontSize: Typography.xs,
-      color: Colors.primary,
-      fontWeight: Typography.semibold,
-    },
-    separator: {
-      height: Spacing.sm,
-    },
-  }), [Colors]);
+  const styles = useMemo(() => makeStyles(C), [C]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await refreshCustomers();
     setRefreshing(false);
-  }, []);
+  }, [refreshCustomers]);
 
   const handleSearch = async (text: string) => {
     setSearch(text);
-    if (text.trim().length === 0) {
-      setSearchResults(null);
-      return;
-    }
-    const results = await db.searchCustomers(text.trim());
-    setSearchResults(results);
+    if (!text.trim()) { setSearchResults(null); return; }
+    setSearchResults(await db.searchCustomers(text.trim()));
   };
 
   const displayList = searchResults ?? customers;
 
-  const renderItem = ({ item }: { item: Customer }) => {
-    const jobCount = getJobsByCustomer(item.id).length;
+  const renderItem = useCallback(({ item }: { item: Customer }) => {
+    const jobs = getJobsByCustomer(item.id);
+    const activeJobs = jobs.filter((j: Job) => j.status !== 'Delivered');
+    const mostUrgent = activeJobs[0];
+    const totalBalance = activeJobs.reduce((s: number, j: Job) => s + (j.balance || 0), 0);
+
     return (
       <TouchableOpacity
-        onPress={() =>
-          navigation.navigate('CustomerDetail', { customerId: item.id })
-        }
+        onPress={() => navigation.navigate('CustomerDetail', { customerId: item.id })}
         activeOpacity={0.8}
-        style={styles.customerItem}
+        style={styles.card}
       >
         <Avatar name={item.name} size={46} />
-        <View style={styles.customerInfo}>
-          <Text style={styles.customerName}>{item.name}</Text>
-          <Text style={styles.customerPhone}>{formatPhone(item.phone)}</Text>
-          {item.notes ? (
-            <Text style={styles.customerNote} numberOfLines={1}>
-              {item.notes}
-            </Text>
+        <View style={styles.info}>
+          <Text style={styles.name}>{item.name}</Text>
+          <Text style={styles.phone}>{formatPhone(item.phone)}</Text>
+          {/* Improvement #4 — most urgent active job shown inline */}
+          {mostUrgent ? (
+            <View style={styles.jobPreview}>
+              <View style={[styles.jobDot, { backgroundColor: (JOB_STATUS_CONFIG as any)[mostUrgent.status]?.color ?? C.primary }]} />
+              <Text style={styles.jobPreviewText} numberOfLines={1}>
+                {mostUrgent.outfitType} · {mostUrgent.status}
+              </Text>
+            </View>
+          ) : jobs.length > 0 ? (
+            <Text style={styles.allDoneText}>All jobs delivered ✓</Text>
           ) : null}
         </View>
-        <View style={styles.customerRight}>
-          {jobCount > 0 && (
-            <View style={styles.jobCountBadge}>
-              <Text style={styles.jobCountText}>{jobCount} job{jobCount !== 1 ? 's' : ''}</Text>
+        <View style={styles.right}>
+          {jobs.length > 0 && (
+            <View style={styles.countBadge}>
+              <Text style={styles.countText}>{jobs.length} job{jobs.length !== 1 ? 's' : ''}</Text>
             </View>
           )}
-          <ChevronRightIcon size={16} color={Colors.textTertiary} />
+          {totalBalance > 0 && (
+            <Text style={styles.balance}>{formatNaira(totalBalance)}</Text>
+          )}
+          <ChevronRightIcon size={16} color={C.textTertiary} />
         </View>
       </TouchableOpacity>
     );
-  };
+  }, [getJobsByCustomer, navigation, styles, C]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* ─── Header ─── */}
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <MenuIcon size={22} color={Colors.textPrimary} />
+        <TouchableOpacity onPress={() => navigation.dispatch(DrawerActions.openDrawer())} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <MenuIcon size={22} color={C.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Customers</Text>
-        <TouchableOpacity
-          onPress={() => navigation.navigate('CustomerCreate')}
-          style={styles.addBtn}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <PlusIcon size={18} color={Colors.white} />
+        <TouchableOpacity onPress={() => navigation.navigate('CustomerCreate')} style={styles.addBtn}>
+          <PlusIcon size={18} color={C.white} />
         </TouchableOpacity>
       </View>
 
-      {/* ─── Search Bar ─── */}
       <View style={styles.searchWrap}>
-        <SearchIcon size={18} color={Colors.textTertiary} />
+        <SearchIcon size={18} color={C.textTertiary} />
         <TextInput
-          value={search}
-          onChangeText={handleSearch}
-          placeholder="Search customers..."
-          placeholderTextColor={Colors.textTertiary}
-          style={styles.searchInput}
-          autoCapitalize="words"
+          value={search} onChangeText={handleSearch}
+          placeholder="Search by name or phone..." placeholderTextColor={C.textTertiary}
+          style={styles.searchInput} autoCapitalize="words"
         />
       </View>
 
-      {/* ─── List ─── */}
       <FlatList
         data={displayList}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={Colors.primary}
-          />
-        }
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        initialNumToRender={12} maxToRenderPerBatch={8} windowSize={5}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.primary} />}
+        ItemSeparatorComponent={() => <View style={{ height: Spacing.sm }} />}
         ListEmptyComponent={
           <EmptyState
-            icon={<CustomersIcon size={32} color={Colors.primary} />}
-            title={search ? 'No customers found' : 'No customers yet'}
+            icon={<CustomersIcon size={36} color={C.primary} />}
+            title={search ? 'No customers found' : 'Your customer book is empty'}
             subtitle={
               search
-                ? 'Try a different name or phone number'
-                : 'Add your first customer to get started'
+                ? `No match for "${search}". Try a phone number instead.`
+                : 'Every job starts with a customer. Tap + to register your first one.'
             }
-            action={
-              !search
-                ? {
-                    label: 'Register Customer',
-                    onPress: () => navigation.navigate('CustomerCreate'),
-                  }
-                : undefined
-            }
+            action={!search ? { label: 'Register First Customer', onPress: () => navigation.navigate('CustomerCreate') } : undefined}
           />
         }
       />
     </SafeAreaView>
   );
 };
+
+function makeStyles(C: any) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: C.background },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.base, paddingVertical: Spacing.md },
+    headerTitle: { fontSize: Typography.xl, fontWeight: Typography.bold, color: C.textPrimary },
+    addBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.primary, alignItems: 'center', justifyContent: 'center', ...Shadow.sm },
+    searchWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.surface, borderRadius: Radius.lg, marginHorizontal: Spacing.base, marginBottom: Spacing.md, paddingHorizontal: Spacing.md, paddingVertical: 12, gap: Spacing.sm, ...Shadow.sm },
+    searchInput: { flex: 1, fontSize: Typography.base, color: C.textPrimary, padding: 0 },
+    list: { paddingHorizontal: Spacing.base, paddingBottom: 120, flexGrow: 1 },
+    card: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.surface, borderRadius: Radius.lg, padding: Spacing.md, gap: Spacing.md, ...Shadow.sm },
+    info: { flex: 1, gap: 2 },
+    name: { fontSize: Typography.base, fontWeight: Typography.semibold, color: C.textPrimary },
+    phone: { fontSize: Typography.sm, color: C.textSecondary },
+    jobPreview: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },
+    jobDot: { width: 6, height: 6, borderRadius: 3 },
+    jobPreviewText: { fontSize: Typography.xs, color: C.textSecondary, fontWeight: Typography.medium, flex: 1 },
+    allDoneText: { fontSize: Typography.xs, color: C.ready ?? '#34A853', fontWeight: Typography.medium, marginTop: 3 },
+    right: { alignItems: 'flex-end', gap: 4 },
+    countBadge: { backgroundColor: C.primaryFaint, paddingHorizontal: 8, paddingVertical: 3, borderRadius: Radius.full },
+    countText: { fontSize: Typography.xs, color: C.primary, fontWeight: Typography.semibold },
+    balance: { fontSize: Typography.xs, color: C.overdue, fontWeight: Typography.semibold },
+  });
+}
 
 export default CustomerListScreen;

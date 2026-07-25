@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,11 +12,13 @@ import {
   Platform,
   TextInput,
   Switch,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { parseISO, subDays, isAfter, isBefore, format } from 'date-fns';
+import { useSpringScale, useEntrance, useShimmerPress } from '../../utils/animations';
 import { useStore } from '../../context/store';
 import {
   Colors,
@@ -46,6 +48,19 @@ import {
 } from '../../utils/whatsapp';
 import { REMINDER_PRESETS, computeReminderDate } from '../../utils/notifications/presets';
 import FloatingAssistant from '../../components/ai/FloatingAssistant';
+
+// ─── Improvement #15 — haptic feedback (graceful no-op if expo-haptics not installed) ─────
+let Haptics: any = null;
+try { Haptics = require('expo-haptics'); } catch {}
+const hapticLight = () => { try { Haptics?.impactAsync?.(Haptics.ImpactFeedbackStyle?.Light); } catch {} };
+const hapticSuccess = () => { try { Haptics?.notificationAsync?.(Haptics.NotificationFeedbackType?.Success); } catch {} };
+
+// ─── Improvement #12 — outfit type emoji map ──────────────────────────────────
+const OUTFIT_EMOJI: Record<string, string> = {
+  Agbada: '👘', Senator: '🥻', Suit: '🤵', Shirt: '👔',
+  Trouser: '👖', Gown: '👗', Kaftan: '🧥', Skirt: '👗',
+  Blouse: '👚', Other: '🪡',
+};
 
 // ─── Auto-reminder schedule (derived from delivery date) ──────────────────────
 
@@ -113,6 +128,13 @@ const JobDetailScreen: React.FC = () => {
   const customer = job ? getCustomer(job.customerId) : null;
   const currency = settings?.currency || '₦';
   const customReminders = job ? getJobReminders(jobId) : [];
+
+  // ── Entrance animations ────────────────────────────────────────────────
+  const heroAnim    = useEntrance(0,   10);  // hero card slides up first
+  const contentAnim = useEntrance(120, 8);   // sections follow
+
+  // ── Status badge scale — pulses on milestone ───────────────────────────
+  const { style: badgeScaleStyle, pulse: pulseBadge } = useSpringScale(1, 1, 0);
 
   // ─── Core state
   const [showStatusPicker, setShowStatusPicker] = useState(false);
@@ -210,7 +232,12 @@ const JobDetailScreen: React.FC = () => {
   const handleStatusChange = async (newStatus: JobStatus) => {
     setStatusLoading(true);
     setShowStatusPicker(false);
+    hapticLight(); // #15 — immediate tactile response on status tap
     await updateJobStatus(job.id, newStatus);
+    if (newStatus === 'Ready' || newStatus === 'Delivered') {
+      hapticSuccess(); // #15 — celebratory pulse for key milestones
+      pulseBadge();   // badge scale animation on milestone
+    }
     setStatusLoading(false);
   };
 
@@ -374,7 +401,8 @@ const JobDetailScreen: React.FC = () => {
           </TouchableOpacity>
         )}
 
-        {/* ─── Hero ─── */}
+        {/* ─── Hero — slides up on mount ─── */}
+        <Animated.View style={heroAnim.style}>
         <Card style={styles.heroCard}>
           <View style={styles.heroTop}>
             <View style={styles.heroLeft}>
@@ -392,13 +420,17 @@ const JobDetailScreen: React.FC = () => {
               <Image source={{ uri: job.photoUris[0] }} style={styles.sampleThumb} />
             ) : (
               <View style={styles.samplePlaceholder}>
-                <ScissorsIcon size={24} color={Colors.textTertiary} />
+                {/* Improvement #12 — meaningful outfit emoji, not a generic scissors */}
+                <Text style={{ fontSize: 36 }}>{OUTFIT_EMOJI[job.outfitType] ?? '🪡'}</Text>
               </View>
             )}
           </View>
 
           <View style={styles.heroBadgeRow}>
-            <StatusBadge status={job.status} />
+            {/* Status badge with scale pulse on milestone ─── */}
+            <Animated.View style={badgeScaleStyle}>
+              <StatusBadge status={job.status} />
+            </Animated.View>
             <View style={[styles.deliveryTypeChip, job.deliveryType === 'waybill' ? { backgroundColor: '#E8F2FF' } : { backgroundColor: Colors.readyLight }]}>
               <Ionicons
                 name={job.deliveryType === 'waybill' ? 'cube-outline' : 'storefront-outline'}
@@ -432,15 +464,20 @@ const JobDetailScreen: React.FC = () => {
             </View>
           )}
         </Card>
+        </Animated.View>
 
-        {/* ─── Progress Pipeline ─── */}
+        {/* ─── All content sections — enter 120ms after hero ─── */}
+        <Animated.View style={contentAnim.style}>
+
+        {/* ─── Progress — Improvement #3: tappable inline status rail ─── */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Progress</Text>
           <Card>
-            <StatusPipeline currentStatus={job.status} />
-            <TouchableOpacity onPress={() => setShowStatusPicker(true)} style={styles.changeStatusBtn}>
-              <Text style={styles.changeStatusText}>Change status manually</Text>
-            </TouchableOpacity>
+            <StatusRail
+              currentStatus={job.status}
+              onChangeStatus={handleStatusChange}
+              loading={statusLoading}
+            />
           </Card>
         </View>
 
@@ -647,6 +684,7 @@ const JobDetailScreen: React.FC = () => {
         </View>
 
         <View style={{ height: 120 }} />
+        </Animated.View>
       </ScrollView>
 
       {/* ─── Growth Loop: post-delivery suggestion ─── */}
@@ -934,6 +972,109 @@ const JobDetailScreen: React.FC = () => {
 
 const STATUS_PIPELINE: JobStatus[] = ['Pending', 'Cutting', 'Sewing', 'Finishing', 'Ready', 'Delivered'];
 
+// ─── Improvement #3 — Tappable Inline Status Rail with animated fill ─────────
+
+const StatusRail: React.FC<{
+  currentStatus: JobStatus;
+  onChangeStatus: (s: JobStatus) => void;
+  loading: boolean;
+}> = ({ currentStatus, onChangeStatus, loading }) => {
+  const currentIdx = STATUS_PIPELINE.indexOf(currentStatus);
+
+  // Animated fill progress (0 → 1 across the full rail width)
+  const fillProgress = useRef(new Animated.Value(0)).current;
+
+  // Dot scale for the active stage — pulses when status changes
+  const dotScale = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    // Animate fill to current position
+    Animated.timing(fillProgress, {
+      toValue: currentIdx / Math.max(STATUS_PIPELINE.length - 1, 1),
+      duration: 340,
+      useNativeDriver: false, // drives width %
+    }).start();
+
+    // Pulse the active dot
+    Animated.sequence([
+      Animated.spring(dotScale, { toValue: 1.35, useNativeDriver: true, tension: 120, friction: 5 }),
+      Animated.spring(dotScale, { toValue: 1,    useNativeDriver: true, tension: 80,  friction: 8 }),
+    ]).start();
+  }, [currentIdx]);
+
+  return (
+    <View>
+      {/* Rail track */}
+      <View style={styles.railTrack}>
+        {/* Animated filled segment */}
+        <Animated.View
+          style={[
+            styles.railFilled,
+            {
+              backgroundColor: Colors.ready,
+              width: fillProgress.interpolate({
+                inputRange: [0, 1],
+                outputRange: ['0%', '100%'],
+              }),
+            },
+          ]}
+        />
+      </View>
+
+      {/* Dots row — rendered over the track */}
+      <View style={styles.rail}>
+        {STATUS_PIPELINE.map((s, idx) => {
+          const config    = JOB_STATUS_CONFIG[s];
+          const isPast    = idx < currentIdx;
+          const isCurrent = idx === currentIdx;
+          const isFuture  = idx > currentIdx;
+
+          return (
+            <TouchableOpacity
+              key={s}
+              onPress={() => !loading && onChangeStatus(s as JobStatus)}
+              disabled={loading || isCurrent}
+              activeOpacity={0.7}
+              style={styles.railStep}
+              accessibilityLabel={`Set status to ${s}`}
+            >
+              {/* Dot */}
+              <Animated.View
+                style={[
+                  styles.railDot,
+                  isPast    && { backgroundColor: Colors.ready, borderColor: Colors.ready },
+                  isCurrent && {
+                    backgroundColor: config.color,
+                    borderColor: config.color,
+                    width: 18, height: 18, borderRadius: 9,
+                    transform: [{ scale: dotScale }],
+                  },
+                  isFuture  && { backgroundColor: Colors.surface, borderColor: Colors.border },
+                ]}
+              >
+                {isPast && <CheckIcon size={8} color={Colors.white} strokeWidth={3} />}
+                {isCurrent && (
+                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.white }} />
+                )}
+              </Animated.View>
+
+              {/* Label */}
+              <Text style={[
+                styles.railLabel,
+                isCurrent && { color: config.color, fontWeight: Typography.bold },
+                isFuture  && { color: Colors.textTertiary },
+              ]}>
+                {s}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+      <Text style={styles.railHint}>Tap any stage to update</Text>
+    </View>
+  );
+};
+
 const StatusPipeline: React.FC<{ currentStatus: JobStatus }> = ({ currentStatus }) => {
   const currentIdx = STATUS_PIPELINE.indexOf(currentStatus);
   return (
@@ -944,13 +1085,20 @@ const StatusPipeline: React.FC<{ currentStatus: JobStatus }> = ({ currentStatus 
         const isCurrent = idx === currentIdx;
         return (
           <View key={s} style={styles.pipelineStep}>
-            <View style={[styles.pipelineDot, isPast && { backgroundColor: Colors.ready, borderColor: Colors.ready }, isCurrent && { backgroundColor: config.color, borderColor: config.color, width: 16, height: 16 }]}>
+            <View style={[
+              styles.pipelineDot,
+              isPast    && { backgroundColor: Colors.ready, borderColor: Colors.ready },
+              isCurrent && { backgroundColor: config.color, borderColor: config.color, width: 16, height: 16 },
+            ]}>
               {isPast && <CheckIcon size={8} color={Colors.white} strokeWidth={3} />}
             </View>
             {idx < STATUS_PIPELINE.length - 1 && (
               <View style={[styles.pipelineLine, isPast && { backgroundColor: Colors.ready }]} />
             )}
-            <Text style={[styles.pipelineLabel, isCurrent && { color: config.color, fontWeight: Typography.bold }]}>{s}</Text>
+            <Text style={[
+              styles.pipelineLabel,
+              isCurrent && { color: config.color, fontWeight: Typography.bold },
+            ]}>{s}</Text>
           </View>
         );
       })}
@@ -1023,6 +1171,68 @@ const styles = StyleSheet.create({
   customerLinkText: { fontSize: Typography.sm, color: Colors.primary, fontWeight: Typography.medium },
   sampleThumb: { width: 90, height: 110, borderRadius: Radius.md, resizeMode: 'cover' },
   samplePlaceholder: { width: 90, height: 110, borderRadius: Radius.md, backgroundColor: Colors.borderLight, alignItems: 'center', justifyContent: 'center' },
+
+  // ─── Status Rail track + animated fill ───────────────────────────────────
+  railTrack: {
+    position: 'absolute',
+    top: 22, // vertically centered on dots
+    left: '8%',
+    right: '8%',
+    height: 2,
+    backgroundColor: Colors.border,
+    borderRadius: 1,
+    overflow: 'hidden',
+  },
+  railFilled: {
+    height: '100%',
+    borderRadius: 1,
+  },
+
+  // ─── Improvement #3 — Status Rail ─────────────────────────────────────────
+  rail: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  railStep: {
+    alignItems: 'center',
+    gap: 5,
+    minWidth: 44,
+    minHeight: 48,
+    justifyContent: 'center',
+  },
+  railDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 2,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  railLine: {
+    flex: 1,
+    height: 2,
+    backgroundColor: Colors.border,
+    marginHorizontal: 2,
+    marginBottom: 18, // align with dot centres
+  },
+  railLabel: {
+    fontSize: 9,
+    fontWeight: Typography.medium,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  railHint: {
+    fontSize: Typography.xs,
+    color: Colors.textTertiary,
+    textAlign: 'center',
+    marginTop: Spacing.xs,
+    marginBottom: Spacing.sm,
+    fontStyle: 'italic',
+  },
   heroBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginTop: Spacing.sm, flexWrap: 'wrap' },
   deliveryTypeChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: Radius.full },
   deliveryTypeText: { fontSize: Typography.xs, fontWeight: Typography.semibold },

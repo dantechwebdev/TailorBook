@@ -66,7 +66,7 @@ const CURRENCIES = [
 ];
 
 // Total steps: 0=identity, 1=photo, 2=apparels, 3=workdays, 4=currency → step 5 = completion
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 3; // Was 5. Now: 0=Setup(name+photo+currency), 1=Garments, 2=Workdays, then completion
 
 // ─── OnboardingFlow ───────────────────────────────────────────────────────────
 
@@ -462,15 +462,16 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* ─── Step 0: Identity ─── */}
+          {/* ─── Step 0: All Setup (Improvement #16 — merged into one friendly form) ─── */}
           {step === 0 && (
             <View>
               <View style={styles.stepIconWrap}>
                 <Ionicons name="hand-left-outline" size={48} color={Colors.primary} />
               </View>
               <Text style={styles.stepTitle}>Welcome! Let's set up your workshop</Text>
-              <Text style={styles.stepSub}>Tell us a bit about you and your business</Text>
+              <Text style={styles.stepSub}>This takes about 30 seconds. You can change everything later.</Text>
 
+              {/* Name + Shop */}
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Your Name *</Text>
                 <TextInput
@@ -505,45 +506,49 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
                   keyboardType="phone-pad"
                 />
               </View>
-            </View>
-          )}
 
-          {/* ─── Step 1: Shop Photo (optional) ─── */}
-          {step === 1 && (
-            <View style={{ alignItems: 'center' }}>
-              <View style={styles.stepIconWrap}>
-                <Ionicons name="camera-outline" size={48} color={Colors.primary} />
-              </View>
-              <Text style={styles.stepTitle}>Add your shop photo</Text>
-              <Text style={styles.stepSub}>
-                A photo of you or your shop front. This is optional — you can skip it.
-              </Text>
-
-              <TouchableOpacity onPress={pickPhoto} activeOpacity={0.85} style={styles.photoPicker}>
+              {/* Photo (was step 1) — optional, right here */}
+              <Text style={styles.inputLabel}>Shop Photo (optional)</Text>
+              <TouchableOpacity onPress={pickPhoto} activeOpacity={0.85} style={[styles.photoPicker, { marginBottom: Spacing.lg }]}>
                 {profilePhotoUri ? (
-                  <Image
-                    source={{ uri: profilePhotoUri }}
-                    style={styles.photoPreview}
-                    resizeMode="cover"
-                  />
+                  <Image source={{ uri: profilePhotoUri }} style={styles.photoPreview} resizeMode="cover" />
                 ) : (
                   <View style={styles.photoPlaceholder}>
-                    <Ionicons name="camera" size={36} color={Colors.textTertiary} />
-                    <Text style={styles.photoPlaceholderText}>Tap to choose photo</Text>
+                    <Ionicons name="camera" size={28} color={Colors.textTertiary} />
+                    <Text style={styles.photoPlaceholderText}>Tap to add photo</Text>
                   </View>
                 )}
               </TouchableOpacity>
 
-              {profilePhotoUri ? (
-                <TouchableOpacity onPress={() => setProfilePhotoUri('')} style={{ marginTop: Spacing.md }}>
-                  <Text style={styles.removePhotoText}>Remove photo</Text>
-                </TouchableOpacity>
-              ) : null}
+              {/* Currency (was step 4) — inline radio, compact */}
+              <Text style={styles.inputLabel}>Currency</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginBottom: Spacing.md }}>
+                {CURRENCIES.slice(0, 6).map((c) => {
+                  const isSelected = currency === c.symbol;
+                  return (
+                    <TouchableOpacity
+                      key={c.symbol}
+                      onPress={() => setCurrency(c.symbol)}
+                      activeOpacity={0.8}
+                      style={{
+                        flexDirection: 'row', alignItems: 'center', gap: 6,
+                        paddingVertical: 8, paddingHorizontal: 12,
+                        borderRadius: Radius.full, borderWidth: 1.5,
+                        borderColor: isSelected ? Colors.primary : Colors.border,
+                        backgroundColor: isSelected ? Colors.primaryFaint : Colors.surface,
+                      }}
+                    >
+                      <Text style={{ fontSize: Typography.base, fontWeight: Typography.bold, color: isSelected ? Colors.primary : Colors.textSecondary }}>{c.symbol}</Text>
+                      <Text style={{ fontSize: Typography.sm, color: isSelected ? Colors.primary : Colors.textTertiary }}>{c.code ?? c.label.split(' ')[0]}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </View>
           )}
 
-          {/* ─── Step 2: Apparels ─── */}
-          {step === 2 && (
+          {/* ─── Step 1: What do you sew? (was step 2) ─── */}
+          {step === 1 && (
             <View>
               <View style={styles.stepIconWrap}>
                 <Ionicons name="cut-outline" size={48} color={Colors.primary} />
@@ -597,8 +602,8 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
             </View>
           )}
 
-          {/* ─── Step 3: Work Days ─── */}
-          {step === 3 && (
+          {/* ─── Step 2: Work Days (was step 3) ─── */}
+          {step === 2 && (
             <View>
               <View style={styles.stepIconWrap}>
                 <Ionicons name="calendar-outline" size={48} color={Colors.primary} />
@@ -625,67 +630,27 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
             </View>
           )}
 
-          {/* ─── Step 4: Currency ─── */}
-          {step === 4 && (
-            <View>
-              <View style={styles.stepIconWrap}>
-                <Ionicons name="cash-outline" size={48} color={Colors.primary} />
-              </View>
-              <Text style={styles.stepTitle}>What currency do you use?</Text>
-              <Text style={styles.stepSub}>We'll use this for all your pricing</Text>
-              <View style={styles.currencyList}>
-                {CURRENCIES.map((c) => {
-                  const isSelected = currency === c.symbol;
-                  return (
-                    <TouchableOpacity
-                      key={c.symbol}
-                      onPress={() => setCurrency(c.symbol)}
-                      activeOpacity={0.8}
-                      style={[styles.currencyRow, isSelected && styles.currencyRowSelected]}
-                    >
-                      <Text style={styles.currencySymbol}>{c.symbol}</Text>
-                      <Text style={[styles.currencyLabel, isSelected && { color: Colors.primary }]}>
-                        {c.label}
-                      </Text>
-                      {isSelected && (
-                        <Ionicons name="checkmark-circle" size={20} color={Colors.primary} />
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-          )}
-
           {/* ─── Footer CTA ─── */}
           <View style={styles.footer}>
             <TouchableOpacity
               onPress={goNext}
               disabled={
                 (step === 0 && !canProceedStep0) ||
-                (step === 2 && !canProceedStep2) ||
-                (step === 3 && !canProceedStep3)
+                (step === 1 && !canProceedStep2) ||
+                (step === 2 && !canProceedStep3)
               }
               activeOpacity={0.85}
               style={[
                 styles.nextBtn,
                 ((step === 0 && !canProceedStep0) ||
-                  (step === 2 && !canProceedStep2) ||
-                  (step === 3 && !canProceedStep3)) && styles.nextBtnDisabled,
+                  (step === 1 && !canProceedStep2) ||
+                  (step === 2 && !canProceedStep3)) && styles.nextBtnDisabled,
               ]}
             >
               <Text style={styles.nextBtnText}>
-                {step === 4 ? 'Almost done →' : 'Continue →'}
+                {step === 2 ? 'Finish setup →' : 'Continue →'}
               </Text>
             </TouchableOpacity>
-
-            {(step === 1 || step === 4) && (
-              <TouchableOpacity onPress={goNext} style={{ marginTop: Spacing.md }}>
-                <Text style={styles.skipText}>
-                  {step === 1 ? 'Skip for now' : 'Skip currency selection'}
-                </Text>
-              </TouchableOpacity>
-            )}
 
             {step > 0 && (
               <TouchableOpacity onPress={() => setStep((s) => s - 1)} style={{ marginTop: Spacing.md }}>

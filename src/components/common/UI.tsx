@@ -197,15 +197,23 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' })
       style={{
         backgroundColor: config.bgColor,
         paddingHorizontal: size === 'sm' ? 8 : 10,
-        paddingVertical: size === 'sm' ? 3 : 4,
+        paddingVertical: size === 'sm' ? 3 : 5,
         borderRadius: Radius.full,
+        // Improvement #13: left border gives strong color signal at a glance
+        borderLeftWidth: 3,
+        borderLeftColor: config.color,
+        borderTopWidth: 0,
+        borderRightWidth: 0,
+        borderBottomWidth: 0,
       }}
     >
       <Text
         style={{
           color: config.color,
-          fontSize: size === 'sm' ? Typography.xs : Typography.sm,
-          fontWeight: Typography.semibold,
+          // Improvement #13: 12px not 11px — readable in compact lists
+          fontSize: size === 'sm' ? 12 : Typography.sm,
+          fontWeight: Typography.bold,
+          letterSpacing: 0.2,
         }}
       >
         {config.label}

@@ -20,13 +20,14 @@
  */
 
 import React, { memo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
 import { Typography, Spacing, Radius, Shadow } from '../../constants/theme';
 import { CloudIcon, CheckIcon, AlertCircleIcon } from '../common/Icons';
 import { AuthState, CloudSyncState } from '../../types';
 import { formatDateTime } from '../../utils/helpers';
+import { useSpinLoop, useEntrance } from '../../utils/animations';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -53,15 +54,22 @@ const CloudStatusCard: React.FC<CloudStatusCardProps> = memo(({
   const styles = React.useMemo(() => createStyles(Colors), [Colors]);
 
   const isAuthenticated = authState.status === 'authenticated';
+  const isSyncing = syncState.status === 'syncing';
+
+  // Spin cloud icon when syncing, entrance animation for the whole card
+  const { style: spinStyle } = useSpinLoop(isSyncing, 900);
+  const cardEntrance = useEntrance(100, 6);
 
   // ── Unauthenticated view ────────────────────────────────────────────────
 
   if (!isAuthenticated) {
     return (
-      <View style={styles.unauthCard}>
+      <Animated.View style={[styles.unauthCard, cardEntrance.style]}>
         <View style={styles.unauthHeader}>
           <View style={styles.cloudIconWrap}>
-            <CloudIcon size={18} color={Colors.primary} />
+            <Animated.View style={isSyncing ? spinStyle : undefined}>
+              <CloudIcon size={18} color={Colors.primary} />
+            </Animated.View>
           </View>
           <View style={styles.unauthHeaderText}>
             <Text style={styles.unauthTitle}>Workshop stored locally</Text>
@@ -72,22 +80,14 @@ const CloudStatusCard: React.FC<CloudStatusCardProps> = memo(({
           Back up your workshop securely and access it from any of your devices.
         </Text>
         <View style={styles.authBtnRow}>
-          <TouchableOpacity
-            style={styles.signInBtn}
-            onPress={onSignIn}
-            activeOpacity={0.85}
-          >
+          <TouchableOpacity style={styles.signInBtn} onPress={onSignIn} activeOpacity={0.85}>
             <Text style={styles.signInText}>Sign In</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.signUpBtn}
-            onPress={onSignUp}
-            activeOpacity={0.85}
-          >
+          <TouchableOpacity style={styles.signUpBtn} onPress={onSignUp} activeOpacity={0.85}>
             <Text style={styles.signUpText}>Sign Up</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </Animated.View>
     );
   }
 
@@ -95,33 +95,31 @@ const CloudStatusCard: React.FC<CloudStatusCardProps> = memo(({
 
   const syncStatusColor =
     syncState.status === 'success' ? Colors.ready :
-    syncState.status === 'error' ? Colors.overdue :
+    syncState.status === 'error'   ? Colors.overdue :
     syncState.status === 'syncing' ? Colors.primary :
     Colors.textSecondary;
 
   const syncStatusLabel =
     syncState.status === 'success' ? 'Workshop protected' :
-    syncState.status === 'error' ? 'Sync failed — tap to retry' :
+    syncState.status === 'error'   ? 'Sync failed — tap to retry' :
     syncState.status === 'syncing' ? 'Syncing...' :
     'Ready to sync';
 
   const lastBackupText = syncState.lastBackupAt
-    ? formatDateTime(syncState.lastBackupAt)
-    : 'Never backed up';
+    ? formatDateTime(syncState.lastBackupAt) : 'Never backed up';
 
   const lastSyncText = syncState.lastSyncAt
-    ? formatDateTime(syncState.lastSyncAt)
-    : 'Not yet synced';
+    ? formatDateTime(syncState.lastSyncAt) : 'Not yet synced';
 
   return (
-    <TouchableOpacity
-      style={styles.authCard}
-      onPress={onManageCloud}
-      activeOpacity={0.88}
-    >
+    <Animated.View style={cardEntrance.style}>
+    <TouchableOpacity style={styles.authCard} onPress={onManageCloud} activeOpacity={0.88}>
       <View style={styles.authCardHeader}>
         <View style={styles.cloudIconWrap}>
-          <CloudIcon size={18} color={Colors.primary} />
+          {/* Cloud icon spins during active sync */}
+          <Animated.View style={isSyncing ? spinStyle : undefined}>
+            <CloudIcon size={18} color={Colors.primary} />
+          </Animated.View>
         </View>
         <View style={styles.authHeaderText}>
           <Text style={styles.authCardTitle}>TailorBook Cloud</Text>
@@ -129,12 +127,8 @@ const CloudStatusCard: React.FC<CloudStatusCardProps> = memo(({
             {syncStatusLabel}
           </Text>
         </View>
-        {syncState.status === 'success' && (
-          <CheckIcon size={18} color={Colors.ready} />
-        )}
-        {syncState.status === 'error' && (
-          <AlertCircleIcon size={18} color={Colors.overdue} />
-        )}
+        {syncState.status === 'success' && <CheckIcon size={18} color={Colors.ready} />}
+        {syncState.status === 'error'   && <AlertCircleIcon size={18} color={Colors.overdue} />}
       </View>
 
       <View style={styles.authStats}>
@@ -152,6 +146,7 @@ const CloudStatusCard: React.FC<CloudStatusCardProps> = memo(({
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
+    </Animated.View>
   );
 });
 

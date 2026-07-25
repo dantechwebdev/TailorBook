@@ -16,31 +16,22 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import {
-  AgbadaIcon,
-  BlouseIcon,
-  GownIcon,
-  KaftanIcon,
-  OtherIcon,
-  SenatorIcon,
-  ShirtIcon,
-  SkirtIcon,
-  SuitIcon,
-  TrouserIcon,
+  AgbadaIcon, BlouseIcon, GownIcon, KaftanIcon, OtherIcon,
+  SenatorIcon, ShirtIcon, SkirtIcon, SuitIcon, TrouserIcon,
   IconProps,
 } from '../../../assets/icons/custom';
 import { useStore } from '../../context/store';
 import { Typography, Spacing, Radius, Shadow, JOB_STATUS_CONFIG } from '../../constants/theme';
-import {
-  MenuIcon,
-  NotificationsIcon,
-  ChevronRightIcon,
-} from '../../components/common/Icons';
+import { MenuIcon, NotificationsIcon, ChevronRightIcon } from '../../components/common/Icons';
 import { getFirstName, formatNaira } from '../../utils/helpers';
 import { Job } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
 import FloatingAssistant from '../../components/ai/FloatingAssistant';
 import CloudStatusCard from '../../components/home/CloudStatusCard';
 import { useAuth } from '../../context/AuthContext';
+import {
+  useEntrance, useSpringScale, useBellShake, useFloatLoop, useShimmerPress, useFadeIn,
+} from '../../utils/animations';
 
 const CARD_WIDTH = Dimensions.get('window').width * 0.68;
 const CARD_HEIGHT = CARD_WIDTH * 1.2;
@@ -137,20 +128,20 @@ function buildTodayTasks(
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const {
-    dueToday,
-    overdueJobs,
-    readyJobs,
-    recentJobs,
-    pendingWaybills,
-    outstandingBalances,
-    unreadNotificationCount,
-    settings,
-    initialize,
-    refreshJobs,
-    loadSettings,
+    dueToday, overdueJobs, readyJobs, recentJobs,
+    pendingWaybills, outstandingBalances, unreadNotificationCount,
+    settings, initialize, refreshJobs, loadSettings,
   } = useStore();
   const { colors: Colors } = useTheme();
   const { authState, syncState, syncNow } = useAuth();
+
+  // ── Entrance animations ──────────────────────────────────────────────────
+  const greetingAnim  = useEntrance(0,   8);   // greeting block fades + rises first
+  const cloudAnim     = useEntrance(80,  6);   // cloud card follows
+  const tasksAnim     = useEntrance(160, 6);   // tasks section last
+  const recentAnim    = useFadeIn(240, 300);   // recent jobs fade in softly
+  const fabSpring     = useSpringScale(0.78, 1, 300); // FAB springs in
+  const bell          = useBellShake(unreadNotificationCount > 0); // bell shakes once
 
   const styles = useMemo(() => StyleSheet.create({
     container: { flex: 1, backgroundColor: Colors.background },
@@ -392,6 +383,7 @@ const HomeScreen: React.FC = () => {
       marginLeft: Spacing.sm,
     },
 
+    // Improvement #6 — WhatsApp Digest: branded green pill icon, stronger identity
     digestCard: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -402,8 +394,20 @@ const HomeScreen: React.FC = () => {
       paddingHorizontal: Spacing.base,
       paddingVertical: Spacing.md,
       marginHorizontal: Spacing.base,
-      marginBottom: Spacing.md,
+      marginBottom: Spacing.xl,
       gap: Spacing.md,
+      // Subtle green shadow
+      shadowColor: '#25D366',
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.12,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    digestIconWrap: {
+      width: 40, height: 40, borderRadius: 20,
+      backgroundColor: '#25D366',
+      alignItems: 'center', justifyContent: 'center',
+      flexShrink: 0,
     },
     digestLeft: {
       flex: 1,
@@ -437,6 +441,7 @@ const HomeScreen: React.FC = () => {
       alignItems: 'center',
       ...Shadow.sm,
     },
+    quickBtnEmoji: { fontSize: 20, marginBottom: 4 },  // #14
     quickBtnLabel: {
       fontSize: Typography.sm,
       fontWeight: Typography.bold,
@@ -444,6 +449,39 @@ const HomeScreen: React.FC = () => {
       marginBottom: 2,
     },
     quickBtnSub: { fontSize: Typography.xs, color: Colors.textTertiary },
+
+    // Improvement #5 — persistent floating action button
+    fab: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: Colors.primary,
+      borderRadius: Radius.full,
+      paddingVertical: 14,
+      paddingHorizontal: Spacing.xl,
+      gap: Spacing.sm,
+      shadowColor: Colors.primaryDark,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.35,
+      shadowRadius: 12,
+      elevation: 10,
+    },
+    fabWrap: {
+      position: 'absolute',
+      bottom: 80,
+      alignSelf: 'center',
+    },
+    fabPlus: {
+      fontSize: 22,
+      fontWeight: Typography.extrabold,
+      color: Colors.white,
+      lineHeight: 24,
+    },
+    fabLabel: {
+      fontSize: Typography.base,
+      fontWeight: Typography.bold,
+      color: Colors.white,
+      letterSpacing: 0.3,
+    },
   }), [Colors]);
 
   const [refreshing, setRefreshing] = React.useState(false);
@@ -564,7 +602,9 @@ const HomeScreen: React.FC = () => {
           style={styles.iconBtn}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <NotificationsIcon size={22} color={Colors.textPrimary} />
+          <Animated.View style={bell.style}>
+            <NotificationsIcon size={22} color={Colors.textPrimary} />
+          </Animated.View>
           {unreadNotificationCount > 0 && (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>
@@ -586,8 +626,8 @@ const HomeScreen: React.FC = () => {
           />
         }
       >
-        {/* ─── Greeting ─── */}
-        <View style={styles.greetingBlock}>
+        {/* ─── Greeting — fades + slides up on mount ─── */}
+        <Animated.View style={[styles.greetingBlock, greetingAnim.style]}>
           <View style={styles.greetingRow}>
             <View style={styles.greetingText}>
               <Text style={styles.greetingName}>
@@ -620,19 +660,10 @@ const HomeScreen: React.FC = () => {
               </TouchableOpacity>
             )}
           </View>
-        </View>
+        </Animated.View>
 
-        {/* ─── Primary CTA ─── */}
-        <TouchableOpacity
-          onPress={startNewOrder}
-          activeOpacity={0.88}
-          style={styles.newOrderBtn}
-        >
-          <Text style={styles.newOrderPlus}>+</Text>
-          <Text style={styles.newOrderLabel}>Start New Order</Text>
-        </TouchableOpacity>
-
-        {/* ─── Cloud Status Card ─── */}
+        {/* ─── Cloud Status Card — follows greeting ─── */}
+        <Animated.View style={cloudAnim.style}>
         <CloudStatusCard
           authState={authState}
           syncState={syncState}
@@ -641,8 +672,10 @@ const HomeScreen: React.FC = () => {
           onManageCloud={() => navigation.navigate('AccountScreen')}
           onSyncNow={syncNow}
         />
+        </Animated.View>
 
-        {/* ─── Today's Tasks ─── */}
+        {/* ─── Today's Tasks — staggered below cloud ─── */}
+        <Animated.View style={tasksAnim.style}>
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionTitle}>Today's Tasks</Text>
@@ -654,13 +687,7 @@ const HomeScreen: React.FC = () => {
           </View>
 
           {tasks.length === 0 ? (
-            <View style={styles.emptyTaskCard}>
-              <Ionicons name="checkmark-circle-outline" size={36} color={Colors.primary} style={{ marginBottom: Spacing.md }} />
-              <Text style={styles.emptyTaskTitle}>Nothing urgent today</Text>
-              <Text style={styles.emptyTaskSubtext}>
-                All jobs are on track. Start a new order when ready.
-              </Text>
-            </View>
+            <EmptyTaskCard Colors={Colors} styles={styles} onNewOrder={startNewOrder} />
           ) : (
             <View style={styles.taskList}>
               {tasks.map((task, idx) => (
@@ -676,10 +703,11 @@ const HomeScreen: React.FC = () => {
             </View>
           )}
         </View>
+        </Animated.View>
 
-        {/* ─── Recent Jobs ─── */}
+        {/* ─── Recent Jobs — fades in after tasks ─── */}
         {recentJobs.length > 0 && (
-          <View style={styles.section}>
+          <Animated.View style={[styles.section, recentAnim.style]}>
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionTitle}>Recent Jobs</Text>
               <TouchableOpacity
@@ -706,7 +734,7 @@ const HomeScreen: React.FC = () => {
                 />
               ))}
             </ScrollView>
-          </View>
+          </Animated.View>
         )}
 
         {/* ─── Awaiting Dispatch ─── */}
@@ -811,40 +839,41 @@ const HomeScreen: React.FC = () => {
           </View>
         )}
 
-        {/* ─── WhatsApp Daily Digest ─── */}
+        {/* ─── Improvement #6: WhatsApp Digest — stronger branding ─── */}
         <TouchableOpacity
           onPress={handleSendDigest}
           activeOpacity={0.85}
           style={styles.digestCard}
         >
-          <View style={styles.digestLeft}>
-            <Ionicons name="logo-whatsapp" size={26} color="#25D366" />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.digestTitle}>Send Daily Digest</Text>
-              <Text style={styles.digestSub}>
-                {(() => {
-                  const total =
-                    overdueJobs.length +
-                    dueToday.length +
-                    readyJobs.length +
-                    outstandingBalances.length;
-                  return total > 0
-                    ? `${total} item${total > 1 ? 's' : ''} — tap to WhatsApp today's summary to yourself`
-                    : 'All clear today — send a status update to yourself';
-                })()}
-              </Text>
-            </View>
+          <View style={styles.digestIconWrap}>
+            <Ionicons name="logo-whatsapp" size={24} color="#FFFFFF" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.digestTitle}>Send Daily Digest</Text>
+            <Text style={styles.digestSub}>
+              {(() => {
+                const total =
+                  overdueJobs.length +
+                  dueToday.length +
+                  readyJobs.length +
+                  outstandingBalances.length;
+                return total > 0
+                  ? `${total} item${total > 1 ? 's' : ''} — WhatsApp today's summary to yourself`
+                  : 'All clear today — send a status update to yourself';
+              })()}
+            </Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color="#25D366" />
         </TouchableOpacity>
 
-        {/* ─── Quick Links ─── */}
+        {/* ─── Quick Links — Improvement #14: add ScratchPad ─── */}
         <View style={styles.quickRow}>
           <TouchableOpacity
             style={styles.quickBtn}
             onPress={() => navigation.navigate('CustomersStack')}
             activeOpacity={0.85}
           >
+            <Text style={styles.quickBtnEmoji}>👥</Text>
             <Text style={styles.quickBtnLabel}>Customers</Text>
             <Text style={styles.quickBtnSub}>Browse all</Text>
           </TouchableOpacity>
@@ -853,21 +882,38 @@ const HomeScreen: React.FC = () => {
             onPress={() => navigation.navigate('JobsStack', { screen: 'JobList' })}
             activeOpacity={0.85}
           >
+            <Text style={styles.quickBtnEmoji}>💼</Text>
             <Text style={styles.quickBtnLabel}>All Jobs</Text>
             <Text style={styles.quickBtnSub}>Full list</Text>
           </TouchableOpacity>
+          {/* Improvement #14 — ScratchPad promoted from drawer to home */}
           <TouchableOpacity
             style={styles.quickBtn}
-            onPress={() => navigation.navigate('AccountScreen')}
+            onPress={() => navigation.navigate('ScratchPadScreen')}
             activeOpacity={0.85}
           >
-            <Text style={styles.quickBtnLabel}>Account</Text>
-            <Text style={styles.quickBtnSub}>Your profile</Text>
+            <Text style={styles.quickBtnEmoji}>📝</Text>
+            <Text style={styles.quickBtnLabel}>Notes</Text>
+            <Text style={styles.quickBtnSub}>Scratch pad</Text>
           </TouchableOpacity>
         </View>
 
-        <View style={{ height: Spacing.xxxl }} />
+        <View style={{ height: Spacing.xxxl * 2 }} />
       </ScrollView>
+
+      {/* Improvement #5 — Persistent FAB with spring entrance */}
+      <Animated.View style={[styles.fabWrap, fabSpring.style]}>
+        <TouchableOpacity
+          onPress={startNewOrder}
+          activeOpacity={0.88}
+          style={styles.fab}
+          accessibilityLabel="Start new order"
+          accessibilityRole="button"
+        >
+          <Text style={styles.fabPlus}>+</Text>
+          <Text style={styles.fabLabel}>New Order</Text>
+        </TouchableOpacity>
+      </Animated.View>
 
       {/* ─── Floating AI Assistant ─── */}
       <FloatingAssistant screen="Dashboard" />
@@ -906,6 +952,9 @@ const RecentJobCard: React.FC<{ job: Job; onPress: () => void; styles: any; Colo
   const [photoIdx, setPhotoIdx] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
+  // Physical press feel on recent job cards
+  const { style: pressStyle, handlers } = useShimmerPress();
+
   useEffect(() => {
     if (photos.length <= 1) return;
     const interval = setInterval(() => {
@@ -923,86 +972,108 @@ const RecentJobCard: React.FC<{ job: Job; onPress: () => void; styles: any; Colo
   const OutfitIconCmp = OUTFIT_ICON_MAP[job.outfitType] ?? OtherIcon;
 
   return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.88}
-      style={[styles.recentCard, { width: CARD_WIDTH }]}
-    >
-      {/* ─── Photo / Fallback ─── */}
-      <View style={[styles.recentCardMedia, { backgroundColor: bgColor }]}>
-        {photos.length > 0 ? (
-          <Animated.Image
-            source={{ uri: photos[photoIdx] }}
-            style={[styles.recentCardImage, { opacity: fadeAnim }]}
-            resizeMode="cover"
-          />
-        ) : (
-          <OutfitIconCmp size={48} color={Colors.textTertiary} />
-        )}
-        {/* Status badge */}
-        <View style={[styles.recentStatusBadge, { backgroundColor: cfg?.color || Colors.primary }]}>
-          <Text style={styles.recentStatusText}>{job.status}</Text>
-        </View>
-        {/* Photo count */}
-        {photos.length > 1 && (
-          <View style={styles.photoCountBadge}>
-            <Ionicons name="camera" size={11} color={Colors.white} />
-            <Text style={styles.photoCountText}>{photos.length}</Text>
+    <Animated.View style={[{ width: CARD_WIDTH }, pressStyle]}>
+      <TouchableOpacity
+        onPress={onPress}
+        activeOpacity={1}
+        {...handlers}
+        style={styles.recentCard}
+      >
+        {/* ─── Photo / Fallback ─── */}
+        <View style={[styles.recentCardMedia, { backgroundColor: bgColor }]}>
+          {photos.length > 0 ? (
+            <Animated.Image
+              source={{ uri: photos[photoIdx] }}
+              style={[styles.recentCardImage, { opacity: fadeAnim }]}
+              resizeMode="cover"
+            />
+          ) : (
+            <OutfitIconCmp size={48} color={Colors.textTertiary} />
+          )}
+          {/* Status badge */}
+          <View style={[styles.recentStatusBadge, { backgroundColor: cfg?.color || Colors.primary }]}>
+            <Text style={styles.recentStatusText}>{job.status}</Text>
           </View>
-        )}
-      </View>
+          {/* Photo count */}
+          {photos.length > 1 && (
+            <View style={styles.photoCountBadge}>
+              <Ionicons name="camera" size={11} color={Colors.white} />
+              <Text style={styles.photoCountText}>{photos.length}</Text>
+            </View>
+          )}
+        </View>
 
-      {/* ─── Info ─── */}
-      <View style={styles.recentCardInfo}>
-        <Text style={styles.recentCardName} numberOfLines={1}>
-          {getFirstName(job.customerName)}
-        </Text>
-        <Text style={styles.recentCardType}>{job.outfitType}</Text>
-        {job.balance > 0 && (
-          <Text style={styles.recentCardBalance}>
-            {formatNaira(job.balance)} balance
+        {/* ─── Info ─── */}
+        <View style={styles.recentCardInfo}>
+          <Text style={styles.recentCardName} numberOfLines={1}>
+            {getFirstName(job.customerName)}
           </Text>
-        )}
-      </View>
-    </TouchableOpacity>
+          <Text style={styles.recentCardType}>{job.outfitType}</Text>
+          {job.balance > 0 && (
+            <Text style={styles.recentCardBalance}>
+              {formatNaira(job.balance)} balance
+            </Text>
+          )}
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
   );
 };
 
 // ─── TaskCard ─────────────────────────────────────────────────────────────────
 
 const TaskCard: React.FC<{ task: Task; isLast: boolean; onPress: () => void; styles: any; Colors: any }> = ({
-  task,
-  isLast,
-  onPress,
-  styles,
-  Colors,
+  task, isLast, onPress, styles, Colors,
 }) => {
   const URGENCY_CONFIG = {
-    critical: { border: Colors.overdue, bg: Colors.overdueLight, dot: Colors.overdue },
-    warning: { border: Colors.dueSoon, bg: Colors.dueSoonLight, dot: Colors.dueSoon },
-    action: { border: Colors.ready, bg: Colors.readyLight, dot: Colors.ready },
-    info: { border: Colors.primary, bg: Colors.primaryFaint, dot: Colors.primary },
+    critical: { border: Colors.overdue,  bg: Colors.overdueLight,  dot: Colors.overdue  },
+    warning:  { border: Colors.dueSoon,  bg: Colors.dueSoonLight,  dot: Colors.dueSoon  },
+    action:   { border: Colors.ready,    bg: Colors.readyLight,    dot: Colors.ready    },
+    info:     { border: Colors.primary,  bg: Colors.primaryFaint,  dot: Colors.primary  },
   };
   const cfg = URGENCY_CONFIG[task.urgency];
+  // Improvement — physical press feedback on every task card
+  const { style: pressStyle, handlers } = useShimmerPress();
+
   return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.8}
-      style={[
-        styles.taskCard,
-        { borderLeftColor: cfg.border },
-        !isLast && styles.taskCardBorder,
-      ]}
-    >
-      <View style={[styles.taskDot, { backgroundColor: cfg.dot }]} />
-      <View style={styles.taskContent}>
-        <Text style={styles.taskLabel}>{task.label}</Text>
-        {task.subLabel && (
-          <Text style={styles.taskSubLabel}>{task.subLabel}</Text>
-        )}
-      </View>
-      <ChevronRightIcon size={16} color={Colors.textTertiary} />
-    </TouchableOpacity>
+    <Animated.View style={pressStyle}>
+      <TouchableOpacity
+        onPress={onPress}
+        activeOpacity={1}
+        {...handlers}
+        style={[styles.taskCard, { borderLeftColor: cfg.border }, !isLast && styles.taskCardBorder]}
+      >
+        <View style={[styles.taskDot, { backgroundColor: cfg.dot }]} />
+        <View style={styles.taskContent}>
+          <Text style={styles.taskLabel}>{task.label}</Text>
+          {task.subLabel && <Text style={styles.taskSubLabel}>{task.subLabel}</Text>}
+        </View>
+        <ChevronRightIcon size={16} color={Colors.textTertiary} />
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
+// Empty task card — floating icon so it feels alive, not abandoned
+const EmptyTaskCard: React.FC<{ Colors: any; styles: any; onNewOrder: () => void }> = ({
+  Colors, styles, onNewOrder,
+}) => {
+  const floatAnim = useFloatLoop(4, 2600);
+  return (
+    <View style={styles.emptyTaskCard}>
+      <Animated.View style={floatAnim.style}>
+        <Ionicons
+          name="checkmark-circle-outline"
+          size={40}
+          color={Colors.primary}
+          style={{ marginBottom: Spacing.md }}
+        />
+      </Animated.View>
+      <Text style={styles.emptyTaskTitle}>Nothing urgent today</Text>
+      <Text style={styles.emptyTaskSubtext}>
+        All jobs are on track. Start a new order when ready.
+      </Text>
+    </View>
   );
 };
 
