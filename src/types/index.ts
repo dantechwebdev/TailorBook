@@ -366,3 +366,146 @@ export interface BusinessNarrative {
   type: 'positive' | 'warning' | 'neutral';
   message: string;
 }
+
+// ─── Job Image Galleries ──────────────────────────────────────────────────────
+// Extends the simple `photoUris` field with categorized galleries as required
+// by the AI operating layer. `photoUris` is preserved for backward
+// compatibility — it continues to represent "Customer Photos / Reference
+// Images" as it always has. The new `imageGallery` support is additive so
+// existing jobs created before this feature keep working unmodified.
+
+export type JobImageCategory =
+  | 'customer_photo'    // Customer Photos — supplied by the customer
+  | 'reference'          // Reference Images — inspiration pulled from elsewhere
+  | 'ai_concept'         // AI Generated Concepts — from TailorStudio / Studio tool
+  | 'approved_design'    // Approved Designs — concept the tailor/customer picked
+  | 'production_photo'   // Production Photos — in-progress garment photos
+  | 'final_delivery';    // Final Delivery Photos — completed garment before handoff
+
+export interface JobImage {
+  id: string;
+  jobId: string;
+  category: JobImageCategory;
+  uri: string;
+  caption?: string;
+  sourceConceptId?: string; // If saved from a Studio concept, links back to it
+  createdAt: string;
+}
+
+// ─── AI Context Engine Types ──────────────────────────────────────────────────
+// Every screen registers its live, structured context here. The assistant reads
+// this instead of asking the user what they mean. Screens supply facts; the AI
+// performs reasoning over those facts — it never guesses or requests data the
+// app already has on hand.
+
+export type AIScreenName =
+  | 'Dashboard'
+  | 'CustomerList'
+  | 'CustomerDetail'
+  | 'JobList'
+  | 'JobDetail'
+  | 'Measurements'
+  | 'BusinessInsights'
+  | 'Notifications'
+  | 'Schedule'
+  | 'TailorStudio';
+
+export interface AIActiveContext {
+  screen: AIScreenName;
+  customer?: Customer;
+  job?: Job;
+  measurements?: Measurements[];
+  recentActions?: string[];
+  selectedItems?: string[];
+  extra?: Record<string, unknown>;
+  updatedAt: string;
+}
+
+// ─── AI Tool System ────────────────────────────────────────────────────────────
+// Every capability the assistant can perform is expressed as a Tool. The AI
+// chooses which tool(s) to invoke based on the user's request and the active
+// context; tools do the actual work (reading/writing app state). The AI layer
+// itself never touches SQLite, the repositories, or UI state directly.
+
+export type AIToolCategory =
+  | 'customer'
+  | 'estimation'
+  | 'document'
+  | 'insight'
+  | 'reminder'
+  | 'communication'
+  | 'media'
+  | 'note';
+
+export interface AIToolParamSchema {
+  [paramName: string]: {
+    type: 'string' | 'number' | 'boolean' | 'array';
+    description: string;
+    required: boolean;
+    enumValues?: string[];
+  };
+}
+
+export interface AIToolResult {
+  success: boolean;
+  summary: string;           // Short human-readable outcome, shown/spoken to the tailor
+  data?: Record<string, unknown>;
+  error?: string;
+}
+
+export interface AIToolDefinition {
+  name: string;
+  description: string;
+  category: AIToolCategory;
+  // Which of the active-context fields must be present for this tool to run
+  requiredContext: Array<'customer' | 'job' | 'measurements'>;
+  // Which screens this tool is relevant/offered on (for screen-adaptive quick actions)
+  supportedScreens: AIScreenName[];
+  params: AIToolParamSchema;
+}
+
+// ─── Image Generation Types ────────────────────────────────────────────────────
+
+export type ImageProviderName = 'gemini-image' | 'openai-image' | 'mock-image';
+
+export interface ImageGenerationRequest {
+  prompt: string;
+  referenceImageUris?: string[];
+  count?: number;
+  aspectRatio?: '1:1' | '3:4' | '4:3' | '9:16' | '16:9';
+}
+
+export interface GeneratedImage {
+  id: string;
+  uri: string;
+  prompt: string;
+  provider: ImageProviderName;
+  createdAt: string;
+}
+
+export interface ImageGenerationResult {
+  success: boolean;
+  images: GeneratedImage[];
+  error?: string;
+}
+
+// ─── TailorStudio Concept Types ────────────────────────────────────────────────
+// Studio is the creative workspace — separate from the productivity assistant.
+// Concepts support versioning: each iteration is a new StudioConcept linked to
+// its parent via `parentConceptId`, so the tailor can browse history.
+
+export interface StudioConcept {
+  id: string;
+  jobId?: string;
+  customerId?: string;
+  parentConceptId?: string; // Set when this concept is an iteration of another
+  prompt: string;
+  images: GeneratedImage[];
+  outfitType?: string;
+  colorNotes?: string;
+  embroideryNotes?: string;
+  fabricNotes?: string;
+  styleMode?: 'luxury' | 'minimalist' | 'traditional' | 'modern' | 'streetwear';
+  createdAt: string;
+}
+

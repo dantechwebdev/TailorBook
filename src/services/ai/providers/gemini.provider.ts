@@ -15,7 +15,7 @@
  */
 
 import { IAIProvider } from '../AIService';
-import { AICompletionRequest, AICompletionResponse } from '../../../../types';
+import { AICompletionRequest, AICompletionResponse } from '../../../types';
 
 const API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY ?? '';
 const MODEL = 'gemini-1.5-flash';

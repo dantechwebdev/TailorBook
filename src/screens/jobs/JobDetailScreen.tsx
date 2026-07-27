@@ -49,6 +49,7 @@ import {
 } from '../../utils/whatsapp';
 import { REMINDER_PRESETS, computeReminderDate } from '../../utils/notifications/presets';
 import FloatingAssistant from '../../components/ai/FloatingAssistant';
+import { useAIContext } from '../../services/ai/context/ContextEngine';
 
 // ─── Improvement #15 — haptic feedback (graceful no-op if expo-haptics not installed) ─────
 let Haptics: any = null;
@@ -130,6 +131,18 @@ const JobDetailScreen: React.FC = () => {
   const currency = settings?.currency || '₦';
   const customReminders = job ? getJobReminders(jobId) : [];
 
+  // ── AI Context Engine registration ──────────────────────────────────────
+  // Every tool the assistant can run on this screen (estimate fabric, send
+  // WhatsApp, generate an invoice, etc.) reads this live context instead of
+  // asking the tailor which job/customer they mean.
+  const allCustomerMeasurements = customer ? getMeasurementsByCustomer(customer.id) : [];
+  useAIContext({
+    screen: 'JobDetail',
+    job: job ?? undefined,
+    customer: customer ?? undefined,
+    measurements: allCustomerMeasurements,
+  });
+
   // ── Theme — live palette, reactive to Light/Dark/System instantly ──────
   const { colors: Colors, isDark } = useTheme();
   const styles = useMemo(() => createStyles(Colors, isDark), [Colors, isDark]);
@@ -147,7 +160,6 @@ const JobDetailScreen: React.FC = () => {
   const [showSummary, setShowSummary] = useState(false);
   const [statusLoading, setStatusLoading] = useState(false);
   const [waPreview, setWaPreview] = useState<WaPreview | null>(null);
-  const [showStudio, setShowStudio] = useState(false);
 
   // ─── Reminder state
   const [showAddReminder, setShowAddReminder] = useState(false);
@@ -680,7 +692,7 @@ const JobDetailScreen: React.FC = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Studio</Text>
           <TouchableOpacity
-            onPress={() => setShowStudio(true)}
+            onPress={() => navigation.navigate('TailorStudio', { jobId: job.id, customerId: job.customerId })}
             activeOpacity={0.85}
             style={styles.studioCard}
             accessibilityLabel="Open TailorStudio"
@@ -690,12 +702,10 @@ const JobDetailScreen: React.FC = () => {
               <Text style={styles.studioEmoji}>🧵</Text>
               <View style={{ flex: 1 }}>
                 <Text style={styles.studioTitle}>TailorStudio</Text>
-                <Text style={styles.studioSubtitle}>Visualize garments before you sew</Text>
+                <Text style={styles.studioSubtitle}>Generate design concepts for this job</Text>
               </View>
             </View>
-            <View style={styles.studioComingSoonBadge}>
-              <Text style={styles.studioComingSoonText}>Coming Soon</Text>
-            </View>
+            <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
           </TouchableOpacity>
         </View>
 
@@ -930,33 +940,6 @@ const JobDetailScreen: React.FC = () => {
           },
         }}
       />
-
-      {/* ─── Studio Coming Soon Modal ─── */}
-      <Modal visible={showStudio} transparent animationType="fade" presentationStyle="overFullScreen" onRequestClose={() => setShowStudio(false)}>
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowStudio(false)}
-        >
-          <View style={[styles.modalSheet, styles.studioSheet]}>
-            <View style={styles.modalHandle} />
-            <View style={styles.studioModalIcon}>
-              <Text style={{ fontSize: 48 }}>🧵</Text>
-            </View>
-            <Text style={styles.studioModalTitle}>TailorStudio</Text>
-            <Text style={styles.studioModalSubtitle}>
-              Visualize garments before sewing.{'\n\n'}
-              Soon you'll be able to preview fabrics, styles and measurements in an immersive creative workspace — designed specifically for tailors like you.
-            </Text>
-            <View style={styles.studioModalBadge}>
-              <Text style={styles.studioModalBadgeText}>Coming Soon</Text>
-            </View>
-            <TouchableOpacity onPress={() => setShowStudio(false)} style={styles.cancelPreviewBtn}>
-              <Text style={styles.cancelPreviewText}>Got it</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
 
       {/* ─── Summary Sheet ─── */}
       <Modal visible={showSummary} transparent animationType="slide" presentationStyle="overFullScreen">
@@ -1400,29 +1383,6 @@ const createStyles = (Colors: ColorPalette, isDark: boolean) => StyleSheet.creat
   studioEmoji: { fontSize: 28 },
   studioTitle: { fontSize: Typography.base, fontWeight: Typography.bold, color: Colors.textPrimary },
   studioSubtitle: { fontSize: Typography.xs, color: Colors.textSecondary, marginTop: 2 },
-  studioComingSoonBadge: {
-    backgroundColor: Colors.primaryFaint,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: Radius.full,
-    borderWidth: 1,
-    borderColor: Colors.primaryLight + '40',
-  },
-  studioComingSoonText: { fontSize: 10, fontWeight: Typography.bold, color: Colors.primary, letterSpacing: 0.5 },
-  studioSheet: { alignItems: 'center', paddingBottom: 40 },
-  studioModalIcon: { marginBottom: Spacing.lg, marginTop: Spacing.sm },
-  studioModalTitle: { fontSize: Typography.xxl, fontWeight: Typography.extrabold, color: Colors.textPrimary, marginBottom: Spacing.md, textAlign: 'center' },
-  studioModalSubtitle: { fontSize: Typography.base, color: Colors.textSecondary, lineHeight: 24, textAlign: 'center', marginBottom: Spacing.xl },
-  studioModalBadge: {
-    backgroundColor: Colors.primaryFaint,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radius.full,
-    borderWidth: 1,
-    borderColor: Colors.primaryLight + '40',
-    marginBottom: Spacing.xl,
-  },
-  studioModalBadgeText: { fontSize: Typography.sm, fontWeight: Typography.bold, color: Colors.primary, letterSpacing: 0.5 },
 
   summarySheet: { maxHeight: '75%' },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: Spacing.sm, borderBottomWidth: 1, borderBottomColor: Colors.borderLight },

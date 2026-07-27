@@ -21,7 +21,7 @@ import {
   SignInCredentials,
   SignUpCredentials,
   AuthStatus,
-} from '../../types';
+} from '../types';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 

@@ -1,5 +1,5 @@
 import * as SQLite from 'expo-sqlite';
-import { Customer, Job, Measurements, AppNotification, TailorSettings, JobReminder, ScratchNote } from '../types';
+import { Customer, Job, Measurements, AppNotification, TailorSettings, JobReminder, ScratchNote, JobImage, StudioConcept } from '../types';
 
 // ─── Database Singleton ────────────────────────────────────────────────────────
 
@@ -111,6 +111,37 @@ async function initializeDatabase(database: SQLite.SQLiteDatabase): Promise<void
       createdAt TEXT NOT NULL,
       updatedAt TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS job_images (
+      id TEXT PRIMARY KEY,
+      jobId TEXT NOT NULL,
+      category TEXT NOT NULL,
+      uri TEXT NOT NULL,
+      caption TEXT,
+      sourceConceptId TEXT,
+      createdAt TEXT NOT NULL,
+      FOREIGN KEY (jobId) REFERENCES jobs(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_job_images_jobId ON job_images(jobId);
+
+    CREATE TABLE IF NOT EXISTS studio_concepts (
+      id TEXT PRIMARY KEY,
+      jobId TEXT,
+      customerId TEXT,
+      parentConceptId TEXT,
+      prompt TEXT NOT NULL,
+      images TEXT NOT NULL,
+      outfitType TEXT,
+      colorNotes TEXT,
+      embroideryNotes TEXT,
+      fabricNotes TEXT,
+      styleMode TEXT,
+      createdAt TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_studio_concepts_jobId ON studio_concepts(jobId);
+    CREATE INDEX IF NOT EXISTS idx_studio_concepts_customerId ON studio_concepts(customerId);
   `);
 
   await runMigrations(database);
@@ -554,6 +585,82 @@ export async function updateScratchNote(note: ScratchNote): Promise<void> {
 export async function deleteScratchNote(id: string): Promise<void> {
   const database = await getDatabase();
   await database.runAsync('DELETE FROM scratch_notes WHERE id = ?', [id]);
+}
+
+// ─── Job Image Gallery Operations ─────────────────────────────────────────────
+// Categorized images (customer photo, reference, AI concept, approved design,
+// production photo, final delivery). Separate from the legacy `photoUris`
+// column on jobs, which continues to work unmodified for existing data.
+
+export async function getJobImages(jobId: string): Promise<JobImage[]> {
+  const database = await getDatabase();
+  return database.getAllAsync<JobImage>(
+    'SELECT * FROM job_images WHERE jobId = ? ORDER BY createdAt DESC',
+    [jobId]
+  );
+}
+
+export async function addJobImage(image: JobImage): Promise<void> {
+  const database = await getDatabase();
+  await database.runAsync(
+    `INSERT INTO job_images (id, jobId, category, uri, caption, sourceConceptId, createdAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [image.id, image.jobId, image.category, image.uri, image.caption ?? null, image.sourceConceptId ?? null, image.createdAt]
+  );
+}
+
+export async function deleteJobImage(id: string): Promise<void> {
+  const database = await getDatabase();
+  await database.runAsync('DELETE FROM job_images WHERE id = ?', [id]);
+}
+
+// ─── Studio Concept Operations ────────────────────────────────────────────────
+// AI-generated design concepts from TailorStudio. `images` is stored as a JSON
+// blob since a concept can hold multiple generated variations at once.
+
+export async function getStudioConceptsByJob(jobId: string): Promise<StudioConcept[]> {
+  const database = await getDatabase();
+  const rows = await database.getAllAsync<any>(
+    'SELECT * FROM studio_concepts WHERE jobId = ? ORDER BY createdAt DESC',
+    [jobId]
+  );
+  return rows.map(parseConceptRow);
+}
+
+export async function getStudioConceptsByCustomer(customerId: string): Promise<StudioConcept[]> {
+  const database = await getDatabase();
+  const rows = await database.getAllAsync<any>(
+    'SELECT * FROM studio_concepts WHERE customerId = ? ORDER BY createdAt DESC',
+    [customerId]
+  );
+  return rows.map(parseConceptRow);
+}
+
+export async function getStudioConceptById(id: string): Promise<StudioConcept | null> {
+  const database = await getDatabase();
+  const row = await database.getFirstAsync<any>('SELECT * FROM studio_concepts WHERE id = ?', [id]);
+  return row ? parseConceptRow(row) : null;
+}
+
+export async function createStudioConcept(concept: StudioConcept): Promise<void> {
+  const database = await getDatabase();
+  await database.runAsync(
+    `INSERT INTO studio_concepts
+      (id, jobId, customerId, parentConceptId, prompt, images, outfitType, colorNotes, embroideryNotes, fabricNotes, styleMode, createdAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      concept.id, concept.jobId ?? null, concept.customerId ?? null, concept.parentConceptId ?? null,
+      concept.prompt, JSON.stringify(concept.images),
+      concept.outfitType ?? null, concept.colorNotes ?? null, concept.embroideryNotes ?? null,
+      concept.fabricNotes ?? null, concept.styleMode ?? null, concept.createdAt,
+    ]
+  );
+}
+
+function parseConceptRow(row: any): StudioConcept {
+  let images: StudioConcept['images'] = [];
+  try { images = JSON.parse(row.images); } catch (_) {}
+  return { ...row, images };
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

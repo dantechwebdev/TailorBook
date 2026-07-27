@@ -14,7 +14,7 @@
  * - User always controls when sync happens
  */
 
-import { SyncResult, CloudSyncState, SyncStatus } from '../../types';
+import { SyncResult, CloudSyncState, SyncStatus } from '../types';
 import { authService } from './AuthenticationService';
 
 // ─── Cloud Sync Service Interface ────────────────────────────────────────────

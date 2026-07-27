@@ -1,4 +1,4 @@
-import { Customer, Job, Measurements, AppNotification, TailorSettings, JobReminder, ScratchNote } from '../types';
+import { Customer, Job, Measurements, AppNotification, TailorSettings, JobReminder, ScratchNote, JobImage, StudioConcept } from '../types';
 
 const STORAGE_KEY = 'tailorbook_db';
 
@@ -10,14 +10,16 @@ interface DB {
   settings: Record<string, string>;
   jobReminders: JobReminder[];
   scratchNotes: ScratchNote[];
+  jobImages: JobImage[];
+  studioConcepts: StudioConcept[];
 }
 
 function load(): DB {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return { settings: {}, jobReminders: [], scratchNotes: [], ...JSON.parse(raw) };
+    if (raw) return { settings: {}, jobReminders: [], scratchNotes: [], jobImages: [], studioConcepts: [], ...JSON.parse(raw) };
   } catch {}
-  return { customers: [], jobs: [], measurements: [], notifications: [], settings: {}, jobReminders: [], scratchNotes: [] };
+  return { customers: [], jobs: [], measurements: [], notifications: [], settings: {}, jobReminders: [], scratchNotes: [], jobImages: [], studioConcepts: [] };
 }
 
 function save(db: DB): void {
@@ -287,5 +289,53 @@ export async function updateScratchNote(note: ScratchNote): Promise<void> {
 export async function deleteScratchNote(id: string): Promise<void> {
   const db = load();
   db.scratchNotes = (db.scratchNotes || []).filter((n) => n.id !== id);
+  save(db);
+}
+
+// ─── Job Image Gallery Operations ─────────────────────────────────────────────
+
+export async function getJobImages(jobId: string): Promise<JobImage[]> {
+  const db = load();
+  return (db.jobImages || [])
+    .filter((i) => i.jobId === jobId)
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+}
+
+export async function addJobImage(image: JobImage): Promise<void> {
+  const db = load();
+  db.jobImages = [image, ...(db.jobImages || [])];
+  save(db);
+}
+
+export async function deleteJobImage(id: string): Promise<void> {
+  const db = load();
+  db.jobImages = (db.jobImages || []).filter((i) => i.id !== id);
+  save(db);
+}
+
+// ─── Studio Concept Operations ────────────────────────────────────────────────
+
+export async function getStudioConceptsByJob(jobId: string): Promise<StudioConcept[]> {
+  const db = load();
+  return (db.studioConcepts || [])
+    .filter((c) => c.jobId === jobId)
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+}
+
+export async function getStudioConceptsByCustomer(customerId: string): Promise<StudioConcept[]> {
+  const db = load();
+  return (db.studioConcepts || [])
+    .filter((c) => c.customerId === customerId)
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+}
+
+export async function getStudioConceptById(id: string): Promise<StudioConcept | null> {
+  const db = load();
+  return (db.studioConcepts || []).find((c) => c.id === id) ?? null;
+}
+
+export async function createStudioConcept(concept: StudioConcept): Promise<void> {
+  const db = load();
+  db.studioConcepts = [concept, ...(db.studioConcepts || [])];
   save(db);
 }

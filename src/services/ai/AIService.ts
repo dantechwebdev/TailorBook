@@ -19,8 +19,8 @@
  *   4. The rest of the app requires zero changes.
  */
 
-import { AICompletionRequest, AICompletionResponse, AIProvider, AIMessage } from '../../../types';
-import { createLogger } from '../../logger';
+import { AICompletionRequest, AICompletionResponse, AIProvider, AIMessage } from '../../types';
+import { createLogger } from '../../utils/logger';
 
 const log = createLogger('AIService');
 

@@ -10,7 +10,7 @@
  */
 
 import { IAIProvider } from '../AIService';
-import { AICompletionRequest, AICompletionResponse } from '../../../../types';
+import { AICompletionRequest, AICompletionResponse } from '../../../types';
 
 const MOCK_RESPONSES = [
   'Balance outstanding — consider requesting payment before delivery.',

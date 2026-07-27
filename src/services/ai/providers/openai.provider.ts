@@ -15,7 +15,7 @@
  */
 
 import { IAIProvider } from '../AIService';
-import { AICompletionRequest, AICompletionResponse } from '../../../../types';
+import { AICompletionRequest, AICompletionResponse } from '../../../types';
 
 const API_KEY = process.env.EXPO_PUBLIC_OPENAI_API_KEY ?? '';
 const MODEL = 'gpt-4o-mini'; // Fast, cheap, sufficient for short insights

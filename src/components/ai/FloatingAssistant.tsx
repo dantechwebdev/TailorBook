@@ -39,12 +39,14 @@ import {
   PanResponder,
   Dimensions,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../../context/ThemeContext';
 import { Typography, Spacing, Radius, Shadow } from '../../constants/theme';
 import { aiService } from '../../services/ai/AIService';
-import { AIMessage, AIContext } from '../../types';
+import { aiOrchestrator } from '../../services/ai/AIOrchestrator';
+import { AIMessage, AIContext, GeneratedImage } from '../../types';
 import { SparkleIcon, CloseIcon, ChevronRightIcon } from '../common/Icons';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -69,6 +71,14 @@ interface Position {
   y: number;
 }
 
+// Extends AIMessage with optional structured tool output (e.g. generated
+// images) so the chat can render more than plain text bubbles when the
+// AIOrchestrator's tool layer produced something visual.
+interface ChatEntry extends AIMessage {
+  images?: GeneratedImage[];
+  toolName?: string;
+}
+
 const DEFAULT_POSITION: Position = {
   x: SCREEN_WIDTH - FAB_SIZE - FAB_MARGIN,
   y: SCREEN_HEIGHT * 0.6,
@@ -88,11 +98,12 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = memo(({ screen, cont
 
   // ── Chat state ────────────────────────────────────────────────────────
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<AIMessage[]>([]);
+  const [messages, setMessages] = useState<ChatEntry[]>([]);
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [proactiveHint, setProactiveHint] = useState<string | null>(null);
   const [showHint, setShowHint] = useState(false);
+  const [quickActions, setQuickActions] = useState<{ toolName: string; label: string }[]>([]);
   const hintOpacity = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const scrollRef = useRef<ScrollView>(null);
@@ -198,6 +209,11 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = memo(({ screen, cont
 
     fetchHint();
 
+    // Screen-adaptive quick actions — refreshed whenever context changes
+    aiOrchestrator.initialize().then(() => {
+      if (mounted) setQuickActions(aiOrchestrator.getQuickActionsForScreen());
+    }).catch(() => {/* non-critical */});
+
     // Subtle pulse animation for the FAB
     const pulse = Animated.loop(
       Animated.sequence([
@@ -218,7 +234,7 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = memo(({ screen, cont
     const text = inputText.trim();
     if (!text || isSending) return;
 
-    const userMessage: AIMessage = {
+    const userMessage: ChatEntry = {
       role: 'user',
       content: text,
       timestamp: new Date().toISOString(),
@@ -231,16 +247,23 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = memo(({ screen, cont
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
 
     try {
-      await aiService.initialize();
-      const response = await aiService.chat([...messages, userMessage], screen);
+      // Route through the orchestrator — it reads live ContextEngine state,
+      // decides whether a tool is needed, executes it, and phrases the result.
+      const response = await aiOrchestrator.handleMessage([...messages, userMessage]);
 
-      const assistantMessage: AIMessage = {
+      const images = response.toolResult?.data?.images as GeneratedImage[] | undefined;
+
+      const assistantMessage: ChatEntry = {
         role: 'assistant',
-        content: response.content,
+        content: response.reply,
         timestamp: new Date().toISOString(),
+        images: Array.isArray(images) ? images : undefined,
+        toolName: response.toolName,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
+      // Quick actions can shift after a tool runs (e.g. job now has an invoice)
+      setQuickActions(aiOrchestrator.getQuickActionsForScreen());
     } catch {
       setMessages((prev) => [
         ...prev,
@@ -254,7 +277,58 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = memo(({ screen, cont
       setIsSending(false);
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
     }
-  }, [inputText, isSending, messages, screen]);
+  }, [inputText, isSending, messages]);
+
+  // ── Quick action tap — runs a tool directly, no LLM round-trip needed ──
+  const handleQuickAction = useCallback(async (toolName: string, label: string) => {
+    if (isSending) return;
+    setIsSending(true);
+
+    const userMessage: ChatEntry = {
+      role: 'user',
+      content: label,
+      timestamp: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, userMessage]);
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+
+    try {
+      const response = await aiOrchestrator.runTool(toolName);
+      const images = response.toolResult?.data?.images as GeneratedImage[] | undefined;
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: response.reply,
+          timestamp: new Date().toISOString(),
+          images: Array.isArray(images) ? images : undefined,
+          toolName: response.toolName,
+        },
+      ]);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: "That action didn't go through — try again.", timestamp: new Date().toISOString() },
+      ]);
+    } finally {
+      setIsSending(false);
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+    }
+  }, [isSending]);
+
+  // ── Save a generated image to the active job's gallery ─────────────────
+  const handleSaveImageToJob = useCallback(async (image: GeneratedImage) => {
+    const result = await aiOrchestrator.runTool('AttachImageToJobTool', {
+      uri: image.uri,
+      category: 'ai_concept',
+    });
+    setMessages((prev) => [
+      ...prev,
+      { role: 'assistant', content: result.reply, timestamp: new Date().toISOString() },
+    ]);
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+  }, []);
 
   const handleOpen = useCallback(() => {
     if (isDragging) return;
@@ -354,7 +428,13 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = memo(({ screen, cont
               )}
 
               {messages.map((msg, idx) => (
-                <ChatBubble key={idx} message={msg} colors={colors} styles={styles} />
+                <ChatBubble
+                  key={idx}
+                  message={msg}
+                  colors={colors}
+                  styles={styles}
+                  onSaveImage={handleSaveImageToJob}
+                />
               ))}
 
               {isSending && (
@@ -363,6 +443,27 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = memo(({ screen, cont
                 </View>
               )}
             </ScrollView>
+
+            {/* Quick Actions — screen-adaptive, one tap runs a tool directly */}
+            {quickActions.length > 0 && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={[styles.quickActionsRow, { borderTopColor: colors.border, backgroundColor: colors.surface }]}
+                contentContainerStyle={{ paddingHorizontal: Spacing.md, gap: Spacing.sm }}
+              >
+                {quickActions.map((qa) => (
+                  <TouchableOpacity
+                    key={qa.toolName}
+                    onPress={() => handleQuickAction(qa.toolName, qa.label)}
+                    disabled={isSending}
+                    style={[styles.quickActionChip, { backgroundColor: colors.primaryFaint ?? colors.background, borderColor: colors.primary }]}
+                  >
+                    <Text style={[styles.quickActionText, { color: colors.primary }]}>{qa.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
 
             {/* Input */}
             <View style={[styles.inputRow, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
@@ -401,28 +502,57 @@ const ChatBubble = memo(({
   message,
   colors,
   styles,
+  onSaveImage,
 }: {
-  message: AIMessage;
+  message: ChatEntry;
   colors: any;
   styles: any;
+  onSaveImage: (image: GeneratedImage) => void;
 }) => {
   const isUser = message.role === 'user';
+  const hasImages = !isUser && Array.isArray(message.images) && message.images.length > 0;
+
   return (
     <View style={[styles.bubbleRow, isUser && styles.bubbleRowUser]}>
       <View
         style={[
           isUser ? styles.userBubble : styles.assistantBubble,
           { backgroundColor: isUser ? colors.primary : colors.surface },
+          hasImages && { padding: Spacing.sm },
         ]}
       >
         <Text
           style={[
             styles.bubbleText,
             { color: isUser ? '#FFFFFF' : colors.textPrimary },
+            hasImages && { paddingHorizontal: Spacing.sm, paddingTop: Spacing.xs },
           ]}
         >
           {message.content}
         </Text>
+
+        {/* Generated design concepts — rendered inline, each saveable to the active job */}
+        {hasImages && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ marginTop: Spacing.sm }}
+            contentContainerStyle={{ gap: Spacing.sm, paddingHorizontal: Spacing.sm, paddingBottom: Spacing.xs }}
+          >
+            {message.images!.map((img) => (
+              <View key={img.id} style={styles.imageCard}>
+                <Image source={{ uri: img.uri }} style={styles.generatedImage} resizeMode="cover" />
+                <TouchableOpacity
+                  onPress={() => onSaveImage(img)}
+                  style={[styles.saveImageBtn, { backgroundColor: colors.primary }]}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.saveImageBtnText}>Save to Job</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </ScrollView>
+        )}
       </View>
     </View>
   );
@@ -580,6 +710,43 @@ const createStyles = (colors: any) =>
       borderRadius: 20,
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    // Screen-adaptive quick actions row
+    quickActionsRow: {
+      borderTopWidth: 1,
+      paddingVertical: Spacing.sm,
+      maxHeight: 52,
+    },
+    quickActionChip: {
+      paddingHorizontal: Spacing.md,
+      paddingVertical: Spacing.sm,
+      borderRadius: Radius.full,
+      borderWidth: 1,
+      justifyContent: 'center',
+    },
+    quickActionText: {
+      fontSize: Typography.xs,
+      fontWeight: Typography.semibold,
+    },
+    // Generated design concept images
+    imageCard: {
+      width: 140,
+    },
+    generatedImage: {
+      width: 140,
+      height: 170,
+      borderRadius: Radius.md,
+      marginBottom: Spacing.xs,
+    },
+    saveImageBtn: {
+      paddingVertical: 6,
+      borderRadius: Radius.sm,
+      alignItems: 'center',
+    },
+    saveImageBtnText: {
+      fontSize: 11,
+      fontWeight: Typography.bold,
+      color: '#FFFFFF',
     },
   });
 

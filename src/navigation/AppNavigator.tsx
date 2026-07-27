@@ -63,6 +63,7 @@ const CustomerStackNav = () => (
     <CustomerStack.Screen name="NewOrderFlow" component={NewOrderFlow} />
     <CustomerStack.Screen name="JobDetail" component={JobDetailScreen} />
     <CustomerStack.Screen name="MeasurementForm" component={MeasurementFormScreen} />
+    <CustomerStack.Screen name="TailorStudio" component={TailorStudioScreen} />
   </CustomerStack.Navigator>
 );
 
@@ -74,6 +75,7 @@ const JobStackNav = () => (
     <JobStack.Screen name="JobEdit" component={JobEditScreen} />
     <JobStack.Screen name="CustomerDetail" component={CustomerDetailScreen} />
     <JobStack.Screen name="MeasurementForm" component={MeasurementFormScreen} />
+    <JobStack.Screen name="TailorStudio" component={TailorStudioScreen} />
   </JobStack.Navigator>
 );
 
