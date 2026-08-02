@@ -50,8 +50,8 @@ const CloudStatusCard: React.FC<CloudStatusCardProps> = memo(({
   onManageCloud,
   onSyncNow,
 }) => {
-  const { colors: Colors } = useTheme();
-  const styles = React.useMemo(() => createStyles(Colors), [Colors]);
+  const { colors: Colors, shadow} = useTheme();
+  const styles = React.useMemo(() => createStyles(Colors, shadow), [Colors, shadow]);
 
   const isAuthenticated = authState.status === 'authenticated';
   const isSyncing = syncState.status === 'syncing';
@@ -168,7 +168,7 @@ const StatItem: React.FC<{ label: string; value: string }> = ({ label, value }) 
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const createStyles = (Colors: any) =>
+const createStyles = (Colors: any, shadow: any) =>
   StyleSheet.create({
     // Unauthenticated
     unauthCard: {
@@ -193,7 +193,7 @@ const createStyles = (Colors: any) =>
       backgroundColor: Colors.surface,
       alignItems: 'center',
       justifyContent: 'center',
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     unauthHeaderText: { flex: 1 },
     unauthTitle: {
@@ -236,7 +236,7 @@ const createStyles = (Colors: any) =>
       borderRadius: Radius.md,
       backgroundColor: Colors.primary,
       alignItems: 'center',
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     signUpText: {
       fontSize: Typography.sm,
@@ -251,7 +251,7 @@ const createStyles = (Colors: any) =>
       backgroundColor: Colors.surface,
       borderRadius: Radius.lg,
       padding: Spacing.base,
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     authCardHeader: {
       flexDirection: 'row',

@@ -65,7 +65,7 @@ function parseCustomDate(input: string): string | null {
 }
 
 const StepDelivery: React.FC<Props> = ({ draft, onChange, onNext }) => {
-  const { colors: Colors } = useTheme();
+  const { colors: Colors, shadow} = useTheme();
   const [address, setAddress] = useState(draft.deliveryAddress);
   const [customDateInput, setCustomDateInput] = useState('');
   const [customDateError, setCustomDateError] = useState('');
@@ -103,7 +103,7 @@ const StepDelivery: React.FC<Props> = ({ draft, onChange, onNext }) => {
       borderWidth: 2,
       borderColor: 'transparent',
       minWidth: 100,
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     presetChipSelected: {
       borderColor: Colors.primary,
@@ -181,7 +181,7 @@ const StepDelivery: React.FC<Props> = ({ draft, onChange, onNext }) => {
       alignItems: 'center',
       borderWidth: 2,
       borderColor: 'transparent',
-      ...Shadow.sm,
+      ...shadow.sm,
       minHeight: 120,
       justifyContent: 'center',
     },
@@ -213,7 +213,7 @@ const StepDelivery: React.FC<Props> = ({ draft, onChange, onNext }) => {
       paddingVertical: Spacing.md,
       fontSize: Typography.base,
       color: Colors.textPrimary,
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     inputHint: {
       fontSize: Typography.xs,
@@ -230,7 +230,7 @@ const StepDelivery: React.FC<Props> = ({ draft, onChange, onNext }) => {
     },
     nextBtnDisabled: { backgroundColor: Colors.border },
     nextBtnText: { fontSize: Typography.base, color: Colors.white, fontWeight: Typography.bold },
-  }), [Colors]);
+  }), [Colors, shadow]);
 
   const selectedDate = draft.deliveryDate;
   const deliveryType = draft.deliveryType;

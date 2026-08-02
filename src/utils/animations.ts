@@ -12,6 +12,7 @@
 
 import { useRef, useEffect, useCallback } from 'react';
 import { Animated, Easing } from 'react-native';
+import { Motion } from '../constants/theme';
 
 // ─── 1. useEntrance ───────────────────────────────────────────────────────────
 // Fade + slide up on mount. The most common entrance pattern.
@@ -328,4 +329,32 @@ export function useShimmerPress() {
     style: { transform: [{ scale }] },
     handlers: { onPressIn, onPressOut },
   };
+}
+
+// ─── 11. usePulseLoop ─────────────────────────────────────────────────────────
+// Continuous opacity breathing (1 → 0.4 → 1). Use on: skeleton loading
+// placeholders, so a loading list reads as "actively working" rather than a
+// dead gray box.
+
+export function usePulseLoop(active = true) {
+  const opacity = useRef(new Animated.Value(1)).current;
+  const loopRef = useRef<Animated.CompositeAnimation | null>(null);
+
+  useEffect(() => {
+    if (!active) {
+      loopRef.current?.stop();
+      opacity.setValue(1);
+      return;
+    }
+    loopRef.current = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, { toValue: 0.4, duration: Motion.duration.slow, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 1, duration: Motion.duration.slow, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    loopRef.current.start();
+    return () => loopRef.current?.stop();
+  }, [active]);
+
+  return { style: { opacity } };
 }

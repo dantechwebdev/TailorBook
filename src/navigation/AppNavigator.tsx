@@ -90,7 +90,7 @@ const ScheduleStackNav = () => (
 // Built from scratch so it matches TailorBook's design system exactly.
 
 const TabBar: React.FC<any> = ({ state, descriptors, navigation }) => {
-  const { colors: C } = useTheme();
+  const { colors: C, shadow} = useTheme();
   const { unreadNotificationCount } = useStore();
   const insets = useSafeAreaInsets();
 
@@ -107,6 +107,8 @@ const TabBar: React.FC<any> = ({ state, descriptors, navigation }) => {
       backgroundColor: C.surface,
       borderTopColor: C.border,
       paddingBottom: insets.bottom || Spacing.sm,
+      ...shadow.lg,
+      elevation: 12,
     }]}>
       {TABS.map((tab, index) => {
         const isFocused = state.index === index;
@@ -162,8 +164,6 @@ const tabStyles = StyleSheet.create({
     flexDirection: 'row',
     borderTopWidth: 1,
     paddingTop: Spacing.sm,
-    ...Shadow.lg,
-    elevation: 12,
   },
   tabItem: {
     flex: 1,

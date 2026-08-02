@@ -34,7 +34,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, DrawerActions } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { Typography, Spacing, Radius, Shadow, ColorPalette } from '../../constants/theme';
+import { Typography, Spacing, Radius, Shadow, ColorPalette, ShadowTokens } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useStore } from '../../context/store';
 import { MenuIcon, SparkleIcon, BackIcon } from '../../components/common/Icons';
@@ -57,8 +57,8 @@ const STYLE_MODES: { key: StyleMode; label: string; emoji: string }[] = [
 const TailorStudioScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { colors, shadow} = useTheme();
+  const styles = useMemo(() => createStyles(colors, shadow), [colors, shadow]);
 
   const jobId = route.params?.jobId as string | undefined;
   const customerId = route.params?.customerId as string | undefined;
@@ -344,7 +344,7 @@ const TailorStudioScreen: React.FC = () => {
   );
 };
 
-const createStyles = (colors: ColorPalette) =>
+const createStyles = (colors: ColorPalette, shadow: ShadowTokens) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
     header: {
@@ -373,7 +373,7 @@ const createStyles = (colors: ColorPalette) =>
     styleModeText: { fontSize: Typography.sm, fontWeight: Typography.semibold },
     generateBtn: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm,
-      paddingVertical: Spacing.md, borderRadius: Radius.md, ...Shadow.sm,
+      paddingVertical: Spacing.md, borderRadius: Radius.md, ...shadow.sm,
     },
     generateBtnText: { color: '#FFFFFF', fontSize: Typography.base, fontWeight: Typography.bold },
 

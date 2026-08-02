@@ -27,7 +27,7 @@ import { Typography, Spacing, Radius, Shadow } from '../../constants/theme';
 
 const SignUpScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-  const { colors: Colors } = useTheme();
+  const { colors: Colors, shadow} = useTheme();
   const { signUp } = useAuth();
 
   const [displayName, setDisplayName] = useState('');
@@ -41,7 +41,7 @@ const SignUpScreen: React.FC = () => {
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
   const confirmRef = useRef<TextInput>(null);
-  const styles = React.useMemo(() => createStyles(Colors), [Colors]);
+  const styles = React.useMemo(() => createStyles(Colors, shadow), [Colors, shadow]);
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -261,7 +261,7 @@ const SignUpScreen: React.FC = () => {
   );
 };
 
-const createStyles = (Colors: any) =>
+const createStyles = (Colors: any, shadow: any) =>
   StyleSheet.create({
     container: { flex: 1 },
     header: { paddingHorizontal: Spacing.base, paddingVertical: Spacing.md },
@@ -274,7 +274,7 @@ const createStyles = (Colors: any) =>
     logoWrap: {
       width: 72, height: 72, borderRadius: 36,
       alignItems: 'center', justifyContent: 'center',
-      marginBottom: Spacing.lg, ...Shadow.sm,
+      marginBottom: Spacing.lg, ...shadow.sm,
     },
     logoEmoji: { fontSize: 34 },
     title: { fontSize: Typography.xl + 4, fontWeight: Typography.extrabold, textAlign: 'center', marginBottom: Spacing.sm },
@@ -284,7 +284,7 @@ const createStyles = (Colors: any) =>
     inputWrap: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderRadius: Radius.lg, paddingHorizontal: Spacing.md, height: 52 },
     input: { flex: 1, fontSize: Typography.base, paddingVertical: 0 },
     fieldError: { fontSize: Typography.xs, marginTop: Spacing.xs, paddingLeft: Spacing.sm },
-    ctaBtn: { borderRadius: Radius.xl, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', marginTop: Spacing.md, ...Shadow.md },
+    ctaBtn: { borderRadius: Radius.xl, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', marginTop: Spacing.md, ...shadow.md },
     ctaBtnText: { fontSize: Typography.lg, fontWeight: Typography.bold, color: '#FFFFFF' },
     termsNote: { fontSize: Typography.xs, textAlign: 'center', lineHeight: 17, marginTop: Spacing.md, paddingHorizontal: Spacing.lg },
     switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: Spacing.lg },

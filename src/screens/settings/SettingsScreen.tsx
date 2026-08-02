@@ -25,9 +25,9 @@ const APP_VERSION = '1.0.0';
 const SettingsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { settings, saveSettings } = useStore();
-  const { colors, appearance } = useTheme();
+  const { colors, appearance, shadow} = useTheme();
 
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const styles = useMemo(() => makeStyles(colors, shadow), [colors, shadow]);
 
   const currentAppearance: AppearanceMode =
     (settings?.appearance as AppearanceMode) || 'system';
@@ -227,7 +227,7 @@ const AboutRow: React.FC<{
 
 // ─── Styles (theme-aware) ─────────────────────────────────────────────────────
 
-function makeStyles(C: any) {
+function makeStyles(C: any, shadow: any) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: C.background },
     header: {
@@ -257,7 +257,7 @@ function makeStyles(C: any) {
       borderRadius: Radius.lg,
       padding: Spacing.base,
       marginBottom: Spacing.md,
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     cardTitle: {
       fontSize: Typography.base,

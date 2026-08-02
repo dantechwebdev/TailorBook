@@ -1,6 +1,7 @@
-import { parseISO } from 'date-fns';
+import { parseISO, differenceInCalendarDays } from 'date-fns';
 import { Job, JobReminder } from '../../types';
 import { scheduleAt, cancel, cancelByPrefix } from './scheduler';
+import { getFirstName } from '../helpers';
 import {
   ALL_PRESETS,
   DEFAULT_REMINDER_HOUR,
@@ -12,10 +13,27 @@ import {
 const reminderIdentifier = (jobId: string, reminderId: string) => `job:${jobId}:reminder:${reminderId}`;
 const overduePrefix = (jobId: string) => `job:${jobId}:overdue:`;
 
+// Turns "due in N days" into how a tailor would actually say it out loud.
+// This is what separates "Reminder: Senator" from "John's senator outfit is
+// due tomorrow" — the same underlying fact, said the way a person would.
+function relativeDueText(deliveryDateIso: string): string {
+  const days = differenceInCalendarDays(parseISO(deliveryDateIso), new Date());
+  if (days < 0) return `was due ${Math.abs(days)} day${Math.abs(days) === 1 ? '' : 's'} ago`;
+  if (days === 0) return 'is due today';
+  if (days === 1) return 'is due tomorrow';
+  return `is due in ${days} days`;
+}
+
 function jobReminderContent(job: Job, label: string) {
+  const name = getFirstName(job.customerName);
+  const due = relativeDueText(job.deliveryDate);
+  const body = label
+    ? `${name}'s ${job.outfitType.toLowerCase()} ${due} — ${label}`
+    : `${name}'s ${job.outfitType.toLowerCase()} ${due}.`;
+
   return {
-    title: `Reminder: ${job.outfitType}`,
-    body: label ? `${job.customerName}'s ${job.outfitType} — ${label}` : `${job.customerName}'s ${job.outfitType}`,
+    title: `${name}'s ${job.outfitType}`,
+    body,
     data: { jobId: job.id, type: 'job_reminder' },
   };
 }
@@ -83,8 +101,10 @@ export async function startOrExtendRecurringOverdue(job: Job): Promise<void> {
       return scheduleAt(
         `${prefix}${dayOffset}`,
         {
-          title: '⏰ Still overdue',
-          body: `${job.customerName}'s ${job.outfitType} is still overdue. Update its status once it's done.`,
+          title: `${getFirstName(job.customerName)}'s ${job.outfitType} is overdue`,
+          body: job.status === 'Ready'
+            ? `${getFirstName(job.customerName)} hasn't collected their ${job.outfitType.toLowerCase()} yet. Worth a follow-up message.`
+            : `Still in progress and past its delivery date. Update the status once it's ready.`,
           data: { jobId: job.id, type: 'overdue' },
         },
         date

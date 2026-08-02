@@ -32,7 +32,7 @@ function formatNaira(n: number): string {
 }
 
 const StepPayment: React.FC<Props> = ({ draft, onChange, onNext }) => {
-  const { colors: Colors } = useTheme();
+  const { colors: Colors, shadow} = useTheme();
   const [priceStr, setPriceStr] = useState(draft.price || '');
   const [depositStr, setDepositStr] = useState(draft.deposit || '');
   const [notes, setNotes] = useState(draft.notes || '');
@@ -67,7 +67,7 @@ const StepPayment: React.FC<Props> = ({ draft, onChange, onNext }) => {
       paddingHorizontal: Spacing.md,
       borderWidth: 2,
       borderColor: 'transparent',
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     priceChipSelected: {
       borderColor: Colors.primary,
@@ -96,7 +96,7 @@ const StepPayment: React.FC<Props> = ({ draft, onChange, onNext }) => {
       backgroundColor: Colors.surface,
       borderRadius: Radius.lg,
       paddingHorizontal: Spacing.base,
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     nairaSign: {
       fontSize: Typography.xl,
@@ -135,7 +135,7 @@ const StepPayment: React.FC<Props> = ({ draft, onChange, onNext }) => {
       borderColor: 'transparent',
       alignItems: 'center',
       minWidth: 80,
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     pctChipSelected: {
       borderColor: Colors.accent,
@@ -156,7 +156,7 @@ const StepPayment: React.FC<Props> = ({ draft, onChange, onNext }) => {
       backgroundColor: Colors.surface,
       borderRadius: Radius.lg,
       padding: Spacing.md,
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     balanceRow: {
       flexDirection: 'row',
@@ -204,7 +204,7 @@ const StepPayment: React.FC<Props> = ({ draft, onChange, onNext }) => {
     },
     nextBtnDisabled: { backgroundColor: Colors.border },
     nextBtnText: { fontSize: Typography.base, color: Colors.white, fontWeight: Typography.bold },
-  }), [Colors]);
+  }), [Colors, shadow]);
 
   const price = parseFloat(priceStr.replace(/,/g, '')) || 0;
   const deposit = parseFloat(depositStr.replace(/,/g, '')) || 0;

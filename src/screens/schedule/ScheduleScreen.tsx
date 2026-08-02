@@ -123,10 +123,10 @@ const WeekStrip: React.FC<{
 const ScheduleScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { jobs } = useStore();
-  const { colors: C } = useTheme();
+  const { colors: C, shadow} = useTheme();
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
 
-  const styles = useMemo(() => makeStyles(C), [C]);
+  const styles = useMemo(() => makeStyles(C, shadow), [C, shadow]);
   const sections = useMemo(() => buildScheduleSections(jobs, C), [jobs, C]);
 
   // When a day is selected, filter to that day's active jobs
@@ -229,7 +229,7 @@ const ScheduleScreen: React.FC = () => {
   );
 };
 
-function makeStyles(C: any) {
+function makeStyles(C: any, shadow: any) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: C.background },
     header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.base, paddingVertical: Spacing.md },
@@ -262,7 +262,7 @@ function makeStyles(C: any) {
     sectionBadgeText: { fontSize: Typography.xs, fontWeight: Typography.bold },
 
     // Job card
-    jobCard: { flexDirection: 'row', backgroundColor: C.surface, borderRadius: Radius.lg, overflow: 'hidden', ...Shadow.sm },
+    jobCard: { flexDirection: 'row', backgroundColor: C.surface, borderRadius: Radius.lg, overflow: 'hidden', ...shadow.sm },
     jobStatusBar: { width: 4 },
     jobCardContent: { flex: 1, padding: Spacing.md },
     jobCardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },

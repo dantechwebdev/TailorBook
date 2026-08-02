@@ -87,8 +87,8 @@ const DEFAULT_POSITION: Position = {
 // ─── Floating Assistant ───────────────────────────────────────────────────────
 
 const FloatingAssistant: React.FC<FloatingAssistantProps> = memo(({ screen, context }) => {
-  const { colors } = useTheme();
-  const styles = React.useMemo(() => createStyles(colors), [colors]);
+  const { colors, shadow} = useTheme();
+  const styles = React.useMemo(() => createStyles(colors, shadow), [colors, shadow]);
 
   // ── Position state ────────────────────────────────────────────────────
   const pan = useRef(new Animated.ValueXY()).current;
@@ -571,7 +571,7 @@ function clampPosition(pos: Position): Position {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const createStyles = (colors: any) =>
+const createStyles = (colors: any, shadow: any) =>
   StyleSheet.create({
     fab: {
       position: 'absolute',
@@ -584,7 +584,7 @@ const createStyles = (colors: any) =>
       borderRadius: FAB_SIZE / 2,
       alignItems: 'center',
       justifyContent: 'center',
-      ...Shadow.lg,
+      ...shadow.lg,
     },
     hintBubble: {
       position: 'absolute',
@@ -594,7 +594,7 @@ const createStyles = (colors: any) =>
       borderRadius: Radius.lg,
       padding: Spacing.md,
       maxWidth: 220,
-      ...Shadow.md,
+      ...shadow.md,
       borderWidth: 1,
       borderColor: colors.border,
     },
@@ -677,7 +677,7 @@ const createStyles = (colors: any) =>
       borderRadius: Radius.lg,
       borderTopLeftRadius: 4,
       padding: Spacing.md,
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     userBubble: {
       maxWidth: '80%',

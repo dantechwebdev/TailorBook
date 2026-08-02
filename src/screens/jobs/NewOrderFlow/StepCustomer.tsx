@@ -26,7 +26,7 @@ interface Props {
 
 const StepCustomer: React.FC<Props> = ({ draft, onChange, onNext, prefilledCustomerId }) => {
   const { customers, getCustomer } = useStore();
-  const { colors: Colors } = useTheme();
+  const { colors: Colors, shadow} = useTheme();
   const [mode, setMode] = useState<'choose' | 'existing' | 'new'>(
     draft.customer ? 'existing' : 'choose'
   );
@@ -60,7 +60,7 @@ const StepCustomer: React.FC<Props> = ({ draft, onChange, onNext, prefilledCusto
       borderRadius: Radius.xl,
       padding: Spacing.xl,
       alignItems: 'center',
-      ...Shadow.sm,
+      ...shadow.sm,
       minHeight: 130,
       justifyContent: 'center',
     },
@@ -77,7 +77,7 @@ const StepCustomer: React.FC<Props> = ({ draft, onChange, onNext, prefilledCusto
       marginBottom: Spacing.md,
       backgroundColor: Colors.surface,
       borderRadius: Radius.lg,
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     searchInput: {
       paddingHorizontal: Spacing.base,
@@ -94,7 +94,7 @@ const StepCustomer: React.FC<Props> = ({ draft, onChange, onNext, prefilledCusto
       padding: Spacing.md,
       marginBottom: Spacing.sm,
       gap: Spacing.md,
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     customerRowSelected: {
       borderWidth: 2,
@@ -131,7 +131,7 @@ const StepCustomer: React.FC<Props> = ({ draft, onChange, onNext, prefilledCusto
       paddingVertical: Spacing.md,
       fontSize: Typography.base,
       color: Colors.textPrimary,
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     footer: {
       flexDirection: 'row',
@@ -160,7 +160,7 @@ const StepCustomer: React.FC<Props> = ({ draft, onChange, onNext, prefilledCusto
     },
     nextBtnDisabled: { backgroundColor: Colors.border },
     nextBtnText: { fontSize: Typography.base, color: Colors.white, fontWeight: Typography.bold },
-  }), [Colors]);
+  }), [Colors, shadow]);
 
   useEffect(() => {
     if (prefilledCustomerId) {

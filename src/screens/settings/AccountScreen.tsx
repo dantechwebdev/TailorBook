@@ -42,7 +42,7 @@ const CURRENCIES = [
 const AccountScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { jobs, customers, settings, loadSettings, saveSettings } = useStore();
-  const { colors: Colors } = useTheme();
+  const { colors: Colors, shadow} = useTheme();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [editingProfile, setEditingProfile] = useState(false);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
@@ -191,7 +191,7 @@ const AccountScreen: React.FC = () => {
       paddingVertical: Spacing.md,
       fontSize: Typography.base,
       color: Colors.textPrimary,
-      ...Shadow.sm,
+      ...shadow.sm,
     },
 
     daysRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
@@ -214,14 +214,14 @@ const AccountScreen: React.FC = () => {
       padding: Spacing.base,
       borderWidth: 2,
       borderColor: 'transparent',
-      ...Shadow.sm,
+      ...shadow.sm,
       gap: Spacing.md,
       marginBottom: Spacing.sm,
     },
     currencyRowSelected: { borderColor: Colors.primary, backgroundColor: Colors.primaryFaint },
     currencySymbol: { fontSize: Typography.lg, fontWeight: Typography.bold, color: Colors.textPrimary, width: 36 },
     currencyLabel: { flex: 1, fontSize: Typography.base, color: Colors.textSecondary },
-  }), [Colors]);
+  }), [Colors, shadow]);
 
   useEffect(() => {
     loadSettings();

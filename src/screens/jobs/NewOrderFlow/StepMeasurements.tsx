@@ -34,7 +34,7 @@ type Mode = 'select' | 'inline';
 
 const StepMeasurements: React.FC<Props> = ({ draft, onChange, onNext }) => {
   const { getMeasurementsByCustomer } = useStore();
-  const { colors: Colors } = useTheme();
+  const { colors: Colors, shadow} = useTheme();
 
   const customerId = draft.customer?.id || '';
   const existingMeasurements = customerId ? getMeasurementsByCustomer(customerId) : [];
@@ -81,7 +81,7 @@ const StepMeasurements: React.FC<Props> = ({ draft, onChange, onNext }) => {
       borderRadius: Radius.full,
       alignItems: 'center',
     },
-    modeBtnActive: { backgroundColor: Colors.white, ...Shadow.sm },
+    modeBtnActive: { backgroundColor: Colors.white, ...shadow.sm },
     modeBtnText: { fontSize: Typography.sm, fontWeight: Typography.medium, color: Colors.textSecondary },
     modeBtnTextActive: { color: Colors.primary, fontWeight: Typography.semibold },
 
@@ -105,7 +105,7 @@ const StepMeasurements: React.FC<Props> = ({ draft, onChange, onNext }) => {
       borderWidth: 2,
       borderColor: 'transparent',
       gap: Spacing.md,
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     measureCardSelected: {
       borderColor: Colors.primary,
@@ -203,7 +203,7 @@ const StepMeasurements: React.FC<Props> = ({ draft, onChange, onNext }) => {
     },
     nextBtnSecondary: { backgroundColor: Colors.primaryLight },
     nextBtnText: { fontSize: Typography.base, color: Colors.white, fontWeight: Typography.bold },
-  }), [Colors]);
+  }), [Colors, shadow]);
 
   const selectedId = draft.measurementId;
   const fields = MEASUREMENT_FIELDS[inlineTemplate] || [];

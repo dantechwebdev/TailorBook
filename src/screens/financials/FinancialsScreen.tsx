@@ -29,7 +29,7 @@ function isWithin(dateStr: string, days: number): boolean {
 const FinancialsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { jobs, customers } = useStore();
-  const { colors: Colors } = useTheme();
+  const { colors: Colors, shadow} = useTheme();
   const [period, setPeriod] = useState<Period>('all');
 
   // ── Animations ──────────────────────────────────────────────────────────
@@ -57,7 +57,7 @@ const FinancialsScreen: React.FC = () => {
       backgroundColor: Colors.surface,
       borderRadius: Radius.lg,
       padding: 3,
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     periodTab: {
       flex: 1,
@@ -103,7 +103,7 @@ const FinancialsScreen: React.FC = () => {
       padding: Spacing.xl,
       alignItems: 'center',
       gap: Spacing.sm,
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     emptyIcon: { fontSize: 28 },
     emptyText: {
@@ -124,7 +124,7 @@ const FinancialsScreen: React.FC = () => {
       padding: Spacing.md,
       marginBottom: Spacing.sm,
       gap: Spacing.md,
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     rowAvatar: {
       width: 40,
@@ -164,7 +164,7 @@ const FinancialsScreen: React.FC = () => {
       borderRadius: Radius.xl,
       padding: Spacing.base,
       gap: Spacing.md,
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     barRow: {
       flexDirection: 'row',
@@ -212,7 +212,7 @@ const FinancialsScreen: React.FC = () => {
       borderRadius: Radius.xl,
       padding: Spacing.base,
       gap: Spacing.md,
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     rateTrack: {
       height: 14,
@@ -258,7 +258,7 @@ const FinancialsScreen: React.FC = () => {
       padding: Spacing.base,
       minHeight: 100,
       justifyContent: 'space-between',
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     statLabel: {
       fontSize: Typography.xs,
@@ -293,7 +293,7 @@ const FinancialsScreen: React.FC = () => {
       fontWeight: Typography.medium,
       lineHeight: 20,
     },
-  }), [Colors]);
+  }), [Colors, shadow]);
 
   const filteredJobs = useMemo<Job[]>(() => {
     if (period === 'all') return jobs;

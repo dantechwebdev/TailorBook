@@ -29,6 +29,7 @@ import {
   getJobStatusConfig,
   JOB_STATUSES,
   ColorPalette,
+  ShadowTokens,
 } from '../../constants/theme';
 import {
   BackIcon,
@@ -144,8 +145,8 @@ const JobDetailScreen: React.FC = () => {
   });
 
   // ── Theme — live palette, reactive to Light/Dark/System instantly ──────
-  const { colors: Colors, isDark } = useTheme();
-  const styles = useMemo(() => createStyles(Colors, isDark), [Colors, isDark]);
+  const { colors: Colors, isDark, shadow} = useTheme();
+  const styles = useMemo(() => createStyles(Colors, isDark, shadow), [Colors, isDark, shadow]);
   const statusConfig = useMemo(() => getJobStatusConfig(Colors), [Colors]);
 
   // ── Entrance animations ────────────────────────────────────────────────
@@ -1171,7 +1172,7 @@ const SummaryItem: React.FC<{
 // Theme-reactive factory. Called via useMemo(() => createStyles(Colors), [Colors])
 // inside JobDetailScreen so it re-evaluates instantly on Light/Dark/System change.
 
-const createStyles = (Colors: ColorPalette, isDark: boolean) => StyleSheet.create({
+const createStyles = (Colors: ColorPalette, isDark: boolean, shadow: ShadowTokens) => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.base, paddingVertical: Spacing.md },
   headerTitle: { fontSize: Typography.md, fontWeight: Typography.bold, color: Colors.textPrimary },
@@ -1348,7 +1349,7 @@ const createStyles = (Colors: ColorPalette, isDark: boolean) => StyleSheet.creat
   reminderSheet: { maxHeight: '90%' },
   modeTabRow: { flexDirection: 'row', backgroundColor: Colors.borderLight, borderRadius: Radius.md, padding: 3, marginBottom: Spacing.lg },
   modeTab: { flex: 1, paddingVertical: Spacing.sm, alignItems: 'center', borderRadius: Radius.sm },
-  modeTabActive: { backgroundColor: Colors.surface, ...Shadow.sm },
+  modeTabActive: { backgroundColor: Colors.surface, ...shadow.sm },
   modeTabText: { fontSize: Typography.sm, color: Colors.textSecondary, fontWeight: Typography.medium },
   modeTabTextActive: { color: Colors.textPrimary, fontWeight: Typography.bold },
   reminderSubTitle: { fontSize: Typography.sm, fontWeight: Typography.semibold, color: Colors.textSecondary, marginBottom: Spacing.sm, marginTop: Spacing.md },
@@ -1375,7 +1376,7 @@ const createStyles = (Colors: ColorPalette, isDark: boolean) => StyleSheet.creat
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    ...Shadow.sm,
+    ...shadow.sm,
     borderWidth: 1,
     borderColor: Colors.primaryFaint,
   },

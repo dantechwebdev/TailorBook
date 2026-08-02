@@ -52,7 +52,7 @@ function sortJobs(jobs: Job[], key: SortKey): Job[] {
 const JobListScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { jobs } = useStore();
-  const { colors: Colors } = useTheme();
+  const { colors: Colors, shadow} = useTheme();
 
   const styles = useMemo(() => StyleSheet.create({
     container: { flex: 1, backgroundColor: Colors.background },
@@ -75,7 +75,7 @@ const JobListScreen: React.FC = () => {
       backgroundColor: Colors.primary,
       alignItems: 'center',
       justifyContent: 'center',
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     searchWrap: {
       flexDirection: 'row',
@@ -87,7 +87,7 @@ const JobListScreen: React.FC = () => {
       paddingHorizontal: Spacing.md,
       paddingVertical: 12,
       gap: Spacing.sm,
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     searchInput: {
       flex: 1,
@@ -116,7 +116,7 @@ const JobListScreen: React.FC = () => {
       justifyContent: 'center',
       borderWidth: 1,
       borderColor: Colors.border,
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     sortBtnText: {
       fontSize: 16,
@@ -153,7 +153,7 @@ const JobListScreen: React.FC = () => {
       borderRadius: Radius.lg,
       padding: Spacing.md,
       gap: Spacing.md,
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     jobInfo: { flex: 1, gap: 3 },
     jobName: {
@@ -183,7 +183,7 @@ const JobListScreen: React.FC = () => {
       borderRadius: Radius.xl,
       padding: Spacing.lg,
       width: '100%',
-      ...Shadow.md,
+      ...shadow.md,
     },
     modalTitle: {
       fontSize: Typography.base,
@@ -212,7 +212,7 @@ const JobListScreen: React.FC = () => {
       color: Colors.primary,
       fontWeight: Typography.semibold,
     },
-  }), [Colors]);
+  }), [Colors, shadow]);
 
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<JobStatus | 'All'>('All');

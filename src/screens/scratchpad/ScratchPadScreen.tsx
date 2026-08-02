@@ -79,7 +79,7 @@ function formatTimeAgo(iso: string): string {
 const ScratchPadScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { scratchNotes, addScratchNote, updateScratchNote, toggleScratchNote, deleteScratchNote } = useStore();
-  const { colors: Colors } = useTheme();
+  const { colors: Colors, shadow} = useTheme();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [editingNote, setEditingNote] = useState<ScratchNote | null>(null);
@@ -113,7 +113,7 @@ const ScratchPadScreen: React.FC = () => {
       flexDirection: 'row', alignItems: 'flex-start',
       backgroundColor: Colors.surface, borderRadius: Radius.lg,
       padding: Spacing.md, marginBottom: Spacing.md,
-      gap: Spacing.md, ...Shadow.sm,
+      gap: Spacing.md, ...shadow.sm,
     },
     cardDone: { opacity: 0.6 },
     checkBtn: { paddingTop: 2 },
@@ -150,7 +150,7 @@ const ScratchPadScreen: React.FC = () => {
       width: 56, height: 56, borderRadius: 28,
       backgroundColor: Colors.primary,
       alignItems: 'center', justifyContent: 'center',
-      ...Shadow.md,
+      ...shadow.md,
     } as any,
 
     // ── Modal / Sheet ──
@@ -201,7 +201,7 @@ const ScratchPadScreen: React.FC = () => {
     },
     saveBtnDisabled: { opacity: 0.4 },
     saveBtnText: { color: Colors.white, fontSize: Typography.base, fontWeight: Typography.bold },
-  }), [Colors]);
+  }), [Colors, shadow]);
 
   const openAdd = () => {
     setEditingNote(null);

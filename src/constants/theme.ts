@@ -156,28 +156,89 @@ export const Radius = {
   full: 9999,
 } as const;
 
-export const Shadow = {
-  sm: {
-    shadowColor: '#1A1A2E',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+// ─── Shadow (theme-aware) ──────────────────────────────────────────────────────
+// Shadows must be computed per-theme, not hardcoded. A shadow tuned for a white
+// surface reads as invisible mud on a near-black one. Dark mode gets a pure-black
+// shadow at lower opacity plus relies on `surfaceElevated` (a lighter fill, not
+// just a shadow) for perceptible depth — the same "elevation via surface tint"
+// approach Material You uses, since shadow alone is a weak depth cue at low light.
+export function getShadow(isDark: boolean) {
+  const shadowColor = isDark ? '#000000' : '#1A1A2E';
+  const boost = isDark ? 1.6 : 1; // dark shadows need more opacity to read at all
+  return {
+    none: { shadowColor: 'transparent', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0, shadowRadius: 0, elevation: 0 },
+    sm: {
+      shadowColor, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06 * boost, shadowRadius: 4, elevation: 2,
+    },
+    md: {
+      shadowColor, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08 * boost, shadowRadius: 8, elevation: 4,
+    },
+    lg: {
+      shadowColor, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1 * boost, shadowRadius: 16, elevation: 8,
+    },
+  } as const;
+}
+
+export type ShadowTokens = ReturnType<typeof getShadow>;
+
+// Backward-compatible static export — pre-refactor call sites (`...Shadow.sm`)
+// keep working unchanged. New/updated call sites should prefer
+// `useTheme().shadow` so dark mode gets real depth instead of light-mode shadows
+// painted over a dark surface.
+export const Shadow = getShadow(false);
+
+// ─── Motion ─────────────────────────────────────────────────────────────────────
+// Every animation in the app must reference these durations — no inline "380",
+// "250", "900" scattered across screens. Named by intent, not by number, so a
+// future "make transitions snappier" change is a one-line edit here.
+export const Motion = {
+  duration: {
+    instant: 100,   // press feedback, toggle flips
+    fast: 180,      // small state changes, chip selection
+    base: 280,      // default — card entrance, fade, most UI motion
+    slow: 420,      // sheet/modal presentation, larger surface changes
+    deliberate: 700, // celebratory moments (job delivered), used sparingly
   },
-  md: {
-    shadowColor: '#1A1A2E',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
+  // Named curves — pair with Easing.bezier(...) or Easing.out(Easing.quad) etc.
+  // at the call site; centralized here as the *decision*, not the RN API surface.
+  curve: {
+    standard: 'easeOut',   // entrances — decelerate into place
+    accelerate: 'easeIn',  // exits — accelerate away
+    smooth: 'easeInOut',   // loops, continuous motion (spin, float)
   },
-  lg: {
-    shadowColor: '#1A1A2E',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 8,
-  },
+} as const;
+
+// ─── Opacity ────────────────────────────────────────────────────────────────────
+export const Opacity = {
+  pressed: 0.7,     // the ONE press-feedback value — replaces 5 scattered activeOpacity magic numbers
+  disabled: 0.4,
+  overlay: 0.5,      // modal/sheet scrims
+  subtle: 0.06,      // faint fills (e.g. a colored tint over a neutral background)
+} as const;
+
+// ─── Border Width ───────────────────────────────────────────────────────────────
+export const BorderWidth = {
+  hairline: 1,
+  thin: 1.5,
+  medium: 2,
+  thick: 3, // status-accent borders (e.g. StatusBadge left edge)
+} as const;
+
+// ─── Icon Size ──────────────────────────────────────────────────────────────────
+export const IconSize = {
+  xs: 12,
+  sm: 16,
+  md: 20,
+  lg: 24,
+  xl: 32,
+  xxl: 48,
+} as const;
+
+// ─── Touch Target ───────────────────────────────────────────────────────────────
+// 44pt is the platform-accessibility floor (Apple HIG / Material). Every
+// pressable primitive should hit at least this via hitSlop or minHeight/minWidth.
+export const TouchTarget = {
+  minimum: 44,
 } as const;
 
 // ─── Job Status Config ─────────────────────────────────────────────────────────

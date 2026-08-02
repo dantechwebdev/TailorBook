@@ -18,3 +18,5 @@ export async function reconcileReminders(_jobs: Job[], _reminders: JobReminder[]
 export async function scheduleScratchReminder(_noteId: string, _scheduledAt: Date, _text: string): Promise<string | null> { return null; }
 export async function cancelScratchReminder(_identifier: string): Promise<void> {}
 export function addNotificationResponseListener(_handler: (jobId: string) => void): { remove: () => void } { return { remove: () => {} }; }
+export async function clearBadge(): Promise<void> {}
+export async function getLastNotificationResponse(): Promise<string | null> { return null; }

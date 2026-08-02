@@ -24,6 +24,8 @@ import { aiService } from './AIService';
 import { toolRegistry, registerBuiltInTools } from './tools/ToolRegistry';
 import { contextEngine } from './context/ContextEngine';
 import { createLogger } from '../../utils/logger';
+import { useStore } from '../../context/store';
+import { differenceInCalendarDays, parseISO, isSameDay } from 'date-fns';
 
 const log = createLogger('AIOrchestrator');
 
@@ -167,27 +169,98 @@ class AIOrchestrator {
       contextLines.push(`Recent actions: ${context.recentActions.join('; ')}`);
     }
 
+    const snapshotLines = this.buildBusinessSnapshot(context);
+
     return [
       SYSTEM_IDENTITY,
       '',
       'CURRENT CONTEXT:',
       contextLines.join('\n'),
+      snapshotLines.length > 0 ? '\nBUSINESS SNAPSHOT (use only if genuinely relevant to what the tailor asked — never volunteer all of this unprompted):' : '',
+      snapshotLines.join('\n'),
       '',
       'AVAILABLE TOOLS (only in this context):',
       manifest,
       '',
       TOOL_CALL_INSTRUCTIONS,
-    ].join('\n');
+    ].filter(Boolean).join('\n');
+  }
+
+  /**
+   * Business-wide facts the AI should be aware of on every turn, regardless
+   * of which single job/customer is on screen — this is what lets it notice
+   * "tomorrow already has six deliveries" or "this customer has an
+   * outstanding balance" without the tailor having to ask. Kept to genuinely
+   * useful, cheaply-computed facts; not a full data dump (the system prompt
+   * instructs the model to mention these only when relevant, not recite them
+   * every turn — a psychic assistant notices things, it doesn't narrate a
+   * spreadsheet).
+   */
+  private buildBusinessSnapshot(context: AIActiveContext): string[] {
+    const { jobs, customers } = useStore.getState();
+    const lines: string[] = [];
+    const today = new Date();
+
+    const active = jobs.filter((j) => j.status !== 'Delivered');
+    const overdue = active.filter((j) => {
+      try { return parseISO(j.deliveryDate) < today; } catch { return false; }
+    });
+    const dueToday = active.filter((j) => {
+      try { return isSameDay(parseISO(j.deliveryDate), today); } catch { return false; }
+    });
+    const dueTomorrow = active.filter((j) => {
+      try { return differenceInCalendarDays(parseISO(j.deliveryDate), today) === 1; } catch { return false; }
+    });
+
+    if (overdue.length > 0) lines.push(`${overdue.length} job(s) are overdue right now.`);
+    if (dueToday.length > 0) lines.push(`${dueToday.length} deliver${dueToday.length === 1 ? 'y is' : 'ies are'} due today.`);
+    if (dueTomorrow.length > 0) lines.push(`${dueTomorrow.length} deliver${dueTomorrow.length === 1 ? 'y is' : 'ies are'} due tomorrow.`);
+
+    // If a specific customer is the active context, surface THEIR history —
+    // this is the "this customer has outstanding payment" / "you've made
+    // three similar jobs this week" kind of specific, non-generic awareness.
+    if (context.customer) {
+      const customerJobs = jobs.filter((j) => j.customerId === context.customer!.id);
+      const outstanding = customerJobs.reduce((sum, j) => sum + (j.status !== 'Delivered' ? j.balance : 0), 0);
+      if (outstanding > 0) {
+        lines.push(`${context.customer.name} has an outstanding balance of ₦${outstanding.toLocaleString()} across their active job(s).`);
+      }
+      const recentSimilar = customerJobs.filter((j) => {
+        try { return differenceInCalendarDays(today, parseISO(j.createdAt)) <= 30; } catch { return false; }
+      });
+      if (recentSimilar.length >= 3) {
+        lines.push(`${context.customer.name} has ordered ${recentSimilar.length} jobs in the last 30 days — a repeat customer worth noting.`);
+      }
+    }
+
+    // Same idea for whichever job is active: is it promised for a day that's
+    // already overloaded?
+    if (context.job && context.job.status !== 'Delivered') {
+      try {
+        const sameDay = active.filter((j) => isSameDay(parseISO(j.deliveryDate), parseISO(context.job!.deliveryDate)));
+        if (sameDay.length >= 4) {
+          lines.push(`This job's delivery date already has ${sameDay.length} other jobs promised the same day — a busy day to add to.`);
+        }
+      } catch {}
+    }
+
+    if (customers.length === 0) {
+      lines.push('No customers registered yet.');
+    }
+
+    return lines;
   }
 }
 
 // ─── Prompts ────────────────────────────────────────────────────────────────────
 
-const SYSTEM_IDENTITY = `You are the TailorBook Assistant — an intelligent employee working inside a tailoring business app, not a generic chatbot.
+const SYSTEM_IDENTITY = `You are the TailorBook Assistant — a master tailor's shop assistant working inside a tailoring business app, not a generic chatbot.
 
 You already know the tailor's active screen, customer, and job from the context below. NEVER ask which customer or job the tailor means if one is already active — use it directly.
 
-Speak briefly and practically, like a competent shop assistant. Use ₦ for currency.`;
+You also have a business snapshot (overdue jobs, today/tomorrow's delivery load, the active customer's payment history). When something in it is genuinely relevant to what the tailor just asked, mention it specifically and briefly — "Grace still owes ₦15,000 on this" beats a generic "let me check the balance." Never recite the whole snapshot unprompted; notice one relevant thing, don't narrate a report.
+
+Speak briefly and practically, like a competent shop assistant who's paying attention. Use ₦ for currency. Never invent a number, date, or customer detail that isn't in the context you were given.`;
 
 const TOOL_CALL_INSTRUCTIONS = `If the tailor's request requires an action (estimating, generating a document, sending a message, saving a note, generating a design), respond with ONLY a JSON object naming the tool and its arguments, wrapped in a \`\`\`json code block:
 {"tool": "ToolName", "args": {"param": "value"}}

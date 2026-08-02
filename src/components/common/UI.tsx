@@ -10,7 +10,7 @@ import {
   TextStyle,
   Image,
 } from 'react-native';
-import { Typography, Spacing, Radius, Shadow } from '../../constants/theme';
+import { Typography, Spacing, Radius, Opacity, BorderWidth, IconSize, TouchTarget } from '../../constants/theme';
 import { getInitials, getAvatarColor } from '../../utils/helpers';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -39,7 +39,7 @@ export const Button: React.FC<ButtonProps> = ({
   style,
   fullWidth = true,
 }) => {
-  const { colors: Colors } = useTheme();
+  const { colors: Colors, shadow } = useTheme();
   const isDisabled = disabled || loading;
 
   const styles = useMemo(() => StyleSheet.create({
@@ -48,18 +48,19 @@ export const Button: React.FC<ButtonProps> = ({
       alignItems: 'center',
       justifyContent: 'center',
       borderRadius: Radius.lg,
+      minHeight: TouchTarget.minimum,
     },
     btnFullWidth: { width: '100%' },
-    btnDisabled: { opacity: 0.5 },
+    btnDisabled: { opacity: Opacity.disabled },
     btnIcon: { marginRight: Spacing.sm },
 
     btn_primary: {
       backgroundColor: Colors.primary,
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     btn_secondary: {
       backgroundColor: Colors.primaryFaint,
-      borderWidth: 1.5,
+      borderWidth: BorderWidth.thin,
       borderColor: Colors.primary + '30',
     },
     btn_ghost: {
@@ -67,7 +68,7 @@ export const Button: React.FC<ButtonProps> = ({
     },
     btn_danger: {
       backgroundColor: Colors.overdueLight,
-      borderWidth: 1.5,
+      borderWidth: BorderWidth.thin,
       borderColor: Colors.overdue + '30',
     },
 
@@ -87,13 +88,16 @@ export const Button: React.FC<ButtonProps> = ({
     btnText_sm: { fontSize: Typography.sm },
     btnText_md: { fontSize: Typography.base },
     btnText_lg: { fontSize: Typography.md, fontWeight: Typography.bold },
-  }), [Colors]);
+  }), [Colors, shadow]);
 
   return (
     <TouchableOpacity
       onPress={onPress}
       disabled={isDisabled}
-      activeOpacity={0.8}
+      activeOpacity={Opacity.pressed}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: isDisabled, busy: loading }}
       style={[
         styles.btn,
         styles[`btn_${variant}`],
@@ -261,16 +265,19 @@ interface CardProps {
 }
 
 export const Card: React.FC<CardProps> = ({ children, style, onPress, padding = Spacing.base }) => {
-  const { colors: Colors } = useTheme();
+  const { colors: Colors, shadow, isDark } = useTheme();
 
   const content = (
     <View
       style={[
         {
-          backgroundColor: Colors.surface,
+          // Dark mode: a lighter fill reads as "raised" far better than a
+          // shadow alone against a near-black background (surfaceElevated
+          // was defined but never used anywhere — this is its first consumer).
+          backgroundColor: isDark ? Colors.surfaceElevated : Colors.surface,
           borderRadius: Radius.lg,
           padding,
-          ...Shadow.sm,
+          ...shadow.sm,
         },
         style,
       ]}
@@ -281,7 +288,11 @@ export const Card: React.FC<CardProps> = ({ children, style, onPress, padding = 
 
   if (onPress) {
     return (
-      <TouchableOpacity onPress={onPress} activeOpacity={0.85}>
+      <TouchableOpacity
+        onPress={onPress}
+        activeOpacity={Opacity.pressed}
+        accessibilityRole="button"
+      >
         {content}
       </TouchableOpacity>
     );
@@ -389,7 +400,12 @@ interface EmptyStateProps {
 export const EmptyState: React.FC<EmptyStateProps> = ({ icon, title, subtitle, action }) => {
   const { colors: Colors } = useTheme();
   return (
-    <View style={{ alignItems: 'center', paddingVertical: Spacing.xxxl, paddingHorizontal: Spacing.xl }}>
+    <View
+      style={{ alignItems: 'center', paddingVertical: Spacing.xxxl, paddingHorizontal: Spacing.xl }}
+      accessible
+      accessibilityRole="text"
+      accessibilityLabel={subtitle ? `${title}. ${subtitle}` : title}
+    >
       <View
         style={{
           width: 72,
@@ -400,6 +416,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ icon, title, subtitle, a
           justifyContent: 'center',
           marginBottom: Spacing.lg,
         }}
+        importantForAccessibility="no-hide-descendants"
       >
         {icon}
       </View>
@@ -456,13 +473,16 @@ export const Chip: React.FC<ChipProps> = ({
   return (
     <TouchableOpacity
       onPress={onPress}
-      activeOpacity={0.7}
+      activeOpacity={Opacity.pressed}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected }}
       style={[
         {
           paddingHorizontal: Spacing.md,
           paddingVertical: Spacing.sm,
           borderRadius: Radius.full,
-          borderWidth: 1.5,
+          borderWidth: BorderWidth.thin,
           borderColor: selected ? activeColor : Colors.border,
           backgroundColor: selected ? activeColor + '15' : Colors.surface,
           marginRight: Spacing.sm,
@@ -562,7 +582,11 @@ export const RowItem: React.FC<RowItemProps> = ({
   );
 
   if (onPress) {
-    return <TouchableOpacity onPress={onPress} activeOpacity={0.7}>{content}</TouchableOpacity>;
+    return (
+      <TouchableOpacity onPress={onPress} activeOpacity={Opacity.pressed} accessibilityRole="button">
+        {content}
+      </TouchableOpacity>
+    );
   }
   return content;
 };

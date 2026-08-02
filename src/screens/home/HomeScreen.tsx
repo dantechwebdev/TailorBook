@@ -21,7 +21,7 @@ import {
   IconProps,
 } from '../../../assets/icons/custom';
 import { useStore } from '../../context/store';
-import { Typography, Spacing, Radius, Shadow, getJobStatusConfig } from '../../constants/theme';
+import { Typography, Spacing, Radius, Shadow, Opacity, getJobStatusConfig } from '../../constants/theme';
 import { MenuIcon, NotificationsIcon, ChevronRightIcon } from '../../components/common/Icons';
 import { getFirstName, formatNaira } from '../../utils/helpers';
 import { Job } from '../../types';
@@ -32,6 +32,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
   useEntrance, useSpringScale, useBellShake, useFloatLoop, useShimmerPress, useFadeIn,
 } from '../../utils/animations';
+import { businessInsightService } from '../../services/ai/BusinessInsightService';
 
 const CARD_WIDTH = Dimensions.get('window').width * 0.68;
 const CARD_HEIGHT = CARD_WIDTH * 1.2;
@@ -131,9 +132,19 @@ const HomeScreen: React.FC = () => {
     dueToday, overdueJobs, readyJobs, recentJobs,
     pendingWaybills, outstandingBalances, unreadNotificationCount,
     settings, initialize, refreshJobs, loadSettings,
+    jobs, customers,
   } = useStore();
-  const { colors: Colors, isDark } = useTheme();
+  const { colors: Colors, isDark, shadow} = useTheme();
   const { authState, syncState, syncNow } = useAuth();
+
+  // Business-at-a-glance — the tailor should know the state of things within
+  // three seconds of opening the app. Reuses the same BusinessInsightService
+  // the AI's GenerateBusinessInsightTool calls, so the dashboard number and
+  // whatever the AI says about revenue never disagree.
+  const weekSnapshot = useMemo(
+    () => businessInsightService.compute(jobs, customers.length, 'week'),
+    [jobs, customers.length]
+  );
 
   // ── Entrance animations ──────────────────────────────────────────────────
   const greetingAnim  = useEntrance(0,   8);   // greeting block fades + rises first
@@ -204,6 +215,39 @@ const HomeScreen: React.FC = () => {
       alignItems: 'center', justifyContent: 'center',
     },
 
+    // Business Snapshot — revenue/overdue/due-today at a glance
+    snapshotRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: isDark ? Colors.surfaceElevated : Colors.surface,
+      borderRadius: Radius.lg,
+      marginHorizontal: Spacing.base,
+      marginTop: Spacing.md,
+      marginBottom: Spacing.lg,
+      paddingVertical: Spacing.md,
+      ...shadow.sm,
+    },
+    snapshotStat: {
+      flex: 1,
+      alignItems: 'center',
+      gap: 2,
+    },
+    snapshotValue: {
+      fontSize: Typography.lg,
+      fontWeight: Typography.bold,
+      color: Colors.textPrimary,
+    },
+    snapshotLabel: {
+      fontSize: 11,
+      color: Colors.textTertiary,
+      fontWeight: Typography.medium,
+    },
+    snapshotDivider: {
+      width: 1,
+      height: 32,
+      backgroundColor: Colors.border,
+    },
+
     newOrderBtn: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -214,7 +258,7 @@ const HomeScreen: React.FC = () => {
       marginBottom: Spacing.xxl,
       marginHorizontal: Spacing.base,
       gap: Spacing.md,
-      ...Shadow.md,
+      ...shadow.md,
     },
     newOrderPlus: {
       fontSize: 28,
@@ -267,7 +311,7 @@ const HomeScreen: React.FC = () => {
       borderRadius: Radius.lg,
       overflow: 'hidden',
       marginHorizontal: Spacing.base,
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     taskCard: {
       flexDirection: 'row',
@@ -302,7 +346,7 @@ const HomeScreen: React.FC = () => {
       padding: Spacing.xl,
       alignItems: 'center',
       marginHorizontal: Spacing.base,
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     emptyTaskTitle: {
       fontSize: Typography.md,
@@ -325,7 +369,7 @@ const HomeScreen: React.FC = () => {
       backgroundColor: Colors.surface,
       borderRadius: Radius.xl,
       overflow: 'hidden',
-      ...Shadow.md,
+      ...shadow.md,
     },
     recentCardMedia: {
       height: CARD_WIDTH * 0.72,
@@ -442,7 +486,7 @@ const HomeScreen: React.FC = () => {
       borderRadius: Radius.lg,
       padding: Spacing.md,
       alignItems: 'center',
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     quickBtnEmoji: { fontSize: 20, marginBottom: 4 },  // #14
     quickBtnLabel: {
@@ -485,7 +529,7 @@ const HomeScreen: React.FC = () => {
       color: Colors.white,
       letterSpacing: 0.3,
     },
-  }), [Colors, isDark]);
+  }), [Colors, isDark, shadow]);
 
   const [refreshing, setRefreshing] = React.useState(false);
 
@@ -645,7 +689,7 @@ const HomeScreen: React.FC = () => {
             {photoUri ? (
               <TouchableOpacity
                 onPress={() => navigation.navigate('AccountScreen')}
-                activeOpacity={0.85}
+                activeOpacity={Opacity.pressed}
               >
                 <Image
                   source={{ uri: photoUri }}
@@ -657,12 +701,46 @@ const HomeScreen: React.FC = () => {
               <TouchableOpacity
                 onPress={() => navigation.navigate('AccountScreen')}
                 style={styles.greetingAvatarPlaceholder}
-                activeOpacity={0.85}
+                activeOpacity={Opacity.pressed}
+                accessibilityRole="button"
+                accessibilityLabel="Account"
               >
                 <Ionicons name="person-circle-outline" size={44} color={Colors.textTertiary} />
               </TouchableOpacity>
             )}
           </View>
+        </Animated.View>
+
+        {/* ─── Business Snapshot — the state of the business in 3 seconds ─── */}
+        <Animated.View style={cloudAnim.style}>
+          <TouchableOpacity
+            style={styles.snapshotRow}
+            onPress={() => navigation.navigate('FinancialsScreen')}
+            activeOpacity={Opacity.pressed}
+            accessibilityRole="button"
+            accessibilityLabel={`This week: ${formatNaira(weekSnapshot.totalRevenue)} in revenue, ${overdueJobs.length} overdue, ${dueToday.length} due today`}
+          >
+            <View style={styles.snapshotStat}>
+              <Text style={styles.snapshotValue} numberOfLines={1} adjustsFontSizeToFit>
+                {formatNaira(weekSnapshot.totalRevenue)}
+              </Text>
+              <Text style={styles.snapshotLabel}>This week</Text>
+            </View>
+            <View style={styles.snapshotDivider} />
+            <View style={styles.snapshotStat}>
+              <Text style={[styles.snapshotValue, overdueJobs.length > 0 && { color: Colors.overdue }]}>
+                {overdueJobs.length}
+              </Text>
+              <Text style={styles.snapshotLabel}>Overdue</Text>
+            </View>
+            <View style={styles.snapshotDivider} />
+            <View style={styles.snapshotStat}>
+              <Text style={[styles.snapshotValue, dueToday.length > 0 && { color: Colors.primary }]}>
+                {dueToday.length}
+              </Text>
+              <Text style={styles.snapshotLabel}>Due today</Text>
+            </View>
+          </TouchableOpacity>
         </Animated.View>
 
         {/* ─── Cloud Status Card — follows greeting ─── */}

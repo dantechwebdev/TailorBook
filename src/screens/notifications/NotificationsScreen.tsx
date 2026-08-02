@@ -39,9 +39,9 @@ function notifMeta(type: NotificationType, C: any): { icon: React.ReactNode; bg:
 const NotificationsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { notifications, markNotificationRead, markAllRead } = useStore();
-  const { colors: C } = useTheme();
+  const { colors: C, shadow} = useTheme();
   const [tab, setTab] = useState<Tab>('All');
-  const styles = useMemo(() => makeStyles(C), [C]);
+  const styles = useMemo(() => makeStyles(C, shadow), [C, shadow]);
 
   // Entrance animations
   const headerAnim = useEntrance(0, 5);
@@ -143,7 +143,7 @@ const NotificationsScreen: React.FC = () => {
   );
 };
 
-function makeStyles(C: any) {
+function makeStyles(C: any, shadow: any) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: C.background },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.base, paddingVertical: Spacing.md },
@@ -160,7 +160,7 @@ function makeStyles(C: any) {
       flexDirection: 'row', alignItems: 'center',
       backgroundColor: C.surface, borderRadius: Radius.lg,
       paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md,
-      gap: Spacing.sm, ...Shadow.sm, overflow: 'hidden',
+      gap: Spacing.sm, ...shadow.sm, overflow: 'hidden',
     },
     cardUnread: { backgroundColor: C.white },
     unreadBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3 },

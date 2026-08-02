@@ -31,7 +31,7 @@ function formatDate(iso: string): string {
 
 const StepReview: React.FC<Props> = ({ draft, onDone }) => {
   const { addCustomer, addJob, addMeasurement } = useStore();
-  const { colors: Colors } = useTheme();
+  const { colors: Colors, shadow} = useTheme();
   const [isCreating, setIsCreating] = useState(false);
 
   const styles = useMemo(() => StyleSheet.create({
@@ -54,7 +54,7 @@ const StepReview: React.FC<Props> = ({ draft, onDone }) => {
       backgroundColor: Colors.surface,
       borderRadius: Radius.xl,
       padding: Spacing.base,
-      ...Shadow.md,
+      ...shadow.md,
     },
     reviewSection: { marginBottom: Spacing.md },
     reviewSectionTitle: {
@@ -124,7 +124,7 @@ const StepReview: React.FC<Props> = ({ draft, onDone }) => {
       paddingVertical: Spacing.lg,
       borderRadius: Radius.lg,
       alignItems: 'center',
-      ...Shadow.md,
+      ...shadow.md,
     },
     createBtnLoading: { opacity: 0.7 },
     createBtnText: {
@@ -139,7 +139,7 @@ const StepReview: React.FC<Props> = ({ draft, onDone }) => {
       marginTop: Spacing.md,
       textAlign: 'center',
     },
-  }), [Colors]);
+  }), [Colors, shadow]);
 
   const customerName = draft.isNewCustomer
     ? draft.newCustomerName

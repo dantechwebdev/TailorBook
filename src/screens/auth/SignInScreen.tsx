@@ -36,7 +36,7 @@ import { Typography, Spacing, Radius, Shadow } from '../../constants/theme';
 
 const SignInScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-  const { colors: Colors } = useTheme();
+  const { colors: Colors, shadow} = useTheme();
   const { signIn } = useAuth();
 
   const [email, setEmail] = useState('');
@@ -47,7 +47,7 @@ const SignInScreen: React.FC = () => {
   const [passwordError, setPasswordError] = useState('');
 
   const passwordRef = useRef<TextInput>(null);
-  const styles = React.useMemo(() => createStyles(Colors), [Colors]);
+  const styles = React.useMemo(() => createStyles(Colors, shadow), [Colors, shadow]);
 
   const validate = (): boolean => {
     let valid = true;
@@ -238,7 +238,7 @@ const SignInScreen: React.FC = () => {
   );
 };
 
-const createStyles = (Colors: any) =>
+const createStyles = (Colors: any, shadow: any) =>
   StyleSheet.create({
     container: { flex: 1 },
     header: {
@@ -262,7 +262,7 @@ const createStyles = (Colors: any) =>
       alignItems: 'center',
       justifyContent: 'center',
       marginBottom: Spacing.lg,
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     logoEmoji: { fontSize: 34 },
     title: {
@@ -313,7 +313,7 @@ const createStyles = (Colors: any) =>
       alignItems: 'center',
       justifyContent: 'center',
       marginTop: Spacing.md,
-      ...Shadow.md,
+      ...shadow.md,
     },
     ctaBtnText: {
       fontSize: Typography.lg,

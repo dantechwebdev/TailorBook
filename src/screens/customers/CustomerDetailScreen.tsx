@@ -27,7 +27,7 @@ const CustomerDetailScreen: React.FC = () => {
   const { customerId } = route.params;
 
   const { getCustomer, getJobsByCustomer, getMeasurementsByCustomer, deleteCustomer } = useStore();
-  const { colors: Colors } = useTheme();
+  const { colors: Colors, shadow} = useTheme();
 
   const styles = useMemo(() => StyleSheet.create({
     container: {
@@ -160,7 +160,7 @@ const CustomerDetailScreen: React.FC = () => {
       backgroundColor: Colors.surface,
       borderRadius: Radius.lg,
       overflow: 'hidden',
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     jobRow: {
       flexDirection: 'row',
@@ -180,7 +180,7 @@ const CustomerDetailScreen: React.FC = () => {
       color: Colors.textSecondary,
       marginTop: 2,
     },
-  }), [Colors]);
+  }), [Colors, shadow]);
 
   const customer = getCustomer(customerId);
   const jobs = useMemo(() => getJobsByCustomer(customerId), [customerId]);

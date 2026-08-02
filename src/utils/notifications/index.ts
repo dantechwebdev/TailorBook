@@ -1,4 +1,4 @@
-export { requestNotificationPermissions, addNotificationResponseListener } from './scheduler';
+export { requestNotificationPermissions, addNotificationResponseListener, clearBadge, getLastNotificationResponse } from './scheduler';
 
 export {
   REMINDER_PRESETS,

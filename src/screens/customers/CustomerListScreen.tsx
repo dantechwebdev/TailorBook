@@ -17,11 +17,11 @@ import { useTheme } from '../../context/ThemeContext';
 const CustomerListScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { customers, refreshCustomers, getJobsByCustomer } = useStore();
-  const { colors: C } = useTheme();
+  const { colors: C, shadow} = useTheme();
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [searchResults, setSearchResults] = useState<Customer[] | null>(null);
-  const styles = useMemo(() => makeStyles(C), [C]);
+  const styles = useMemo(() => makeStyles(C, shadow), [C, shadow]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -129,16 +129,16 @@ const CustomerListScreen: React.FC = () => {
   );
 };
 
-function makeStyles(C: any) {
+function makeStyles(C: any, shadow: any) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: C.background },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.base, paddingVertical: Spacing.md },
     headerTitle: { fontSize: Typography.xl, fontWeight: Typography.bold, color: C.textPrimary },
-    addBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.primary, alignItems: 'center', justifyContent: 'center', ...Shadow.sm },
-    searchWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.surface, borderRadius: Radius.lg, marginHorizontal: Spacing.base, marginBottom: Spacing.md, paddingHorizontal: Spacing.md, paddingVertical: 12, gap: Spacing.sm, ...Shadow.sm },
+    addBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.primary, alignItems: 'center', justifyContent: 'center', ...shadow.sm },
+    searchWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.surface, borderRadius: Radius.lg, marginHorizontal: Spacing.base, marginBottom: Spacing.md, paddingHorizontal: Spacing.md, paddingVertical: 12, gap: Spacing.sm, ...shadow.sm },
     searchInput: { flex: 1, fontSize: Typography.base, color: C.textPrimary, padding: 0 },
     list: { paddingHorizontal: Spacing.base, paddingBottom: 120, flexGrow: 1 },
-    card: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.surface, borderRadius: Radius.lg, padding: Spacing.md, gap: Spacing.md, ...Shadow.sm },
+    card: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.surface, borderRadius: Radius.lg, padding: Spacing.md, gap: Spacing.md, ...shadow.sm },
     info: { flex: 1, gap: 2 },
     name: { fontSize: Typography.base, fontWeight: Typography.semibold, color: C.textPrimary },
     phone: { fontSize: Typography.sm, color: C.textSecondary },

@@ -76,7 +76,7 @@ interface Props {
 
 const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
   const { settings, saveSettings } = useStore();
-  const { colors: Colors } = useTheme();
+  const { colors: Colors, shadow} = useTheme();
 
   const [step, setStep] = useState(0);
   const [tailorName, setTailorName] = useState('');
@@ -130,7 +130,7 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
       borderRadius: 90,
       overflow: 'hidden',
       marginBottom: Spacing.md,
-      ...Shadow.md,
+      ...shadow.md,
     },
     photoPreview: { width: '100%', height: '100%' },
     photoPlaceholder: {
@@ -168,7 +168,7 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
       paddingVertical: Spacing.md + 2,
       fontSize: Typography.base,
       color: Colors.textPrimary,
-      ...Shadow.sm,
+      ...shadow.sm,
     },
 
     apparelGrid: {
@@ -183,7 +183,7 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
       alignItems: 'center',
       borderWidth: 2,
       borderColor: 'transparent',
-      ...Shadow.sm,
+      ...shadow.sm,
       minHeight: 90,
       justifyContent: 'center',
       position: 'relative',
@@ -216,7 +216,7 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
       backgroundColor: Colors.surface,
       borderWidth: 2,
       borderColor: 'transparent',
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     dayChipActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryFaint },
     dayChipText: { fontSize: Typography.base, fontWeight: Typography.semibold, color: Colors.textSecondary },
@@ -230,7 +230,7 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
       padding: Spacing.base,
       borderWidth: 2,
       borderColor: 'transparent',
-      ...Shadow.sm,
+      ...shadow.sm,
       gap: Spacing.md,
     },
     currencyRowSelected: { borderColor: Colors.primary, backgroundColor: Colors.primaryFaint },
@@ -242,7 +242,7 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
       width: '100%', backgroundColor: Colors.primary,
       paddingVertical: Spacing.md + 4,
       borderRadius: Radius.lg, alignItems: 'center',
-      ...Shadow.md,
+      ...shadow.md,
     },
     nextBtnDisabled: { backgroundColor: Colors.border },
     nextBtnText: { fontSize: Typography.lg, fontWeight: Typography.bold, color: Colors.white },
@@ -269,7 +269,7 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
     completionBtnGroup: { width: '100%', gap: Spacing.md },
     completionBtn: {
       borderRadius: Radius.xl, padding: Spacing.xl,
-      alignItems: 'center', ...Shadow.md,
+      alignItems: 'center', ...shadow.md,
     },
     completionBtnPrimary: { backgroundColor: Colors.primary },
     completionBtnPrimaryLabel: {
@@ -295,7 +295,7 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
       flex: 1, borderRadius: Radius.lg, paddingVertical: 14,
       alignItems: 'center', justifyContent: 'center',
       borderWidth: 1.5, borderColor: Colors.border,
-      backgroundColor: Colors.surface, ...Shadow.sm,
+      backgroundColor: Colors.surface, ...shadow.sm,
     },
     authBtnPrimary: {
       borderColor: Colors.primary, backgroundColor: Colors.primaryFaint,
@@ -305,7 +305,7 @@ const OnboardingFlow: React.FC<Props> = ({ onComplete }) => {
 
     doneContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.lg },
     doneTitle: { fontSize: Typography.xl, fontWeight: Typography.bold, color: Colors.textPrimary },
-  }), [Colors]);
+  }), [Colors, shadow]);
 
   const toggleApparel = (type: OutfitType) => {
     setSelectedApparels((prev) =>

@@ -47,7 +47,7 @@ const FAQ_ITEMS = [
 
 const HelpScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-  const { colors: Colors } = useTheme();
+  const { colors: Colors, shadow} = useTheme();
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   const styles = useMemo(() => StyleSheet.create({
@@ -110,7 +110,7 @@ const HelpScreen: React.FC = () => {
       backgroundColor: Colors.surface,
       borderRadius: Radius.lg,
       overflow: 'hidden',
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     faqItem: { paddingHorizontal: Spacing.base },
     faqQuestion: {
@@ -152,7 +152,7 @@ const HelpScreen: React.FC = () => {
       color: Colors.textTertiary,
       marginBottom: Spacing.md,
     },
-  }), [Colors]);
+  }), [Colors, shadow]);
 
   const toggle = (idx: number) => {
     setOpenIndex(openIndex === idx ? null : idx);

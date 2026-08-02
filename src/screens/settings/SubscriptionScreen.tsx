@@ -36,7 +36,7 @@ const PRO_FEATURES = [
 
 const SubscriptionScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-  const { colors: Colors } = useTheme();
+  const { colors: Colors, shadow} = useTheme();
 
   const styles = useMemo(() => StyleSheet.create({
     container: { flex: 1, backgroundColor: Colors.background },
@@ -71,7 +71,7 @@ const SubscriptionScreen: React.FC = () => {
       borderRadius: Radius.xl,
       padding: Spacing.lg,
       marginBottom: Spacing.xl,
-      ...Shadow.lg,
+      ...shadow.lg,
     },
     proCardTop: {
       flexDirection: 'row',
@@ -142,7 +142,7 @@ const SubscriptionScreen: React.FC = () => {
       borderRadius: Radius.lg,
       padding: Spacing.base,
       marginBottom: Spacing.md,
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     proCardHighlight: {
       borderWidth: 2,
@@ -220,7 +220,7 @@ const SubscriptionScreen: React.FC = () => {
       color: Colors.textSecondary,
       fontWeight: Typography.medium,
     },
-  }), [Colors]);
+  }), [Colors, shadow]);
 
   const handleUpgrade = () => {
     Alert.alert(

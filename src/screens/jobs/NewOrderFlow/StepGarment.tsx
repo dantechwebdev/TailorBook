@@ -55,7 +55,7 @@ const GARMENT_OPTIONS: GarmentOption[] = [
 const KNOWN_TYPES = GARMENT_OPTIONS.map((o) => o.type);
 
 const StepGarment: React.FC<Props> = ({ draft, onChange, onNext }) => {
-  const { colors: Colors } = useTheme();
+  const { colors: Colors, shadow} = useTheme();
   const [style, setStyle] = useState(draft.style);
   const [fabric, setFabric] = useState(draft.fabric);
 
@@ -96,7 +96,7 @@ const StepGarment: React.FC<Props> = ({ draft, onChange, onNext }) => {
       alignItems: 'center',
       borderWidth: 2,
       borderColor: 'transparent',
-      ...Shadow.sm,
+      ...shadow.sm,
       minHeight: 110,
       justifyContent: 'center',
       position: 'relative',
@@ -140,7 +140,7 @@ const StepGarment: React.FC<Props> = ({ draft, onChange, onNext }) => {
       borderWidth: 2,
       borderColor: Colors.primary,
       padding: Spacing.base,
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     customInputLabel: {
       fontSize: Typography.sm,
@@ -186,7 +186,7 @@ const StepGarment: React.FC<Props> = ({ draft, onChange, onNext }) => {
       paddingVertical: Spacing.md,
       fontSize: Typography.base,
       color: Colors.textPrimary,
-      ...Shadow.sm,
+      ...shadow.sm,
     },
     footer: {
       padding: Spacing.base,
@@ -205,7 +205,7 @@ const StepGarment: React.FC<Props> = ({ draft, onChange, onNext }) => {
       color: Colors.white,
       fontWeight: Typography.bold,
     },
-  }), [Colors]);
+  }), [Colors, shadow]);
 
   const selected = draft.outfitType;
 

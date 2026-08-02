@@ -23,7 +23,7 @@ interface Props {
 }
 
 const StepPhotos: React.FC<Props> = ({ draft, onChange, onNext }) => {
-  const { colors: Colors } = useTheme();
+  const { colors: Colors, shadow} = useTheme();
   const [loading, setLoading] = useState(false);
   const photos = draft.photoUris || [];
 
@@ -119,7 +119,7 @@ const StepPhotos: React.FC<Props> = ({ draft, onChange, onNext }) => {
       borderRadius: Radius.xl,
       paddingVertical: Spacing.xl,
       alignItems: 'center',
-      ...Shadow.sm,
+      ...shadow.sm,
       gap: Spacing.sm,
     },
     addBtnIcon: { fontSize: 32 },
@@ -144,7 +144,7 @@ const StepPhotos: React.FC<Props> = ({ draft, onChange, onNext }) => {
       color: Colors.white,
       fontWeight: Typography.bold,
     },
-  }), [Colors]);
+  }), [Colors, shadow]);
 
   const requestCameraPermission = async () => {
     if (Platform.OS === 'web') return true;

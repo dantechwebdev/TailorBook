@@ -104,3 +104,28 @@ export function addNotificationResponseListener(
     if (jobId) handler(jobId as string);
   });
 }
+
+// Clears the app icon's badge count (e.g. after the tailor opens the app and
+// has seen their pending reminders). No-op on web / when notifications aren't
+// available — consistent with every other function in this module.
+export async function clearBadge(): Promise<void> {
+  if (!Notifications) return;
+  try {
+    await Notifications.setBadgeCountAsync(0);
+  } catch {}
+}
+
+// Returns the notification response that launched the app, if the tailor
+// tapped a notification while the app was fully closed (cold start). Must be
+// checked once on mount — the response listener alone only fires for taps
+// that happen while the app is already running or backgrounded.
+export async function getLastNotificationResponse(): Promise<string | null> {
+  if (!Notifications) return null;
+  try {
+    const response = await Notifications.getLastNotificationResponseAsync();
+    const jobId = response?.notification.request.content.data?.jobId;
+    return (jobId as string) ?? null;
+  } catch {
+    return null;
+  }
+}
